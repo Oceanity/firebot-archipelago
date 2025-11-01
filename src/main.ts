@@ -1,33 +1,41 @@
-import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
+import {
+  Firebot,
+  Integration,
+} from "@crowbartools/firebot-custom-scripts-types";
+import { initModules, logger } from "@oceanity/firebot-helpers/firebot";
+import { initArchipelagoIntegration } from "./archipelago-integration";
+import {
+  ARCHIPELAGO_INTEGRATION_AUTHOR,
+  ARCHIPELAGO_INTEGRATION_DESCRIPTION,
+  ARCHIPELAGO_INTEGRATION_FIREBOT_VERSION,
+  ARCHIPELAGO_INTEGRATION_NAME,
+  ARCHIPELAGO_INTEGRATION_VERSION,
+} from "./constants";
+import { ArchipelagoIntegrationDefinition } from "./integration-definition";
+import { ArchipelagoIntegrationSettings } from "./types";
 
-interface Params {
-  message: string;
-}
-
-const script: Firebot.CustomScript<Params> = {
+const script: Firebot.CustomScript = {
   getScriptManifest: () => {
     return {
-      name: "Starter Custom Script",
-      description: "A starter custom script for build",
-      author: "SomeDev",
-      version: "1.0",
-      firebotVersion: "5",
+      name: ARCHIPELAGO_INTEGRATION_NAME,
+      description: ARCHIPELAGO_INTEGRATION_DESCRIPTION,
+      author: ARCHIPELAGO_INTEGRATION_AUTHOR,
+      version: ARCHIPELAGO_INTEGRATION_VERSION,
+      firebotVersion: ARCHIPELAGO_INTEGRATION_FIREBOT_VERSION,
     };
   },
-  getDefaultParameters: () => {
-    return {
-      message: {
-        type: "string",
-        default: "Hello World!",
-        description: "Message",
-        secondaryDescription: "Enter a message here",
-        title: "Hello!",
-      },
-    };
-  },
+  getDefaultParameters: () => ({}),
   run: (runRequest) => {
-    const { logger } = runRequest.modules;
-    logger.info(runRequest.parameters.message);
+    initModules(runRequest.modules);
+
+    logger.info("Archipelago Integration Script started");
+
+    const integration: Integration<ArchipelagoIntegrationSettings> = {
+      definition: ArchipelagoIntegrationDefinition,
+      integration: initArchipelagoIntegration(runRequest.modules.eventManager),
+    };
+
+    runRequest.modules.integrationManager.registerIntegration(integration);
   },
 };
 
