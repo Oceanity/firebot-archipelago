@@ -18,7 +18,7 @@ export const ArchipelagoIntegrationDefinition: IntegrationDefinition<Archipelago
       connection: {
         title: "Connection",
         settings: {
-          host: {
+          hostname: {
             type: "string",
             default: "",
             title: "Host",
@@ -27,7 +27,7 @@ export const ArchipelagoIntegrationDefinition: IntegrationDefinition<Archipelago
               required: true,
             },
           },
-          name: {
+          slot: {
             type: "string",
             default: "",
             title: "Player Name",

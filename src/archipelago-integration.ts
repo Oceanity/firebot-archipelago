@@ -5,8 +5,8 @@ import {
 } from "@crowbartools/firebot-custom-scripts-types";
 import { EventManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-manager";
 import { logger } from "@oceanity/firebot-helpers/firebot";
-import { Client as ArchipelagoClient } from "archipelago.js";
 import { TypedEmitter } from "tiny-typed-emitter";
+import { APClient } from "./archipelago/client";
 import { ArchipelagoIntegrationSettings } from "./types";
 
 class IntegrationEventEmitter extends TypedEmitter<IntegrationEvents> {}
@@ -17,7 +17,7 @@ export class ArchipelagoIntegration
 {
   connected: boolean = false;
 
-  public client: ArchipelagoClient;
+  public client: APClient;
 
   constructor(private eventManager: EventManager) {
     super();
@@ -39,36 +39,24 @@ export class ArchipelagoIntegration
   private async initArchipelagoClient(
     userSettings?: ArchipelagoIntegrationSettings
   ) {
-    if (this.client) {
-      try {
-        this.client.socket.disconnect();
-      } catch (err) {
-        logger.error("Error disconnecting from Archipelago client", err);
-      }
+    if (!this.client) {
+      this.client = new APClient();
     }
 
-    logger.info(JSON.stringify(userSettings));
+    const { hostname, slot, password } = userSettings.connection;
 
-    const hostname = userSettings?.connection.host;
-    const name = userSettings?.connection.name;
-
-    if (!hostname || !name) {
+    if (!hostname || !slot) {
       logger.error(
-        "Archipelago client host and name are required to connect to the server"
+        "Archipelago Session hostname and slot are required to connect"
       );
       return;
     }
 
     try {
-      logger.info(`Logging in to Archipelago client at ${hostname} as ${name}`);
-      this.client = new ArchipelagoClient();
-
-      await this.client
-        .login(hostname, name)
-        .then(() => logger.info("Logged in to Archipelago client"))
-        .catch((err) => {
-          logger.error("Error connecting to Archipelago server", err);
-        });
+      logger.info(
+        `Logging in to Archipelago Session at ${hostname} as ${slot}`
+      );
+      this.client.connect(hostname, slot, password);
     } catch (err) {
       logger.error("Error creating Archipelago client", err);
       return;

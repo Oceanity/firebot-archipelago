@@ -3,8 +3,11 @@ import {
   Integration,
 } from "@crowbartools/firebot-custom-scripts-types";
 import { initModules, logger } from "@oceanity/firebot-helpers/firebot";
+import { initFrontendCommunicator } from "./archipelago-frontend-events";
 import { initArchipelagoIntegration } from "./archipelago-integration";
+import { ArchipelagoUIExtension } from "./archipelago-ui-extension";
 import {
+  ARCHIPELAGO_EVENT_SOURCE,
   ARCHIPELAGO_INTEGRATION_AUTHOR,
   ARCHIPELAGO_INTEGRATION_DESCRIPTION,
   ARCHIPELAGO_INTEGRATION_FIREBOT_VERSION,
@@ -36,6 +39,16 @@ const script: Firebot.CustomScript = {
     };
 
     runRequest.modules.integrationManager.registerIntegration(integration);
+
+    runRequest.modules.uiExtensionManager.registerUIExtension(
+      ArchipelagoUIExtension
+    );
+
+    runRequest.modules.eventManager.registerEventSource(
+      ARCHIPELAGO_EVENT_SOURCE
+    );
+
+    initFrontendCommunicator(runRequest.modules.frontendCommunicator);
   },
 };
 
