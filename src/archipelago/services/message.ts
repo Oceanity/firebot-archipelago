@@ -1,4 +1,4 @@
-import { frontendCommunicator } from "@oceanity/firebot-helpers/firebot";
+import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { MessagePartType, PrintJsonType } from "../../enums";
 import {
@@ -18,7 +18,12 @@ import {
 import { Player } from "../classes/player";
 import { APSession } from "../session";
 
-type Events = {};
+type Events = {
+  message: (data: {
+    message: { text: string; html: string };
+    slot: string;
+  }) => void;
+};
 
 export type MessageLog = Array<{
   text: string;
@@ -46,16 +51,17 @@ export class MessageService extends TypedEmitter<Events> {
   }
 
   public get htmlLog(): Array<string> {
+    logger.info("Getting HTML Log");
     return this.#messages.map((entry) => entry.html);
   }
 
   public push([message]: MessageLog) {
     this.#messages.push(message);
 
-    frontendCommunicator.fireEventAsync(
-      "archipelago:gotLogMessage",
-      message.html
-    );
+    this.emit("message", {
+      message: { text: message.text, html: message.html },
+      slot: this.#session.players.self.name,
+    });
   }
 
   #onPrintJson = (packet: PrintJSONPacket): void => {
@@ -109,9 +115,12 @@ export class MessageService extends TypedEmitter<Events> {
 
     const text = nodes.map((node) => node.text).join("");
     const html = nodes.map((node) => node.html).join("");
+    const message: MessageLog = [{ text, html, nodes }];
 
-    this.#messages.push({ text, html, nodes });
-
-    frontendCommunicator.fireEventAsync("archipelago:gotLogMessage", html);
+    this.#messages.push(...message);
+    this.emit("message", {
+      message: { text, html },
+      slot: this.#session.players.self.name,
+    });
   };
 }

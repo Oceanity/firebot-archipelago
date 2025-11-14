@@ -138,6 +138,11 @@ export type APRoom = {
   tags: Array<string>;
 };
 
+export type ServiceResponse = {
+  success: boolean;
+  errors?: Array<string>;
+};
+
 //#region PrintJSON Message Parts
 
 export type ColorJSONMessagePart = {

@@ -115,7 +115,7 @@ export class LocationMessageNode extends BaseMessageNode {
     super(session, part);
 
     const player = session.players.getPlayer(part.player);
-    const game = session.packages.getPackage(player.game);
+    const game = session.getPackage(player.game);
     this.part = part;
 
     switch (part.type) {
@@ -127,11 +127,7 @@ export class LocationMessageNode extends BaseMessageNode {
 
       default: {
         this.id = parseInt(part.text);
-        this.#name = session.packages.getLocationName(
-          player.game,
-          part.text,
-          true
-        );
+        this.#name = session.getLocationName(player.game, part.text, true);
         break;
       }
     }

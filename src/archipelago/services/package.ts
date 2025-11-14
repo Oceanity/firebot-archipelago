@@ -1,11 +1,10 @@
 import { logger } from "@oceanity/firebot-helpers/firebot";
-import { TypedEmitter } from "tiny-typed-emitter";
-import { APSession } from "../../archipelago/session";
 import { ClientCommand } from "../../enums";
 import { DataPackage, GamePackage } from "../../types";
-import { GetDataPackagePacket, RoomInfoPacket } from "../interfaces/packets";
+import { GetDataPackagePacket } from "../interfaces/packets";
+import { APSession } from "../session";
 
-class StoredGamePackage {
+export class StoredGamePackage {
   public readonly game: string;
   public readonly checksum: string;
   public readonly itemTable: Readonly<Record<string, number>>;
@@ -39,53 +38,51 @@ class StoredGamePackage {
   }
 }
 
-export class DataPackageService extends TypedEmitter<{}> {
-  readonly #session: APSession;
-  readonly #games: Set<string>;
-  readonly #checksums: Map<string, string>;
-  readonly #packages: Map<string, StoredGamePackage>;
+export class DataPackageService {
+  readonly #packages: Map<string, StoredGamePackage> = new Map();
 
-  constructor(session: APSession) {
-    super();
+  constructor() {}
 
-    this.#games = new Set();
-    this.#checksums = new Map();
-    this.#packages = new Map();
-
-    this.#session = session;
-    this.#session.socket.on("roomInfo", this.#onRoomInfo.bind(this));
-    // .on("dataPackage", this.#onDataPackage.bind(this));
+  public get checksums() {
+    return new Set(this.#packages.keys());
   }
 
   public async fetchPackage(
-    games: Array<string> = [],
+    session: APSession,
+    gameSums: Array<[string, string]>,
     update: boolean = true
   ): Promise<DataPackage> {
-    if (games.length === 0) {
-      games = [...this.#games];
-    }
+    const data: DataPackage = { games: {} };
 
-    games = games.filter((game) => {
-      if (!this.#games.has(game)) return false;
-
-      if (this.#packages.get(game)?.checksum !== this.#checksums.get(game))
-        return true;
-
-      return false;
+    const existingChecksums = this.checksums;
+    const filteredGameSums = gameSums.filter(([game, checksum]) => {
+      if (existingChecksums.has(checksum)) {
+        logger.info(
+          `Archipelago: Skipping fetching package for '${game}' (checksum: '${checksum}') as it already exists.`
+        );
+        return false;
+      }
+      return true;
     });
 
-    const data: DataPackage = { games: {} };
-    for (const game of games) {
+    for (const [game, checksum] of filteredGameSums) {
       const request: GetDataPackagePacket = {
         cmd: ClientCommand.GetDataPackage,
         games: [game],
       };
 
-      logger.info(`Fetching package for: ${game}`);
+      logger.info(
+        `Archipelago: Fetching package for '${game}' (checksum: '${checksum}')`
+      );
 
-      const [response] = await this.#session.socket
-        .send(request)
-        .wait("dataPackage");
+      const [response] = await session.socket.send(request).wait("dataPackage");
+
+      if (response.data.games[game].checksum !== checksum) {
+        logger.error(
+          `Archipelago: Checksum mismatch for game '${game}'! The server returned unexpected checksum '${response.data.games[game].checksum}`
+        );
+        continue;
+      }
 
       data.games[game] = response.data.games[game];
     }
@@ -99,23 +96,32 @@ export class DataPackageService extends TypedEmitter<{}> {
 
   public storePackage = (dataPackage: DataPackage): void => {
     Object.entries(dataPackage.games).forEach(([game, data]) => {
-      logger.info(`Storing game: ${game}`);
-      this.#packages.set(game, new StoredGamePackage(game, data));
-      this.#checksums.set(game, data.checksum);
+      logger.info(
+        `Archipelago: Storing data package for game '${game}' (checksum: '${data.checksum}')`
+      );
+
+      this.#packages.set(
+        data.checksum,
+        new StoredGamePackage(data.checksum, data)
+      );
     });
   };
 
-  public getPackage = (game: string): StoredGamePackage | null =>
-    this.#packages.get(game) ?? null;
+  public getPackage = (checksum: string): StoredGamePackage | null =>
+    this.#packages.get(checksum) ?? null;
 
   public getItemName(
-    game: string,
-    id: number,
+    checksum: string,
+    id: string | number,
     fallback: boolean = true
   ): string | undefined {
     const fallbackName = `Item #${id}`;
 
-    const gamePackage = this.getPackage(game);
+    if (typeof id === "string") {
+      id = parseInt(id);
+    }
+
+    const gamePackage = this.getPackage(checksum);
     if (!gamePackage) {
       return fallback ? fallbackName : undefined;
     }
@@ -125,7 +131,7 @@ export class DataPackageService extends TypedEmitter<{}> {
   }
 
   public getLocationName(
-    game: string,
+    checksum: string,
     id: string | number,
     fallback: boolean = true
   ): string | undefined {
@@ -135,7 +141,7 @@ export class DataPackageService extends TypedEmitter<{}> {
       id = parseInt(id);
     }
 
-    const gamePackage = this.getPackage(game);
+    const gamePackage = this.getPackage(checksum);
     if (!gamePackage) {
       return fallback ? fallbackName : undefined;
     }
@@ -143,26 +149,4 @@ export class DataPackageService extends TypedEmitter<{}> {
     const name = gamePackage.reverseLocationTable[id];
     return name ?? (fallback ? fallbackName : undefined);
   }
-
-  #onRoomInfo = async (packet: RoomInfoPacket): Promise<void> => {
-    this.#packages.clear();
-    this.#checksums.clear();
-    this.#games.clear();
-
-    this.#packages.set(
-      "Archipelago",
-      new StoredGamePackage("Archipelago", {
-        checksum: "ac9141e9ad0318df2fa27da5f20c50a842afeecb",
-        item_name_to_id: { Nothing: -1 },
-        location_name_to_id: { "Cheat Console": -1, Server: -2 },
-      })
-    );
-
-    for (const game of Object.keys(packet.datapackage_checksums)) {
-      this.#checksums.set(game, packet.datapackage_checksums[game]);
-      this.#games.add(game);
-    }
-
-    await this.fetchPackage(packet.games);
-  };
 }

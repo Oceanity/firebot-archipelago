@@ -31,6 +31,11 @@ export enum ConnectionError {
   InvalidSlot = "InvalidSlot",
 }
 
+export enum FirebotEvents {
+  Connected = "connected",
+  ReceivedItems = "received-items",
+}
+
 export enum HintStatus {
   HintUnspecified = 0,
   HintNoPriority = 10,

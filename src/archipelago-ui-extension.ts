@@ -31,16 +31,12 @@ export const ArchipelagoUIExtension: UIExtension = {
           .item.useful { color: #6d8be8; }
           .item.trap { color: #fa8072; }
           .location { color: #00ff7f; }
+          .checked { color: #6d8be8; }
         </style>
         <div style="display: flex; flex-direction: column; height: 100%">
           <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
 
             <div class="p-6" style="display: flex; gap: 1.5rem">
-              <dropdown-select
-                ng-if="slots.length > 0"
-                options="slots"
-                selected="selectedSlot"
-                on-update="slotChanged()"></dropdown-select>
               <input
                 type="text"
                 class="form-control ng-animate-disabled"
@@ -52,7 +48,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               <input
                 type="text"
                 class="form-control ng-animate-disabled"
-                placeholder="Player Slot"
+                placeholder="Slot Name"
                 disable-variable-menu="true"
                 ng-model="slot"
                 ng-keydown="handleConnectKeydown($event)" />
@@ -70,9 +66,22 @@ export const ArchipelagoUIExtension: UIExtension = {
                 </button>
             </div>
 
+            <div class="fb-tab-wrapper">
+              <ul class="nav nav-tabs fb-tabs">
+                <li
+                  ng-repeat="slotName in slots"
+                  role="presentation"
+                  ng-class="{'active' : selectedSlot === slotName}"
+                  ng-click="selectSlot(slotName)"
+                >
+                  <a href>{{ slotName }}</a>
+                </li>
+              </ul>
+            </div>
+
             <div
               style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; background: rgba(0,0,0,0.65);">
-              <div scroll-glue="scrollGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
+              <div scroll-glue="scrollGlued" force-glue style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
                 <div ng-repeat="message in messages track by $index">
                   <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />
                   <div class="p-3" ng-bind-html="message"></div>
@@ -97,52 +106,63 @@ export const ArchipelagoUIExtension: UIExtension = {
       `,
       //@ts-expect-error ts(7006)
       controller: ($scope, backendCommunicator) => {
-        $scope.connect = function () {};
+        $scope.selectSlot = (slot: string) => {
+          $scope.selectedSlot = slot;
+          $scope.messages = backendCommunicator.fireEventSync(
+            "archipelago:getMessageLog",
+            $scope.selectedSlot
+          );
+        };
+
         $scope.key = "";
         $scope.hostname = "";
         $scope.slot = "";
         $scope.password = "";
+        $scope.chatText = "";
         $scope.selectedSlot = "";
+        $scope.messages = [];
         $scope.scrollGlued = true;
+
+        // Load current data
         $scope.slots = backendCommunicator.fireEventSync(
           "archipelago:getSlotNames"
         );
 
         if ($scope.slots.length) {
-          $scope.selectedSlot = $scope.slots[0];
-          $scope.messages = backendCommunicator.fireEventSync(
-            "archipelago:getMessageLog",
-            $scope.selectedSlot
-          );
+          $scope.selectSlot($scope.slots[0]);
         }
-
-        $scope.chatText = "";
 
         backendCommunicator.on(
           "archipelago:gotLogMessage",
-          (message: unknown) => {
-            $scope.messages.push(message);
+          (data: { message: { text: string; html: string }; slot: string }) => {
+            const { message, slot } = data;
+
+            if (slot !== $scope.selectedSlot) {
+              return;
+            }
+
+            $scope.messages.push(message.html);
           }
         );
 
-        $scope.slotChanged = () => {
-          $scope.messages = backendCommunicator.fireEventSync(
+        $scope.slotChanged = async () => {
+          $scope.messages = await backendCommunicator.fireEventAsync(
             "archipelago:getMessageLog",
             $scope.selectedSlot
           );
         };
 
-        $scope.handleChatKeydown = ($event: KeyboardEvent) => {
+        $scope.handleChatKeydown = async ($event: KeyboardEvent) => {
           const keyCode = $event.which || $event.keyCode;
           if (keyCode === 13) {
-            $scope.sendMessage();
+            await $scope.sendMessage();
           }
         };
 
-        $scope.handleConnectKeydown = ($event: KeyboardEvent) => {
+        $scope.handleConnectKeydown = async ($event: KeyboardEvent) => {
           const keyCode = $event.which || $event.keyCode;
           if (keyCode === 13) {
-            $scope.connect();
+            await $scope.connect();
           }
         };
 
@@ -165,45 +185,32 @@ export const ArchipelagoUIExtension: UIExtension = {
 
         $scope.connect = async () => {
           if ($scope.slot === "" || $scope.hostname === "") {
-            $scope.hostname = "";
             return;
           }
 
-          $scope.password = "Test";
-
-          try {
-            $scope.password = "Test2";
-
-            const result = await backendCommunicator.fireEventAsync(
-              "archipelago:connect",
-              {
-                hostname: $scope.hostname,
-                slot: $scope.slot,
-                password: $scope.password,
-              }
-            );
-
-            if (!result) {
-              return;
+          const result = await backendCommunicator.fireEventAsync(
+            "archipelago:connect",
+            {
+              hostname: $scope.hostname,
+              slot: $scope.slot,
+              password: $scope.password,
             }
+          );
 
-            $scope.password = "Test3";
-
-            $scope.slots = backendCommunicator.fireEventSync(
-              "archipelago:getSlotNames"
-            );
-
-            $scope.password = "Test4";
-
-            $scope.selectedSlot = $scope.slot;
-
-            $scope.hostname = "";
-            $scope.slot = "";
-            $scope.password = "";
-          } catch (error) {
-            $scope.sendMessage($scope.selectedSlot, `${error}`);
+          if (!result) {
+            // Oshi TODO: Show error to user
             return;
           }
+
+          $scope.slots = backendCommunicator.fireEventSync(
+            "archipelago:getSlotNames"
+          );
+
+          $scope.selectSlot($scope.slot);
+
+          $scope.hostname = "";
+          $scope.slot = "";
+          $scope.password = "";
         };
       },
     },

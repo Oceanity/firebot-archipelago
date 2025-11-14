@@ -7,12 +7,23 @@ import { ClientCommand } from "./enums";
 export function initFrontendCommunicator(
   frontendCommunicator: ScriptModules["frontendCommunicator"]
 ) {
-  frontendCommunicator.on(
+  frontendCommunicator.onAsync(
     "archipelago:connect",
-    async (data: { hostname: string; slot: string; password?: string }) => {
+    async (data: {
+      hostname: string;
+      slot: string;
+      password?: string;
+    }): Promise<boolean> => {
       const { hostname, slot, password } = data;
       try {
-        await archipelagoIntegration.client.connect(hostname, slot, password);
+        const result = await archipelagoIntegration.client.connect(
+          hostname,
+          slot,
+          password
+        );
+
+        logger.info(JSON.stringify(result));
+
         return true;
       } catch (error) {
         logger.error(
@@ -26,75 +37,81 @@ export function initFrontendCommunicator(
     }
   );
 
-  frontendCommunicator.on("archipelago:getSlotNames", (): Array<string> => {
-    return archipelagoIntegration.client.slots;
-  });
+  frontendCommunicator.on(
+    "archipelago:getSlotNames",
+    (): Array<string> => archipelagoIntegration.client.slots
+  );
 
   frontendCommunicator.on(
     "archipelago:getMessageLog",
-    (slot: string): Array<string> => {
-      const session = archipelagoIntegration.client.sessions.get(slot);
-
-      if (!session) {
-        logger.error(`Could not find Archipelago session with slot: ${slot}`);
-        return [];
-      }
-
-      return session.messages.htmlLog;
-    }
+    (slot: string): Array<string> =>
+      archipelagoIntegration.client.sessions.get(slot)?.messages.htmlLog ?? []
   );
 
   frontendCommunicator.on(
     "archipelago:sendMessage",
-    (data: { slot: string; message: string }): void => {
+    (data: { slot: string; message: string }): boolean => {
       const session = archipelagoIntegration.client.sessions.get(data.slot);
 
       if (!session) {
         logger.error(
           `Could not find Archipelago session with slot: ${data.slot}`
         );
-        return;
+        return false;
       }
 
+      /** Handle commands defined in {@link APCommandDefinitions} */
       if (data.message.startsWith("/")) {
-        const session = archipelagoIntegration.client.sessions.get(data.slot);
-        if (!session) {
-          return;
-        }
-
         const args = data.message.split(" ").filter((p) => p.trim().length);
         const command = args.shift();
 
-        if (!APCommandDefinitions.hasOwnProperty(command)) {
-          archipelagoIntegration.client.sessions.get(data.slot)?.messages.push([
-            {
-              text: "Unrecognized command, use /help to see all available commands",
-              html: `<p class="warning">Unrecognized command, use /help to see all available commands</p>`,
-              nodes: [],
-            },
-          ]);
-          return;
-        }
+        handleChatCommand(command, data.slot, ...args);
 
-        session.messages.push([
-          {
-            text: command,
-            html: `<span class="orange">${command}</span>`,
-            nodes: [],
-          },
-        ]);
-
-        APCommandDefinitions[
-          command as keyof typeof APCommandDefinitions
-        ].callback(data.slot, ...args);
-
-        return;
+        return true;
       }
 
       session.socket.send({
         cmd: ClientCommand.Say,
         text: data.message,
       });
+
+      return true;
     }
+  );
+}
+
+/** Handle chat commands defined in {@link APCommandDefinitions} */
+function handleChatCommand(
+  command: string,
+  slot: string,
+  ...args: Array<string>
+) {
+  const session = archipelagoIntegration.client.sessions.get(slot);
+  if (!session) {
+    return;
+  }
+
+  if (!APCommandDefinitions.hasOwnProperty(command)) {
+    session.messages.push([
+      {
+        text: "Unrecognized command, use /help to see all available commands",
+        html: `<p class="red">Unrecognized command, use /help to see all available commands</p>`,
+        nodes: [],
+      },
+    ]);
+    return;
+  }
+
+  session.messages.push([
+    {
+      text: command,
+      html: `<span class="orange">${command}</span>`,
+      nodes: [],
+    },
+  ]);
+
+  APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
+    slot,
+    ...args
   );
 }

@@ -32,7 +32,7 @@ export class Item {
   }
 
   public get name(): string {
-    return this.#session.packages.getItemName(this.game, this.#item.item, true);
+    return this.#session.getItemName(this.game, this.#item.item, true);
   }
 
   public get id(): number {
@@ -40,7 +40,7 @@ export class Item {
   }
 
   public get locationName(): string {
-    return this.#session.packages.getLocationName(
+    return this.#session.getLocationName(
       this.sender.game,
       this.#item.location,
       true

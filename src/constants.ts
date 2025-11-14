@@ -1,5 +1,6 @@
 import { EventSource } from "@crowbartools/firebot-custom-scripts-types/types/modules/event-manager";
 import * as packageJson from "../package.json";
+import { FirebotEvents } from "./enums";
 
 export const {
   displayName: ARCHIPELAGO_INTEGRATION_NAME,
@@ -17,14 +18,14 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
   name: "Archipelago",
   events: [
     {
-      id: "connected",
+      id: FirebotEvents.Connected,
       name: "Connected",
       description:
         "When the client connects to any Archipelago MultiWorld server.",
     },
     {
-      id: "item-received",
-      name: "Item Received",
+      id: FirebotEvents.ReceivedItems,
+      name: "Received Items",
       description: "When any user in a MultiWorld server receives an item.",
     },
   ],

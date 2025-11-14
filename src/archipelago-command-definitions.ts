@@ -44,13 +44,40 @@ export const APCommandDefinitions: APCommandDefinition = {
       }
 
       const items = Object.keys(
-        session.packages.getPackage(session.players.self.game).itemTable
+        session.getPackage(session.players.self.game).itemTable
       ).sort((a, b) => a.localeCompare(b));
 
       session.messages.push([
         {
           text: items.join("\n"),
           html: `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`,
+          nodes: [],
+        },
+      ]);
+    },
+  },
+  "/locations": {
+    description: "List all location names for the currently running game.",
+    callback: async (slot) => {
+      const session = archipelagoIntegration.client.sessions.get(slot);
+      if (!session) {
+        return;
+      }
+
+      const locations = session.locationTable.sort(([a], [b]) =>
+        a.localeCompare(b)
+      );
+
+      session.messages.push([
+        {
+          text: locations.map(([a]) => a).join("\n"),
+          html: `<ul>${locations
+            .map(([name, checked]) =>
+              checked
+                ? `<li class="checked"><s><i>${name}</i></s></li>`
+                : `<li class="unchecked">${name}</li>`
+            )
+            .join("")}</ul>`,
           nodes: [],
         },
       ]);
