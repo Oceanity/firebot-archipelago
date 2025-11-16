@@ -31,7 +31,9 @@ export const ArchipelagoUIExtension: UIExtension = {
           .item.useful { color: #6d8be8; }
           .item.trap { color: #fa8072; }
           .location { color: #00ff7f; }
-          .checked { color: #6d8be8; }
+
+          .item-entry.received { color: #00ff7f; }
+          .location-entry.checked { color: #6d8be8; }
         </style>
         <div style="display: flex; flex-direction: column; height: 100%">
           <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
@@ -42,6 +44,7 @@ export const ArchipelagoUIExtension: UIExtension = {
                 class="form-control ng-animate-disabled"
                 placeholder="Server Hostname"
                 disable-variable-menu="true"
+                ng-disabled="isConnecting"
                 ng-model="hostname"
                 ng-keydown="handleConnectKeydown($event)"
                 style="flex: 1 0 40%" />
@@ -50,6 +53,7 @@ export const ArchipelagoUIExtension: UIExtension = {
                 class="form-control ng-animate-disabled"
                 placeholder="Slot Name"
                 disable-variable-menu="true"
+                ng-disabled="isConnecting"
                 ng-model="slot"
                 ng-keydown="handleConnectKeydown($event)" />
               <input
@@ -57,12 +61,14 @@ export const ArchipelagoUIExtension: UIExtension = {
                 class="form-control ng-animate-disabled"
                 placeholder="Password (optional)"
                 disable-variable-menu="true"
+                ng-disabled="isConnecting"
                 ng-model="password"
                 ng-keydown="handleConnectKeydown($event)" />
               <button
                 class="btn btn-primary"
-                  ng-click="connect()">
-                  <i class="fas fa-plus-circle" class="mr-2"></i> Connect
+                ng-disabled="isConnecting"
+                ng-click="connect()">
+                  <i class="fas fa-plus-circle" class="mr-2"></i> {{ isConnecting ? "Connecting" : "Connect" }}
                 </button>
             </div>
 
@@ -71,7 +77,7 @@ export const ArchipelagoUIExtension: UIExtension = {
                 <li
                   ng-repeat="slotName in slots"
                   role="presentation"
-                  ng-class="{'active' : selectedSlot === slotName}"
+                  ng-class="{'active' : selectedSession === slotName}"
                   ng-click="selectSlot(slotName)"
                 >
                   <a href>{{ slotName }}</a>
@@ -80,8 +86,11 @@ export const ArchipelagoUIExtension: UIExtension = {
             </div>
 
             <div
+              tab-index="-1"
+              ng-click="scrollGlued = false"
+              ng-blur="scrollGlued = true"
               style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; background: rgba(0,0,0,0.65);">
-              <div scroll-glue="scrollGlued" force-glue style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
+              <div scroll-glue="scrollGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
                 <div ng-repeat="message in messages track by $index">
                   <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />
                   <div class="p-3" ng-bind-html="message"></div>
@@ -107,10 +116,10 @@ export const ArchipelagoUIExtension: UIExtension = {
       //@ts-expect-error ts(7006)
       controller: ($scope, backendCommunicator) => {
         $scope.selectSlot = (slot: string) => {
-          $scope.selectedSlot = slot;
+          $scope.selectedSession = slot;
           $scope.messages = backendCommunicator.fireEventSync(
             "archipelago:getMessageLog",
-            $scope.selectedSlot
+            $scope.selectedSession
           );
         };
 
@@ -119,13 +128,14 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.slot = "";
         $scope.password = "";
         $scope.chatText = "";
-        $scope.selectedSlot = "";
+        $scope.selectedSession = "";
         $scope.messages = [];
         $scope.scrollGlued = true;
+        $scope.isConnecting = false;
 
         // Load current data
         $scope.slots = backendCommunicator.fireEventSync(
-          "archipelago:getSlotNames"
+          "archipelago:getSessionNames"
         );
 
         if ($scope.slots.length) {
@@ -134,10 +144,13 @@ export const ArchipelagoUIExtension: UIExtension = {
 
         backendCommunicator.on(
           "archipelago:gotLogMessage",
-          (data: { message: { text: string; html: string }; slot: string }) => {
-            const { message, slot } = data;
+          (data: {
+            message: { text: string; html: string };
+            sessionName: string;
+          }) => {
+            const { message, sessionName } = data;
 
-            if (slot !== $scope.selectedSlot) {
+            if (sessionName !== $scope.selectedSession) {
               return;
             }
 
@@ -148,7 +161,7 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.slotChanged = async () => {
           $scope.messages = await backendCommunicator.fireEventAsync(
             "archipelago:getMessageLog",
-            $scope.selectedSlot
+            $scope.selectedSession
           );
         };
 
@@ -173,7 +186,7 @@ export const ArchipelagoUIExtension: UIExtension = {
 
           try {
             backendCommunicator.fireEventSync("archipelago:sendMessage", {
-              slot: $scope.selectedSlot,
+              slot: $scope.selectedSession,
               message: $scope.chatText,
             });
 
@@ -188,6 +201,8 @@ export const ArchipelagoUIExtension: UIExtension = {
             return;
           }
 
+          $scope.isConnecting = true;
+
           const result = await backendCommunicator.fireEventAsync(
             "archipelago:connect",
             {
@@ -197,20 +212,22 @@ export const ArchipelagoUIExtension: UIExtension = {
             }
           );
 
-          if (!result) {
+          if (!result || !result.success) {
             // Oshi TODO: Show error to user
+            $scope.isConnecting = false;
             return;
           }
 
           $scope.slots = backendCommunicator.fireEventSync(
-            "archipelago:getSlotNames"
+            "archipelago:getSessionNames"
           );
 
-          $scope.selectSlot($scope.slot);
+          $scope.selectSlot(result.name);
 
           $scope.hostname = "";
           $scope.slot = "";
           $scope.password = "";
+          $scope.isConnecting = false;
         };
       },
     },

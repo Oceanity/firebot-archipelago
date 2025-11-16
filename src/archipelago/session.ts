@@ -22,10 +22,11 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #checksums: Map<string, string> = new Map();
   readonly #checkedLocations: Set<number> = new Set();
   readonly #missingLocations: Set<number> = new Set();
+  readonly #receivedItems: Set<number> = new Set();
 
   #authenticated: boolean = false;
-  #hostname: string;
   #slot: string;
+  #url: URL;
 
   public readonly socket = new SocketService();
   public readonly messages = new MessageService(this);
@@ -48,6 +49,11 @@ export class APSession extends TypedEmitter<APSessionEvents> {
             logger.info("Updated Connection Info");
           }
         }
+      })
+      .on("receivedItems", (packet) => {
+        packet.items.forEach((itemDetails) => {
+          this.#receivedItems.add(itemDetails.item);
+        });
       });
   }
 
@@ -62,14 +68,21 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   }
 
   get name(): string {
-    return `${this.#slot ?? "Unknown Slot"}@${
-      this.#hostname ?? "Unknown Hostname"
-    }`;
+    return `${this.#slot ?? "UnknownSlot"}@${
+      this.#url.hostname ?? "UnknownHostname"
+    }:${this.#url.port ?? "UnknownPort"}`;
+  }
+
+  get itemTable(): Array<[item: string, received: boolean]> {
+    const items = this.getPackage(this.players.self.game).itemTable;
+    return Object.entries(items).map(
+      ([name, id]) => [name, this.#receivedItems.has(id)] as [string, boolean]
+    );
   }
 
   get locationTable(): Array<[location: string, checked: boolean]> {
     const locations = this.getPackage(this.players.self.game).locationTable;
-    const table = Object.entries(locations)
+    return Object.entries(locations)
       .filter(
         ([_name, id]) =>
           this.#missingLocations.has(id) || this.#checkedLocations.has(id)
@@ -78,9 +91,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         ([name, id]) =>
           [name, this.#checkedLocations.has(id)] as [string, boolean]
       );
-
-    logger.info(JSON.stringify(table));
-    return table;
   }
 
   //#endregion
@@ -97,7 +107,8 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         logger.info(
           `Archipelago: Logging in to session at '${hostname}' as '${slot}'`
         );
-        const roomInfo = await this.socket.connect(hostname);
+        const { packet: roomInfo, url } = await this.socket.connect(hostname);
+        this.#url = url;
 
         // Store local game info and fetch more to package service
         for (const [game, checksum] of Object.entries(
@@ -147,7 +158,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
             );
 
             this.#slot = slot;
-            this.#hostname = hostname;
 
             this.#authenticated = true;
             this.emit("connected");
@@ -174,31 +184,12 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
   //#endregion
 
-  //#region Private helpers
-
-  #getChecksum = (game: string) => {
-    const checksum = this.#checksums.get(game);
-
-    if (!checksum) {
-      throw new Error(
-        `Archipelago: Could not get checksum for game '${game}' in session '${this.name}'`
-      );
-    }
-
-    return checksum;
-  };
-
-  //#endregion
-
   //#region PackageService
 
   /** To avoid multiple sessions loading the same game packages, we can forward requests for packages and names with the necessary session data */
   public getPackage(game: string): StoredGamePackage | null {
     try {
       const checksum = this.#getChecksum(game);
-
-      logger.info(`Got checksum for game '${game}', '${checksum}'`);
-
       return this.#client.packages.getPackage(checksum);
     } catch (error) {
       logger.error(error);
@@ -233,6 +224,22 @@ export class APSession extends TypedEmitter<APSessionEvents> {
       return "Unknown Location";
     }
   }
+
+  //#endregion
+
+  //#region Private helpers
+
+  #getChecksum = (game: string) => {
+    const checksum = this.#checksums.get(game);
+
+    if (!checksum) {
+      throw new Error(
+        `Archipelago: Could not get checksum for game '${game}' in session '${this.name}'`
+      );
+    }
+
+    return checksum;
+  };
 
   //#endregion
 }

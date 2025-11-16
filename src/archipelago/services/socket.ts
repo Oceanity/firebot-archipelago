@@ -54,7 +54,9 @@ export class SocketService extends TypedEmitter<EventDef> {
 
   //#region Public Methods
 
-  public async connect(url: URL | string): Promise<RoomInfoPacket> {
+  public async connect(
+    url: URL | string
+  ): Promise<{ url: URL; packet: RoomInfoPacket }> {
     this.disconnect();
 
     if (typeof url === "string") {
@@ -124,7 +126,7 @@ export class SocketService extends TypedEmitter<EventDef> {
                       this.disconnect();
                     });
 
-                  resolve(packet);
+                  resolve({ url, packet });
                 }
               })
               .catch((error) => {

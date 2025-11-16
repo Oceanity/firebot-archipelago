@@ -140,6 +140,7 @@ export type APRoom = {
 
 export type ServiceResponse = {
   success: boolean;
+  data?: Record<string, unknown>;
   errors?: Array<string>;
 };
 

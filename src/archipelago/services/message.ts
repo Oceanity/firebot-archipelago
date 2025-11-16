@@ -21,7 +21,7 @@ import { APSession } from "../session";
 type Events = {
   message: (data: {
     message: { text: string; html: string };
-    slot: string;
+    sessionName: string;
   }) => void;
 };
 
@@ -60,7 +60,7 @@ export class MessageService extends TypedEmitter<Events> {
 
     this.emit("message", {
       message: { text: message.text, html: message.html },
-      slot: this.#session.players.self.name,
+      sessionName: this.#session.name,
     });
   }
 
@@ -120,7 +120,7 @@ export class MessageService extends TypedEmitter<Events> {
     this.#messages.push(...message);
     this.emit("message", {
       message: { text, html },
-      slot: this.#session.players.self.name,
+      sessionName: this.#session.name,
     });
   };
 }

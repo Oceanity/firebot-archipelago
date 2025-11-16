@@ -15,7 +15,7 @@ export class APClient extends EventEmitter {
     this.sessions = new Map();
   }
 
-  public get slots(): Array<string> {
+  public get sessionNames(): Array<string> {
     return Array.from(this.sessions.keys());
   }
 
@@ -24,7 +24,6 @@ export class APClient extends EventEmitter {
     slot: string,
     password?: string
   ): Promise<ServiceResponse> {
-    logger.info("testing");
     return new Promise(async (resolve, reject) => {
       if (Object.keys(this.sessions).includes(slot)) {
         logger.error(
@@ -47,8 +46,8 @@ export class APClient extends EventEmitter {
           throw response.errors;
         }
 
-        this.sessions.set(slot, session);
-        resolve({ success: true });
+        this.sessions.set(session.name, session);
+        resolve({ success: true, data: { name: session.name } });
       } catch (error) {
         logger.error(
           "Archipelago: Could not create Archipelago session",

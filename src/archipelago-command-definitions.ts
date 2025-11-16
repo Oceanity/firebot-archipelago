@@ -43,14 +43,18 @@ export const APCommandDefinitions: APCommandDefinition = {
         return;
       }
 
-      const items = Object.keys(
-        session.getPackage(session.players.self.game).itemTable
-      ).sort((a, b) => a.localeCompare(b));
+      const items = session.itemTable.sort(([a], [b]) => a.localeCompare(b));
 
       session.messages.push([
         {
-          text: items.join("\n"),
-          html: `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`,
+          text: items.map(([name]) => name).join("\n"),
+          html: `<ul>${items
+            .map(([name, received]) =>
+              received
+                ? `<li class="item-entry received">${name} ✓</li>`
+                : `<li class="item-entry missing">${name}</li>`
+            )
+            .join("")}</ul>`,
           nodes: [],
         },
       ]);
@@ -70,12 +74,12 @@ export const APCommandDefinitions: APCommandDefinition = {
 
       session.messages.push([
         {
-          text: locations.map(([a]) => a).join("\n"),
+          text: locations.map(([name]) => name).join("\n"),
           html: `<ul>${locations
             .map(([name, checked]) =>
               checked
-                ? `<li class="checked"><s><i>${name}</i></s></li>`
-                : `<li class="unchecked">${name}</li>`
+                ? `<li class="location-entry checked"><s><i>${name}</i></s></li>`
+                : `<li class="location-entry unchecked">${name}</li>`
             )
             .join("")}</ul>`,
           nodes: [],

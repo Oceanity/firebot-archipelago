@@ -22,7 +22,7 @@ export function initFrontendCommunicator(
           password
         );
 
-        logger.info(JSON.stringify(result));
+        logger.info(`Frontend Connect: ${JSON.stringify(result)}`);
 
         return true;
       } catch (error) {
@@ -38,8 +38,8 @@ export function initFrontendCommunicator(
   );
 
   frontendCommunicator.on(
-    "archipelago:getSlotNames",
-    (): Array<string> => archipelagoIntegration.client.slots
+    "archipelago:getSessionNames",
+    (): Array<string> => archipelagoIntegration.client.sessionNames
   );
 
   frontendCommunicator.on(

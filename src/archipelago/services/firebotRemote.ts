@@ -40,8 +40,6 @@ export class FirebotRemoteService {
     //#region Message Events
 
     this.#session.messages.on("message", (data) => {
-      logger.info("Sending new message to frontend:");
-      logger.info(JSON.stringify(data));
       frontendCommunicator.fireEventAsync("archipelago:gotLogMessage", data);
     });
 
