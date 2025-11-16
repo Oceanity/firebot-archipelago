@@ -1,12 +1,13 @@
+import Fuse from "fuse.js";
 import { archipelagoIntegration } from "./archipelago-integration";
 
-type APCommandDefinition = Record<
-  `/${string}`,
-  {
-    description: string;
-    callback: (slot: string, ...args: Array<string>) => void | Promise<void>;
-  }
->;
+type APCommandDefinition = Record<`/${string}`, APCommandOptions>;
+
+type APCommandOptions = {
+  args?: Record<string, { optional: boolean }>;
+  description: string;
+  callback: (slot: string, ...args: Array<string>) => void | Promise<void>;
+};
 
 export const APCommandDefinitions: APCommandDefinition = {
   "/help": {
@@ -17,13 +18,17 @@ export const APCommandDefinitions: APCommandDefinition = {
           text: Object.entries(APCommandDefinitions)
             .map(
               ([command, definition]) =>
-                `${command}\n\t${definition.description}`
+                `${command} ${argsString(definition.args)}\n\t${
+                  definition.description
+                }`
             )
             .join("\n"),
           html: Object.entries(APCommandDefinitions)
             .map(
               ([command, definition]) =>
-                `<p class="command">${command}</p><p class="ml-6 description">${definition.description}</p>`
+                `<p class="command">${command} ${argsString(
+                  definition.args
+                )}</p><p class="ml-6 description">${definition.description}</p>`
             )
             .join(""),
           nodes: [],
@@ -36,14 +41,38 @@ export const APCommandDefinitions: APCommandDefinition = {
     callback: async (slot) => {},
   },
   "/items": {
+    args: {
+      search: {
+        optional: true,
+      },
+    },
     description: "List all item names for the currently running game.",
-    callback: async (slot) => {
-      const session = archipelagoIntegration.client.sessions.get(slot);
+    callback: async (sessionName, ...search) => {
+      const session = archipelagoIntegration.client.sessions.get(sessionName);
       if (!session) {
         return;
       }
 
-      const items = session.itemTable.sort(([a], [b]) => a.localeCompare(b));
+      const items = handleSearch(
+        session.itemTable.sort(([a], [b]) => a.localeCompare(b)),
+        search?.join(" ") ?? undefined
+      );
+
+      if (!items.length) {
+        const message = `No items found${
+          !!search ? ` matching ${search}` : ""
+        }`;
+
+        session.messages.push([
+          {
+            text: message,
+            html: message,
+            nodes: [],
+          },
+        ]);
+
+        return;
+      }
 
       session.messages.push([
         {
@@ -62,15 +91,37 @@ export const APCommandDefinitions: APCommandDefinition = {
   },
   "/locations": {
     description: "List all location names for the currently running game.",
-    callback: async (slot) => {
-      const session = archipelagoIntegration.client.sessions.get(slot);
+    args: {
+      search: {
+        optional: true,
+      },
+    },
+    callback: async (sessionName, ...search) => {
+      const session = archipelagoIntegration.client.sessions.get(sessionName);
       if (!session) {
         return;
       }
 
-      const locations = session.locationTable.sort(([a], [b]) =>
-        a.localeCompare(b)
+      const locations = handleSearch(
+        session.locationTable.sort(([a], [b]) => a.localeCompare(b)),
+        search?.join(" ") ?? undefined
       );
+
+      if (!locations.length) {
+        const message = `No locations found${
+          !!search ? ` matching ${search}` : ""
+        }`;
+
+        session.messages.push([
+          {
+            text: message,
+            html: message,
+            nodes: [],
+          },
+        ]);
+
+        return;
+      }
 
       session.messages.push([
         {
@@ -78,7 +129,7 @@ export const APCommandDefinitions: APCommandDefinition = {
           html: `<ul>${locations
             .map(([name, checked]) =>
               checked
-                ? `<li class="location-entry checked"><s><i>${name}</i></s></li>`
+                ? `<li class="location-entry checked">${name}</li>`
                 : `<li class="location-entry unchecked">${name}</li>`
             )
             .join("")}</ul>`,
@@ -89,11 +140,42 @@ export const APCommandDefinitions: APCommandDefinition = {
   },
   "/ready": {
     description: "Send ready status to server.",
-    callback: async (slot) => {
-      const session = archipelagoIntegration.client.sessions.get(slot);
+    callback: async (sessionName) => {
+      const session = archipelagoIntegration.client.sessions.get(sessionName);
       if (!session) {
         return;
       }
     },
   },
 };
+
+function handleSearch(
+  items: Array<[string, boolean]>,
+  search?: string
+): Array<[string, boolean]> {
+  if (!search || !search.trim().length) {
+    return items;
+  }
+
+  const fuse = new Fuse(
+    items.map(([name]) => name),
+    { threshold: 0.25 }
+  );
+
+  const matches = fuse.search(search);
+
+  return items.filter(([name]) => matches.some((match) => match.item === name));
+}
+
+function argsString(args?: APCommandOptions["args"]) {
+  if (!args) {
+    return "";
+  }
+
+  return Object.entries(args)
+    .map(
+      ([name, definition]) =>
+        `[${name}${definition.optional ? " (optional)" : ""}]`
+    )
+    .join(" ");
+}

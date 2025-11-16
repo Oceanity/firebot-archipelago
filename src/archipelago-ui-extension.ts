@@ -33,7 +33,7 @@ export const ArchipelagoUIExtension: UIExtension = {
           .location { color: #00ff7f; }
 
           .item-entry.received { color: #00ff7f; }
-          .location-entry.checked { color: #6d8be8; }
+          .location-entry.checked { color: #6d8be8; text-decoration: line-through; font-style: italic; }
         </style>
         <div style="display: flex; flex-direction: column; height: 100%">
           <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
@@ -186,7 +186,7 @@ export const ArchipelagoUIExtension: UIExtension = {
 
           try {
             backendCommunicator.fireEventSync("archipelago:sendMessage", {
-              slot: $scope.selectedSession,
+              sessionName: $scope.selectedSession,
               message: $scope.chatText,
             });
 

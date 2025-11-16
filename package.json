@@ -37,6 +37,7 @@
     "npm": "11.1.0"
   },
   "dependencies": {
+    "fuse.js": "^7.1.0",
     "tiny-typed-emitter": "^2.1.0"
   }
 }

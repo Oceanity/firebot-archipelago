@@ -50,12 +50,14 @@ export function initFrontendCommunicator(
 
   frontendCommunicator.on(
     "archipelago:sendMessage",
-    (data: { slot: string; message: string }): boolean => {
-      const session = archipelagoIntegration.client.sessions.get(data.slot);
+    (data: { sessionName: string; message: string }): boolean => {
+      const session = archipelagoIntegration.client.sessions.get(
+        data.sessionName
+      );
 
       if (!session) {
         logger.error(
-          `Could not find Archipelago session with slot: ${data.slot}`
+          `Could not find Archipelago session with slot: ${data.sessionName}`
         );
         return false;
       }
@@ -65,7 +67,7 @@ export function initFrontendCommunicator(
         const args = data.message.split(" ").filter((p) => p.trim().length);
         const command = args.shift();
 
-        handleChatCommand(command, data.slot, ...args);
+        handleChatCommand(command, data.sessionName, ...args);
 
         return true;
       }
@@ -83,10 +85,10 @@ export function initFrontendCommunicator(
 /** Handle chat commands defined in {@link APCommandDefinitions} */
 function handleChatCommand(
   command: string,
-  slot: string,
+  sessionName: string,
   ...args: Array<string>
 ) {
-  const session = archipelagoIntegration.client.sessions.get(slot);
+  const session = archipelagoIntegration.client.sessions.get(sessionName);
   if (!session) {
     return;
   }
@@ -104,14 +106,14 @@ function handleChatCommand(
 
   session.messages.push([
     {
-      text: command,
-      html: `<span class="orange">${command}</span>`,
+      text: `${command} ${args.join(" ")}`,
+      html: `<span class="orange">${command} ${args.join(" ")}</span>`,
       nodes: [],
     },
   ]);
 
   APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
-    slot,
+    sessionName,
     ...args
   );
 }
