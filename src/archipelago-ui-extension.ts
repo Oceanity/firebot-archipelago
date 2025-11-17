@@ -34,6 +34,19 @@ export const ArchipelagoUIExtension: UIExtension = {
 
           .item-entry.received { color: #00ff7f; }
           .location-entry.checked { color: #6d8be8; text-decoration: line-through; font-style: italic; }
+
+          .arg { color: #6d8be8; }
+
+          p {
+            margin: 0;
+          }
+
+          .archipelago-message {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 0.75rem;
+          }
         </style>
         <div style="display: flex; flex-direction: column; height: 100%">
           <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
@@ -93,7 +106,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               <div scroll-glue="scrollGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
                 <div ng-repeat="message in messages track by $index">
                   <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />
-                  <div class="p-3" ng-bind-html="message"></div>
+                  <div class="p-3 archipelago-message" ng-bind-html="message"></div>
                 </div>
               </div>
             </div>

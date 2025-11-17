@@ -2,11 +2,12 @@ import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { MessagePartType, PrintJsonType } from "../../enums";
 import {
+  CountdownJSONPacket,
   HintJSONPacket,
   ItemCheatJSONPacket,
   ItemSendJSONPacket,
-  PrintJSONPacket,
 } from "../../interfaces";
+import { PrintJSONPacket } from "../../types";
 import {
   ColorMessageNode,
   ItemMessageNode,
@@ -14,12 +15,13 @@ import {
   MessageNode,
   PlayerMessageNode,
   TextMessageNode,
-} from "../classes/messageNodes";
-import { Player } from "../classes/player";
+} from "../classes/message-nodes";
 import { APSession } from "../session";
 
 type Events = {
+  countdown: (data: { countdown: number }) => void;
   message: (data: {
+    isHidden: boolean;
     message: { text: string; html: string };
     sessionName: string;
   }) => void;
@@ -55,10 +57,11 @@ export class MessageService extends TypedEmitter<Events> {
     return this.#messages.map((entry) => entry.html);
   }
 
-  public push([message]: MessageLog) {
+  public push([message]: MessageLog, isHidden: boolean = true) {
     this.#messages.push(message);
 
     this.emit("message", {
+      isHidden,
       message: { text: message.text, html: message.html },
       sessionName: this.#session.name,
     });
@@ -75,16 +78,8 @@ export class MessageService extends TypedEmitter<Events> {
             | ItemSendJSONPacket
             | ItemCheatJSONPacket
             | HintJSONPacket;
-          const receiver: Player = this.#session.players.getPlayer(
-            itemPacket.receiving,
-            itemPacket.type === PrintJsonType.ItemCheat
-              ? itemPacket.team
-              : undefined
-          );
 
-          nodes.push(
-            new ItemMessageNode(this.#session, part, itemPacket.item, receiver)
-          );
+          nodes.push(new ItemMessageNode(this.#session, part, itemPacket));
 
           break;
         }
@@ -107,6 +102,11 @@ export class MessageService extends TypedEmitter<Events> {
         }
 
         default: {
+          if (packet.type === PrintJsonType.Countdown) {
+            const countdownPacket = packet as CountdownJSONPacket;
+            this.emit("countdown", { countdown: countdownPacket.countdown });
+          }
+
           nodes.push(new TextMessageNode(this.#session, part));
           break;
         }
@@ -119,6 +119,7 @@ export class MessageService extends TypedEmitter<Events> {
 
     this.#messages.push(...message);
     this.emit("message", {
+      isHidden: false,
       message: { text, html },
       sessionName: this.#session.name,
     });

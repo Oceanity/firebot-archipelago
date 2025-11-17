@@ -5,7 +5,7 @@ import { ClientCommand, ItemHandlingFlag } from "../enums";
 import { ConnectionRefusedPacket, ConnectPacket } from "../interfaces";
 import { ServiceResponse } from "../types";
 import { APClient } from "./client";
-import { FirebotRemoteService } from "./services/firebotRemote";
+import { FirebotRemoteService } from "./services/firebot-remote";
 import { MessageService } from "./services/message";
 import { StoredGamePackage } from "./services/package";
 import { PlayerService } from "./services/players";
@@ -25,7 +25,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #receivedItems: Set<number> = new Set();
 
   #authenticated: boolean = false;
-  #slot: string;
   #url: URL;
 
   public readonly socket = new SocketService();
@@ -52,6 +51,15 @@ export class APSession extends TypedEmitter<APSessionEvents> {
       })
       .on("receivedItems", (packet) => {
         packet.items.forEach((itemDetails) => {
+          // After initial setup, need to update existing checked/missing locations
+          if (
+            itemDetails.player === this.players.self.slot &&
+            this.#missingLocations.has(itemDetails.location)
+          ) {
+            this.#missingLocations.delete(itemDetails.location);
+            this.#checkedLocations.add(itemDetails.location);
+          }
+
           this.#receivedItems.add(itemDetails.item);
         });
       });
@@ -67,8 +75,12 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return this.#authenticated;
   }
 
+  get url(): URL {
+    return this.#url;
+  }
+
   get name(): string {
-    return `${this.#slot ?? "UnknownSlot"}@${
+    return `${this.players.self.alias ?? "UnknownSlot"}@${
       this.#url.hostname ?? "UnknownHostname"
     }:${this.#url.port ?? "UnknownPort"}`;
   }
@@ -91,6 +103,20 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         ([name, id]) =>
           [name, this.#checkedLocations.has(id)] as [string, boolean]
       );
+  }
+
+  get checkedLocations(): Array<[name: string, id: number]> {
+    const locations = this.getPackage(this.players.self.game).locationTable;
+    return Object.entries(locations).filter(([_name, id]) =>
+      this.#checkedLocations.has(id)
+    );
+  }
+
+  get missingLocations(): Array<[name: string, id: number]> {
+    const locations = this.getPackage(this.players.self.game).locationTable;
+    return Object.entries(locations).filter(([_name, id]) =>
+      this.#missingLocations.has(id)
+    );
   }
 
   //#endregion
@@ -157,10 +183,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
               this.#missingLocations.add(location)
             );
 
-            this.#slot = slot;
-
             this.#authenticated = true;
-            this.emit("connected");
 
             resolve({
               success: true,

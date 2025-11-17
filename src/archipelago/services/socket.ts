@@ -2,7 +2,7 @@ import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import WebSocket from "ws";
 import { ServerCommand } from "../../enums";
-import { ClientPacket, ServerPacket } from "../../types";
+import { ClientPacket, PrintJSONPacket, ServerPacket } from "../../types";
 import {
   BouncedPacket,
   ConnectedPacket,
@@ -10,7 +10,6 @@ import {
   DataPackagePacket,
   InvalidPacketPacket,
   LocationInfoPacket,
-  PrintJSONPacket,
   ReceivedItemsPacket,
   RetrievedPacket,
   RoomInfoPacket,

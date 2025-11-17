@@ -33,7 +33,10 @@ export enum ConnectionError {
 
 export enum FirebotEvents {
   Connected = "connected",
+  Countdown = "countdown",
+  Message = "message",
   ReceivedItems = "received-items",
+  SentItems = "sent-items",
 }
 
 export enum HintStatus {

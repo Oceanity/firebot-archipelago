@@ -26,9 +26,11 @@ export const APCommandDefinitions: APCommandDefinition = {
           html: Object.entries(APCommandDefinitions)
             .map(
               ([command, definition]) =>
-                `<p class="command">${command} ${argsString(
+                `<p class="command">${command} <span class="arg">${argsString(
                   definition.args
-                )}</p><p class="ml-6 description">${definition.description}</p>`
+                )}</span></p><p class="ml-6 description">${
+                  definition.description
+                }</p>`
             )
             .join(""),
           nodes: [],

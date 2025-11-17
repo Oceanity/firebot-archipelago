@@ -24,6 +24,16 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
         "When the client connects to any Archipelago MultiWorld server.",
     },
     {
+      id: FirebotEvents.Countdown,
+      name: "Countdown",
+      description: "When the server's countdown updates.",
+    },
+    {
+      id: FirebotEvents.Message,
+      name: "Message",
+      description: "When a message is received from the server.",
+    },
+    {
       id: FirebotEvents.ReceivedItems,
       name: "Received Items",
       description: "When any user in a MultiWorld server receives an item.",

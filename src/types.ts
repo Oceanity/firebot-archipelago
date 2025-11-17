@@ -26,7 +26,6 @@ import {
   JoinJSONPacket,
   LocationInfoPacket,
   PartJSONPacket,
-  PrintJSONPacket,
   ReceivedItemsPacket,
   ReleaseJSONPacket,
   RetrievedPacket,
@@ -180,19 +179,19 @@ export type JSONMessagePart =
   | LocationJSONMessagePart
   | TextJSONMessagePart;
 
-export type PrintJSONMessage =
+export type PrintJSONPacket =
+  | AdminCommandResultJSONPacket
+  | ChatJSONPacket
+  | CollectJSONPacket
+  | CommandResultJSONPacket
+  | CountdownJSONPacket
+  | GoalJSONPacket
+  | HintJSONPacket
   | ItemSendJSONPacket
   | ItemCheatJSONPacket
-  | HintJSONPacket
   | JoinJSONPacket
   | PartJSONPacket
-  | ChatJSONPacket
-  | ServerChatJSONPacket
-  | TutorialJSONPacket
-  | TagsChangedJSONPacket
-  | CommandResultJSONPacket
-  | AdminCommandResultJSONPacket
-  | GoalJSONPacket
   | ReleaseJSONPacket
-  | CollectJSONPacket
-  | CountdownJSONPacket;
+  | ServerChatJSONPacket
+  | TagsChangedJSONPacket
+  | TutorialJSONPacket;

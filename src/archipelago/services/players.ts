@@ -36,6 +36,8 @@ export class PlayerService extends TypedEmitter {
           ];
           this.#players[player.team][player.slot] = player;
         }
+
+        this.#session.emit("connected");
       })
       .on("roomUpdate", (packet) => {
         if (!packet.players) {

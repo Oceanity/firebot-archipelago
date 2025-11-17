@@ -3,15 +3,20 @@ import {
   MessageColor,
   MessageNodeType,
   MessagePartType,
+  PrintJsonType,
 } from "../../enums";
 import {
   ColorJSONMessagePart,
   ItemJSONMessagePart,
   JSONMessagePart,
   LocationJSONMessagePart,
-  NetworkItem,
   TextJSONMessagePart,
 } from "../../types";
+import {
+  HintJSONPacket,
+  ItemCheatJSONPacket,
+  ItemSendJSONPacket,
+} from "../interfaces/packets";
 import { APSession } from "../session";
 import { Item } from "./item";
 import { Player } from "./player";
@@ -58,17 +63,21 @@ export class ItemMessageNode extends BaseMessageNode {
   public constructor(
     session: APSession,
     part: ItemJSONMessagePart,
-    item: NetworkItem,
-    receiver: Player
+    itemPacket: ItemSendJSONPacket | ItemCheatJSONPacket | HintJSONPacket
   ) {
     super(session, part);
+
+    const receiver: Player = session.players.getPlayer(
+      itemPacket.receiving,
+      itemPacket.type === PrintJsonType.ItemCheat ? itemPacket.team : undefined
+    );
 
     const player = session.players.getPlayer(
       part.player,
       receiver.team
     ) as Player;
     this.part = part;
-    this.item = new Item(session, item, player, receiver);
+    this.item = new Item(session, itemPacket.item, player, receiver);
   }
 
   public get text(): string {
@@ -213,7 +222,16 @@ export class TextMessageNode extends BaseMessageNode {
   }
 
   public get html(): string {
-    return this.part.text;
+    return this.part.text
+      .split("\n")
+      .map((line) => {
+        const margin = line.search(/\S/);
+
+        return `<p${
+          margin > 0 ? ` class="ml-${margin * 2}"` : ""
+        }>${line.substring(margin)}</p>`;
+      })
+      .join("");
   }
 }
 

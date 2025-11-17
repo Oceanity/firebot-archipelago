@@ -60,17 +60,6 @@ export interface LocationInfoPacket {
   readonly locations: Array<NetworkItem>;
 }
 
-export interface PrintJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly data: Array<JSONMessagePart>;
-  readonly type: PrintJsonType;
-  readonly receiving: number;
-  readonly item: NetworkItem;
-  readonly found: boolean;
-  readonly team: number;
-  readonly slot: number;
-}
-
 export interface ReceivedItemsPacket {
   readonly cmd: ServerCommand.ReceivedItems;
   readonly index: number;
@@ -123,12 +112,57 @@ export interface SetReplyPacket {
 
 //#region JSON Packets
 
-export interface ItemSendJSONPacket {
+export interface AdminCommandResultJSONPacket {
   readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.ItemSend;
+  readonly type: PrintJsonType.AdminCommandResult;
+  readonly data: Array<JSONMessagePart>;
+}
+
+export interface ChatJSONPacket {
+  readonly cmd: ServerCommand.PrintJSON;
+  readonly type: PrintJsonType.Chat;
+  readonly data: Array<JSONMessagePart>;
+  readonly team: number;
+  readonly slot: number;
+  readonly message: string;
+}
+
+export interface CollectJSONPacket {
+  readonly cmd: ServerCommand.PrintJSON;
+  readonly type: PrintJsonType.Collect;
+  readonly data: Array<JSONMessagePart>;
+  readonly team: number;
+  readonly slot: number;
+}
+
+export interface CommandResultJSONPacket {
+  readonly cmd: ServerCommand.PrintJSON;
+  readonly type: PrintJsonType.CommandResult;
+  readonly data: Array<JSONMessagePart>;
+}
+
+export interface CountdownJSONPacket {
+  readonly cmd: ServerCommand.PrintJSON;
+  readonly type: PrintJsonType.Countdown;
+  readonly data: Array<JSONMessagePart>;
+  readonly countdown: number;
+}
+
+export interface GoalJSONPacket {
+  readonly cmd: ServerCommand.PrintJSON;
+  readonly type: PrintJsonType.Goal;
+  readonly data: Array<JSONMessagePart>;
+  readonly team: number;
+  readonly slot: number;
+}
+
+export interface HintJSONPacket {
+  readonly cmd: ServerCommand.PrintJSON;
+  readonly type: PrintJsonType.Hint;
   readonly data: Array<JSONMessagePart>;
   readonly receiving: number;
   readonly item: NetworkItem;
+  readonly found: boolean;
 }
 
 export interface ItemCheatJSONPacket {
@@ -140,13 +174,12 @@ export interface ItemCheatJSONPacket {
   readonly team: number;
 }
 
-export interface HintJSONPacket {
+export interface ItemSendJSONPacket {
   readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Hint;
+  readonly type: PrintJsonType.ItemSend;
   readonly data: Array<JSONMessagePart>;
   readonly receiving: number;
   readonly item: NetworkItem;
-  readonly found: boolean;
 }
 
 export interface JoinJSONPacket {
@@ -166,13 +199,12 @@ export interface PartJSONPacket {
   readonly slot: number;
 }
 
-export interface ChatJSONPacket {
+export interface ReleaseJSONPacket {
   readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Chat;
+  readonly type: PrintJsonType.Release;
   readonly data: Array<JSONMessagePart>;
   readonly team: number;
   readonly slot: number;
-  readonly message: string;
 }
 
 export interface ServerChatJSONPacket {
@@ -180,12 +212,6 @@ export interface ServerChatJSONPacket {
   readonly type: PrintJsonType.ServerChat;
   readonly data: Array<JSONMessagePart>;
   readonly message: string;
-}
-
-export interface TutorialJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Tutorial;
-  readonly data: Array<JSONMessagePart>;
 }
 
 export interface TagsChangedJSONPacket {
@@ -197,47 +223,10 @@ export interface TagsChangedJSONPacket {
   readonly tags: Array<string>;
 }
 
-export interface CommandResultJSONPacket {
+export interface TutorialJSONPacket {
   readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.CommandResult;
+  readonly type: PrintJsonType.Tutorial;
   readonly data: Array<JSONMessagePart>;
-}
-
-export interface AdminCommandResultJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.AdminCommandResult;
-  readonly data: Array<JSONMessagePart>;
-}
-
-export interface GoalJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Goal;
-  readonly data: Array<JSONMessagePart>;
-  readonly team: number;
-  readonly slot: number;
-}
-
-export interface ReleaseJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Release;
-  readonly data: Array<JSONMessagePart>;
-  readonly team: number;
-  readonly slot: number;
-}
-
-export interface CollectJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Collect;
-  readonly data: Array<JSONMessagePart>;
-  readonly team: number;
-  readonly slot: number;
-}
-
-export interface CountdownJSONPacket {
-  readonly cmd: ServerCommand.PrintJSON;
-  readonly type: PrintJsonType.Countdown;
-  readonly data: Array<JSONMessagePart>;
-  readonly countdown: number;
 }
 
 //#endregion

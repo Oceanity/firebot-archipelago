@@ -6,6 +6,7 @@ import { initModules, logger } from "@oceanity/firebot-helpers/firebot";
 import { initFrontendCommunicator } from "./archipelago-frontend-events";
 import { initArchipelagoIntegration } from "./archipelago-integration";
 import { ArchipelagoUIExtension } from "./archipelago-ui-extension";
+import { registerArchipelagoVariables } from "./archipelago-variables";
 import {
   ARCHIPELAGO_EVENT_SOURCE,
   ARCHIPELAGO_INTEGRATION_AUTHOR,
@@ -46,6 +47,11 @@ const script: Firebot.CustomScript = {
 
     runRequest.modules.eventManager.registerEventSource(
       ARCHIPELAGO_EVENT_SOURCE
+    );
+
+    registerArchipelagoVariables(
+      runRequest.modules.replaceVariableFactory,
+      runRequest.modules.replaceVariableManager
     );
 
     initFrontendCommunicator(runRequest.modules.frontendCommunicator);
