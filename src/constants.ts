@@ -30,7 +30,7 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
     },
     {
       id: FirebotEvents.Disconnected,
-      name: "Connected",
+      name: "Disconnected",
       description:
         "When the client disconnects from any Archipelago MultiWorld server.",
     },

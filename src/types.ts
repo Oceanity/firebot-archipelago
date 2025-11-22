@@ -34,6 +34,7 @@ import {
   SayPacket,
   ServerChatJSONPacket,
   SetReplyPacket,
+  StatusUpdatePacket,
   TagsChangedJSONPacket,
   TutorialJSONPacket,
 } from "./interfaces";
@@ -109,7 +110,8 @@ export type ClientPacket =
   | ConnectPacket
   | ConnectUpdatePacket
   | GetDataPackagePacket
-  | SayPacket;
+  | SayPacket
+  | StatusUpdatePacket;
 
 export type ServerPacket =
   | BouncedPacket

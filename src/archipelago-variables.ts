@@ -18,6 +18,7 @@ export function registerArchipelagoVariables(
       [
         FirebotEvents.Connected,
         FirebotEvents.Countdown,
+        FirebotEvents.Disconnected,
         FirebotEvents.Message,
         FirebotEvents.ReceivedItems,
         FirebotEvents.SentItems,
@@ -27,7 +28,11 @@ export function registerArchipelagoVariables(
 
     ...buildPlayerVariables(
       "apPlayer",
-      [FirebotEvents.Connected, FirebotEvents.Countdown],
+      [
+        FirebotEvents.Connected,
+        FirebotEvents.Countdown,
+        FirebotEvents.Disconnected,
+      ],
       replaceVariableFactory
     ),
 

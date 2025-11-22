@@ -155,6 +155,10 @@ export class SocketService extends TypedEmitter<EventDef> {
       throw new Error("Disconnected from Archipelago WebSocket server.");
     }
 
+    logger.info(
+      `Sending packet with commands '${packets.map((p) => p.cmd).join(", ")}'`
+    );
+
     this.#socket.send(JSON.stringify(packets));
     this.emit("sentPackets", packets);
     return this;

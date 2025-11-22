@@ -130,7 +130,6 @@ export class FirebotRemoteService {
         FirebotEvents.Message,
         {
           ...this.#getSessionMetadata(),
-          ...this.#getPlayerMetadata(),
           ...this.#getMessageMetadata(undefined, data.message),
         }
       );

@@ -1,5 +1,5 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
 import Fuse from "fuse.js";
+import { ClientCommand, ClientStatus } from "./enums";
 import { client } from "./main";
 
 type APCommandDefinition = Record<`/${string}`, APCommandOptions>;
@@ -42,6 +42,16 @@ export const APCommandDefinitions: APCommandDefinition = {
     description: "Disconnect from a MultiWorld Server.",
     callback: (sessionName) => {
       client.sessions.get(sessionName)?.disconnect();
+    },
+  },
+
+  "/ready": {
+    description: "Send ready status to server.",
+    callback: (sessionName) => {
+      client.sessions.get(sessionName)?.socket.send({
+        cmd: ClientCommand.StatusUpdate,
+        status: ClientStatus.Ready,
+      });
     },
   },
 
@@ -128,53 +138,42 @@ export const APCommandDefinitions: APCommandDefinition = {
     },
   },
 
-  "/players": {
-    description:
-      "Get a list of all players connected to session and what game they are playing",
-    callback: async (sessionName) => {
-      const session = client.sessions.get(sessionName);
-      if (!session) {
-        return;
-      }
+  // "/players": {
+  //   description:
+  //     "Get a list of all players connected to session and what game they are playing",
+  //   callback: async (sessionName) => {
+  //     const session = client.sessions.get(sessionName);
+  //     if (!session) {
+  //       return;
+  //     }
 
-      const teams = session.players.teams;
-      logger.info(JSON.stringify(teams));
+  //     const teams = session.players.teams;
 
-      session.messages.push({
-        text: teams
-          .map(
-            (players, teamIndex) =>
-              `Team ${teamIndex + 1}\n${players
-                .map((player) => `> ${player.alias} - ${player.game}`)
-                .join("\n")}`
-          )
-          .join("\n"),
-        html: teams
-          .map(
-            (players, teamIndex) =>
-              `<ul class="team team-${teamIndex + 1}">
-          ${players
-            .map((player, playerIndex) => {
-              `<li class="player player-${teamIndex}-${playerIndex}">${player.alias} - ${player.game}</li>`;
-            })
-            .join("")}
-          </ul>`
-          )
-          .join(""),
-        nodes: [],
-      });
-    },
-  },
-
-  "/ready": {
-    description: "Send ready status to server.",
-    callback: async (sessionName) => {
-      const session = client.sessions.get(sessionName);
-      if (!session) {
-        return;
-      }
-    },
-  },
+  //     session.messages.push({
+  //       text: teams
+  //         .map(
+  //           (players, teamIndex) =>
+  //             `Team ${teamIndex + 1}\n${players
+  //               .map((player) => `> ${player.alias} - ${player.game}`)
+  //               .join("\n")}`
+  //         )
+  //         .join("\n"),
+  //       html: teams
+  //         .map(
+  //           (players, teamIndex) =>
+  //             `<ul class="team team-${teamIndex + 1}">
+  //         ${players
+  //           .map((player, playerIndex) => {
+  //             `<li class="player player-${teamIndex}-${playerIndex}">${player.alias} - ${player.game}</li>`;
+  //           })
+  //           .join("")}
+  //         </ul>`
+  //         )
+  //         .join(""),
+  //       nodes: [],
+  //     });
+  //   },
+  // },
 };
 
 function handleSearch<T>(

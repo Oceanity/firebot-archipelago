@@ -1,5 +1,6 @@
 import {
   ClientCommand,
+  ClientStatus,
   ConnectionError,
   PrintJsonType,
   ServerCommand,
@@ -259,6 +260,11 @@ export interface GetDataPackagePacket {
 export interface SayPacket {
   readonly cmd: ClientCommand.Say;
   readonly text: string;
+}
+
+export interface StatusUpdatePacket {
+  readonly cmd: ClientCommand.StatusUpdate;
+  readonly status: ClientStatus;
 }
 
 //#endregion

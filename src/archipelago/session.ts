@@ -65,7 +65,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
       .on("locationInfo", (packet) => {
         logger.info(`Location Info`);
         logger.info(JSON.stringify(packet));
-        packet.locations.forEach((item) => {});
       })
       .on("roomUpdate", (packet: RoomUpdatePacket) => {
         // Update Checked Locations
