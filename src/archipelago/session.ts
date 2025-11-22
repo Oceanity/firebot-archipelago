@@ -55,12 +55,9 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         }
       })
       .on("receivedItems", (packet: ReceivedItemsPacket) => {
-        packet.items.forEach((itemDetails) => {
-          logger.info(
-            `Archipelago: Adding received item '${itemDetails.item}'`
-          );
-          this.#receivedItems.push(itemDetails.item);
-        });
+        packet.items.forEach((itemDetails) =>
+          this.#receivedItems.push(itemDetails.item)
+        );
       })
       .on("locationInfo", (packet) => {
         logger.info(`Location Info`);
@@ -204,8 +201,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
           .send(connectPacket)
           .wait("connected")
           .then(([packet]) => {
-            logger.info(JSON.stringify(packet));
-
             this.socket.off("connectionRefused", refusedListener);
 
             // Store checked/unchecked locations for cross-referencing

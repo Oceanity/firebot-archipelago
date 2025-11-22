@@ -40,7 +40,7 @@ module.exports = {
     ],
   },
   optimization: {
-    minimize: false,
+    minimize: process.env.NODE_ENV === "production",
     minimizer: [
       new TerserPlugin({
         terserOptions: {

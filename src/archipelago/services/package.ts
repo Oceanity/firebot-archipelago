@@ -87,15 +87,9 @@ export class DataPackageService {
 
     const data: DataPackage = { games: {} };
 
-    const filteredGameSums = gameSums.filter(([game, checksum]) => {
-      if (this.#packages.get(game)?.has(checksum)) {
-        logger.info(
-          `Archipelago: Skipping fetching package for '${game}' (checksum: '${checksum}') as it already exists.`
-        );
-        return false;
-      }
-      return true;
-    });
+    const filteredGameSums = gameSums.filter(
+      ([game, checksum]) => !this.#packages.get(game)?.has(checksum)
+    );
 
     for (const [game, checksum] of filteredGameSums) {
       const request: GetDataPackagePacket = {
