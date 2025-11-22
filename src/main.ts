@@ -12,6 +12,7 @@ import {
   ARCHIPELAGO_INTEGRATION_NAME,
   ARCHIPELAGO_INTEGRATION_VERSION,
 } from "./constants";
+import { AllArchipelagoFilterEvents } from "./filters";
 
 export let client: APClient;
 
@@ -42,6 +43,10 @@ const script: Firebot.CustomScript = {
     runRequest.modules.eventManager.registerEventSource(
       ARCHIPELAGO_EVENT_SOURCE
     );
+
+    for (const filter of AllArchipelagoFilterEvents) {
+      runRequest.modules.eventFilterManager.registerFilter(filter);
+    }
 
     registerArchipelagoVariables(
       runRequest.modules.replaceVariableFactory,

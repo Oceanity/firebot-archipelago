@@ -130,6 +130,7 @@ export class FirebotRemoteService {
         FirebotEvents.Message,
         {
           ...this.#getSessionMetadata(),
+          ...this.#getPlayerMetadata(),
           ...this.#getMessageMetadata(undefined, data.message),
         }
       );
@@ -216,9 +217,10 @@ export class FirebotRemoteService {
     prefix: string = "apSession"
   ): Record<string, string> => ({
     [`${prefix}Name`]: this.#session.name,
+    [`${prefix}IsStarting`]: `${this.#session.startingUp}`,
     [`${prefix}Hostname`]: this.#session.url.hostname,
     [`${prefix}Port`]: `${this.#session.url.port}`,
-    [`${prefix}Url`]: `${this.#session.url}`,
+    [`${prefix}Url`]: this.#session.url.toString(),
     [`${prefix}HintPoints`]: `${this.#session.hintPoints}`,
     [`${prefix}HintCost`]: `${this.#session.hintCost}`,
     [`${prefix}Hints`]: `${this.#session.getHints(this.#session.hintPoints)}`,

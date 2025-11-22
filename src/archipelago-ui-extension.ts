@@ -56,7 +56,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               <input
                 type="text"
                 class="form-control ng-animate-disabled"
-                placeholder="Server Hostname"
+                placeholder="Server Hostname (eg. archipelago.gg:12345)"
                 disable-variable-menu="true"
                 ng-disabled="isConnecting"
                 ng-model="hostname"

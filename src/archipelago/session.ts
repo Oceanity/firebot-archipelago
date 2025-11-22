@@ -3,7 +3,6 @@ import { TypedEmitter } from "tiny-typed-emitter";
 import { v4 as uuid } from "uuid";
 import { ClientCommand, ItemHandlingFlag } from "../enums";
 import {
-  ConnectedPacket,
   ConnectionRefusedPacket,
   ConnectPacket,
   ReceivedItemsPacket,
@@ -31,7 +30,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #missingLocations: Set<number> = new Set();
   readonly #receivedItems: Array<number> = new Array();
 
-  #authenticated: boolean = false;
+  #startingUp: boolean = true;
   #hintPoints: number = 0;
   #hintCost: number = 0;
   #url: URL;
@@ -48,9 +47,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     this.#id = uuid();
 
     this.socket
-      .on("connected", (_packet: ConnectedPacket) => {
-        this.#authenticated = true;
-      })
       .on("sentPackets", (packets) => {
         for (const packet of packets) {
           if (packet.cmd === ClientCommand.ConnectUpdate) {
@@ -96,8 +92,8 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return this.#id;
   }
 
-  get authenticated(): boolean {
-    return this.#authenticated;
+  get startingUp(): boolean {
+    return this.#startingUp;
   }
 
   get url(): URL {
@@ -222,7 +218,8 @@ export class APSession extends TypedEmitter<APSessionEvents> {
             );
 
             this.#hintPoints = packet.hint_points;
-            this.#authenticated = true;
+
+            this.#startingUp = false;
 
             resolve({
               success: true,
@@ -249,8 +246,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     this.messages.removeAllListeners();
     this.socket.removeAllListeners();
     this.socket.disconnect();
-
-    this.#authenticated = false;
 
     this.emit("disconnected", this.name);
 

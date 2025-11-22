@@ -42,7 +42,8 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
     {
       id: FirebotEvents.ReceivedItems,
       name: "Received Items",
-      description: "When any user in a MultiWorld server receives an item.",
+      description:
+        "When the current player of a connected MultiWorld server receives an item.",
     },
   ],
 };

@@ -91,6 +91,10 @@ const buildSessionVariables = (
       "Name",
       "The name of the associated session, formatted as `<slot>@<hostname>:<port>`",
     ],
+    [
+      "IsStarting",
+      "Will be `$true` if the session is still starting up, good to filter out initial wave of received items/messages.",
+    ],
     ["Hostname", "The hostname of the associated session"],
     ["Port", "The port of the associated session, the default port is `38281`"],
     ["Url", "The full Url of the associated session"],
