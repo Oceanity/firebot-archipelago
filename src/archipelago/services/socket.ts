@@ -88,7 +88,6 @@ export class SocketService extends TypedEmitter<EventDef> {
 
     try {
       return new Promise((resolve, reject) => {
-        logger.info(`Using url: ${url}`);
         const handleConnectionError = (error?: Error): void => {
           this.disconnect();
           reject(

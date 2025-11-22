@@ -1,7 +1,6 @@
 import {
   eventManager,
   frontendCommunicator,
-  logger,
 } from "@oceanity/firebot-helpers/firebot";
 import { ARCHIPELAGO_INTEGRATION_ID } from "../../constants";
 import { FirebotEvents, ItemClassification } from "../../enums";
@@ -29,13 +28,27 @@ export class FirebotRemoteService {
       );
     });
 
+    this.#session.on("disconnected", (sessionName) => {
+      frontendCommunicator.fireEventAsync(
+        "archipelago:disconnected",
+        sessionName
+      );
+
+      eventManager.triggerEvent(
+        ARCHIPELAGO_INTEGRATION_ID,
+        FirebotEvents.Disconnected,
+        {
+          ...this.#getSessionMetadata(),
+          ...this.#getPlayerMetadata(),
+        }
+      );
+    });
+
     //#endregion
 
     //#region Socket Events
 
     this.#session.socket.on("receivedItems", (packet) => {
-      logger.info("Received Items Event");
-      logger.info(JSON.stringify(packet));
       packet.items.forEach((item) => {
         eventManager.triggerEvent(
           ARCHIPELAGO_INTEGRATION_ID,
@@ -48,6 +61,25 @@ export class FirebotRemoteService {
           }
         );
       });
+    });
+
+    this.#session.socket.on("roomUpdate", (packet) => {
+      const { checked_locations: locations, hint_points: hintPoints } = packet;
+
+      // Checked Locations Updated
+      if (!!locations) {
+        frontendCommunicator.fireEventAsync("archipelago:locationsChecked", {
+          locations,
+        });
+      }
+
+      // Hint Points Updated
+      if (!!packet.hint_points) {
+        frontendCommunicator.fireEventAsync("archipelago:hintPointsUpdated", {
+          hintPoints,
+          hints: this.#session.getHints(hintPoints),
+        });
+      }
     });
 
     // this.#session.socket.on("sentItems", (packet) => {
@@ -105,6 +137,8 @@ export class FirebotRemoteService {
 
     //#endregion
   }
+
+  //#region Message Helpers
 
   #getItemMetadata = (
     prefix: string = "apItem",
@@ -185,5 +219,10 @@ export class FirebotRemoteService {
     [`${prefix}Hostname`]: this.#session.url.hostname,
     [`${prefix}Port`]: `${this.#session.url.port}`,
     [`${prefix}Url`]: `${this.#session.url}`,
+    [`${prefix}HintPoints`]: `${this.#session.hintPoints}`,
+    [`${prefix}HintCost`]: `${this.#session.hintCost}`,
+    [`${prefix}Hints`]: `${this.#session.getHints(this.#session.hintPoints)}`,
   });
+
+  //#endregion
 }

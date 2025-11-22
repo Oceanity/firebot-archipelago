@@ -1,12 +1,9 @@
-import {
-  Firebot,
-  Integration,
-} from "@crowbartools/firebot-custom-scripts-types";
+import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
 import { initModules, logger } from "@oceanity/firebot-helpers/firebot";
 import { initFrontendCommunicator } from "./archipelago-frontend-events";
-import { initArchipelagoIntegration } from "./archipelago-integration";
 import { ArchipelagoUIExtension } from "./archipelago-ui-extension";
 import { registerArchipelagoVariables } from "./archipelago-variables";
+import { APClient } from "./archipelago/client";
 import {
   ARCHIPELAGO_EVENT_SOURCE,
   ARCHIPELAGO_INTEGRATION_AUTHOR,
@@ -15,8 +12,8 @@ import {
   ARCHIPELAGO_INTEGRATION_NAME,
   ARCHIPELAGO_INTEGRATION_VERSION,
 } from "./constants";
-import { ArchipelagoIntegrationDefinition } from "./integration-definition";
-import { ArchipelagoIntegrationSettings } from "./types";
+
+export let client: APClient;
 
 const script: Firebot.CustomScript = {
   getScriptManifest: () => {
@@ -29,17 +26,14 @@ const script: Firebot.CustomScript = {
     };
   },
   getDefaultParameters: () => ({}),
-  run: (runRequest) => {
+  run: async (runRequest) => {
     initModules(runRequest.modules);
 
-    logger.info("Archipelago Integration Script started");
+    logger.info("Archipelago: Starting client script...");
 
-    const integration: Integration<ArchipelagoIntegrationSettings> = {
-      definition: ArchipelagoIntegrationDefinition,
-      integration: initArchipelagoIntegration(runRequest.modules.eventManager),
-    };
+    client = new APClient();
 
-    runRequest.modules.integrationManager.registerIntegration(integration);
+    initFrontendCommunicator(runRequest.modules.frontendCommunicator);
 
     runRequest.modules.uiExtensionManager.registerUIExtension(
       ArchipelagoUIExtension
@@ -54,7 +48,7 @@ const script: Firebot.CustomScript = {
       runRequest.modules.replaceVariableManager
     );
 
-    initFrontendCommunicator(runRequest.modules.frontendCommunicator);
+    await client.init();
   },
 };
 

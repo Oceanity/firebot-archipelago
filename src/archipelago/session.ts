@@ -2,7 +2,13 @@ import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { v4 as uuid } from "uuid";
 import { ClientCommand, ItemHandlingFlag } from "../enums";
-import { ConnectionRefusedPacket, ConnectPacket } from "../interfaces";
+import {
+  ConnectedPacket,
+  ConnectionRefusedPacket,
+  ConnectPacket,
+  ReceivedItemsPacket,
+  RoomUpdatePacket,
+} from "../interfaces";
 import { ServiceResponse } from "../types";
 import { APClient } from "./client";
 import { FirebotRemoteService } from "./services/firebot-remote";
@@ -13,6 +19,7 @@ import { SocketService } from "./services/socket";
 
 type APSessionEvents = {
   connected: () => void;
+  disconnected: (sessionName: string) => void;
 };
 
 export class APSession extends TypedEmitter<APSessionEvents> {
@@ -22,9 +29,11 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #checksums: Map<string, string> = new Map();
   readonly #checkedLocations: Set<number> = new Set();
   readonly #missingLocations: Set<number> = new Set();
-  readonly #receivedItems: Set<number> = new Set();
+  readonly #receivedItems: Array<number> = new Array();
 
   #authenticated: boolean = false;
+  #hintPoints: number = 0;
+  #hintCost: number = 0;
   #url: URL;
 
   public readonly socket = new SocketService();
@@ -39,8 +48,8 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     this.#id = uuid();
 
     this.socket
-      .on("disconnected", () => {
-        this.#authenticated = false;
+      .on("connected", (_packet: ConnectedPacket) => {
+        this.#authenticated = true;
       })
       .on("sentPackets", (packets) => {
         for (const packet of packets) {
@@ -49,19 +58,35 @@ export class APSession extends TypedEmitter<APSessionEvents> {
           }
         }
       })
-      .on("receivedItems", (packet) => {
+      .on("receivedItems", (packet: ReceivedItemsPacket) => {
         packet.items.forEach((itemDetails) => {
-          // After initial setup, need to update existing checked/missing locations
-          if (
-            itemDetails.player === this.players.self.slot &&
-            this.#missingLocations.has(itemDetails.location)
-          ) {
-            this.#missingLocations.delete(itemDetails.location);
-            this.#checkedLocations.add(itemDetails.location);
-          }
-
-          this.#receivedItems.add(itemDetails.item);
+          logger.info(
+            `Archipelago: Adding received item '${itemDetails.item}'`
+          );
+          this.#receivedItems.push(itemDetails.item);
         });
+      })
+      .on("locationInfo", (packet) => {
+        logger.info(`Location Info`);
+        logger.info(JSON.stringify(packet));
+        packet.locations.forEach((item) => {});
+      })
+      .on("roomUpdate", (packet: RoomUpdatePacket) => {
+        // Update Checked Locations
+        packet.checked_locations
+          ?.filter((location) => !this.#checkedLocations.has(location))
+          .forEach((location) => {
+            this.#checkedLocations.add(location);
+            this.#missingLocations.delete(location);
+          });
+
+        // Update Hint Points
+        if (!!packet.hint_points) {
+          this.#hintPoints = packet.hint_points;
+        }
+      })
+      .on("disconnected", () => {
+        this.disconnect();
       });
   }
 
@@ -85,10 +110,22 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     }:${this.#url.port ?? "UnknownPort"}`;
   }
 
-  get itemTable(): Array<[item: string, received: boolean]> {
+  get hintCost(): number {
+    return this.#hintCost;
+  }
+
+  get hintPoints(): number {
+    return this.#hintPoints;
+  }
+
+  get itemTable(): Array<[item: string, count: number]> {
     const items = this.getPackage(this.players.self.game).itemTable;
     return Object.entries(items).map(
-      ([name, id]) => [name, this.#receivedItems.has(id)] as [string, boolean]
+      ([name, id]) =>
+        [name, this.#receivedItems.filter((item) => item === id).length] as [
+          string,
+          number
+        ]
     );
   }
 
@@ -135,6 +172,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         );
         const { packet: roomInfo, url } = await this.socket.connect(hostname);
         this.#url = url;
+        this.#hintCost = roomInfo.hint_cost;
 
         // Store local game info and fetch more to package service
         for (const [game, checksum] of Object.entries(
@@ -183,6 +221,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
               this.#missingLocations.add(location)
             );
 
+            this.#hintPoints = packet.hint_points;
             this.#authenticated = true;
 
             resolve({
@@ -205,6 +244,22 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     });
   }
 
+  public disconnect(): void {
+    this.players.removeAllListeners();
+    this.messages.removeAllListeners();
+    this.socket.removeAllListeners();
+    this.socket.disconnect();
+
+    this.#authenticated = false;
+
+    this.emit("disconnected", this.name);
+
+    this.removeAllListeners();
+  }
+
+  public getHints = (hintPoints: number) =>
+    Math.floor(hintPoints / this.#hintCost);
+
   //#endregion
 
   //#region PackageService
@@ -213,7 +268,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   public getPackage(game: string): StoredGamePackage | null {
     try {
       const checksum = this.#getChecksum(game);
-      return this.#client.packages.getPackage(checksum);
+      return this.#client.packages.getPackage(game, checksum);
     } catch (error) {
       logger.error(error);
       return null;
@@ -227,7 +282,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   ): string {
     try {
       const checksum = this.#getChecksum(game);
-      return this.#client.packages.getItemName(checksum, id, fallback);
+      return this.#client.packages.getItemName(game, checksum, id, fallback);
     } catch (error) {
       logger.error(error);
       return "Unknown Item";
@@ -241,7 +296,12 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   ): string {
     try {
       const checksum = this.#getChecksum(game);
-      return this.#client.packages.getLocationName(checksum, id, fallback);
+      return this.#client.packages.getLocationName(
+        game,
+        checksum,
+        id,
+        fallback
+      );
     } catch (error) {
       logger.error(error);
       return "Unknown Location";

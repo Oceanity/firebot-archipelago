@@ -1,8 +1,9 @@
 import { ScriptModules } from "@crowbartools/firebot-custom-scripts-types";
 import { logger } from "@oceanity/firebot-helpers/firebot";
 import { APCommandDefinitions } from "./archipelago-command-definitions";
-import { archipelagoIntegration } from "./archipelago-integration";
 import { ClientCommand } from "./enums";
+import { client } from "./main";
+import { ServiceResponse } from "./types";
 
 export function initFrontendCommunicator(
   frontendCommunicator: ScriptModules["frontendCommunicator"]
@@ -13,18 +14,10 @@ export function initFrontendCommunicator(
       hostname: string;
       slot: string;
       password?: string;
-    }): Promise<boolean> => {
+    }): Promise<ServiceResponse> => {
       const { hostname, slot, password } = data;
       try {
-        const result = await archipelagoIntegration.client.connect(
-          hostname,
-          slot,
-          password
-        );
-
-        logger.info(`Frontend Connect: ${JSON.stringify(result)}`);
-
-        return true;
+        return await client.connect(hostname, slot, password);
       } catch (error) {
         logger.error(
           `Could not connect to Archipelago Session at '${hostname}' as '${slot}' with password '${
@@ -32,28 +25,26 @@ export function initFrontendCommunicator(
           }'`,
           error
         );
-        return false;
+        return { success: false, errors: [error] };
       }
     }
   );
 
   frontendCommunicator.on(
     "archipelago:getSessionNames",
-    (): Array<string> => archipelagoIntegration.client.sessionNames
+    (): Array<string> => client.sessionNames
   );
 
   frontendCommunicator.on(
-    "archipelago:getMessageLog",
+    "archipelago:getHtmlMessageLog",
     (slot: string): Array<string> =>
-      archipelagoIntegration.client.sessions.get(slot)?.messages.htmlLog ?? []
+      client.sessions.get(slot)?.messages.htmlLog ?? []
   );
 
   frontendCommunicator.on(
     "archipelago:sendMessage",
     (data: { sessionName: string; message: string }): boolean => {
-      const session = archipelagoIntegration.client.sessions.get(
-        data.sessionName
-      );
+      const session = client.sessions.get(data.sessionName);
 
       if (!session) {
         logger.error(
@@ -88,29 +79,25 @@ function handleChatCommand(
   sessionName: string,
   ...args: Array<string>
 ) {
-  const session = archipelagoIntegration.client.sessions.get(sessionName);
+  const session = client.sessions.get(sessionName);
   if (!session) {
     return;
   }
 
   if (!APCommandDefinitions.hasOwnProperty(command)) {
-    session.messages.push([
-      {
-        text: "Unrecognized command, use /help to see all available commands",
-        html: `<p class="red">Unrecognized command, use /help to see all available commands</p>`,
-        nodes: [],
-      },
-    ]);
+    session.messages.push({
+      text: "Unrecognized command, use /help to see all available commands",
+      html: `<p class="red">Unrecognized command, use /help to see all available commands</p>`,
+      nodes: [],
+    });
     return;
   }
 
-  session.messages.push([
-    {
-      text: `${command} ${args.join(" ")}`,
-      html: `<span class="orange">${command} ${args.join(" ")}</span>`,
-      nodes: [],
-    },
-  ]);
+  session.messages.push({
+    text: `${command} ${args.join(" ")}`,
+    html: `<span class="orange">${command} ${args.join(" ")}</span>`,
+    nodes: [],
+  });
 
   APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
     sessionName,

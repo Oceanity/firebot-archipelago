@@ -1,5 +1,6 @@
+import { logger } from "@oceanity/firebot-helpers/firebot";
 import Fuse from "fuse.js";
-import { archipelagoIntegration } from "./archipelago-integration";
+import { client } from "./main";
 
 type APCommandDefinition = Record<`/${string}`, APCommandOptions>;
 
@@ -13,35 +14,42 @@ export const APCommandDefinitions: APCommandDefinition = {
   "/help": {
     description: "Returns the help listing.",
     callback: async (slot) => {
-      archipelagoIntegration.client.sessions.get(slot)?.messages.push([
-        {
-          text: Object.entries(APCommandDefinitions)
-            .map(
-              ([command, definition]) =>
-                `${command} ${argsString(definition.args)}\n\t${
-                  definition.description
-                }`
-            )
-            .join("\n"),
-          html: Object.entries(APCommandDefinitions)
-            .map(
-              ([command, definition]) =>
-                `<p class="command">${command} <span class="arg">${argsString(
-                  definition.args
-                )}</span></p><p class="ml-6 description">${
-                  definition.description
-                }</p>`
-            )
-            .join(""),
-          nodes: [],
-        },
-      ]);
+      client.sessions.get(slot)?.messages.push({
+        text: Object.entries(APCommandDefinitions)
+          .map(
+            ([command, definition]) =>
+              `${command} ${argsString(definition.args)}\n\t${
+                definition.description
+              }`
+          )
+          .join("\n"),
+        html: Object.entries(APCommandDefinitions)
+          .map(
+            ([command, definition]) =>
+              `<p class="command">${command} <span class="arg">${argsString(
+                definition.args
+              )}</span></p><p class="ml-6 description">${
+                definition.description
+              }</p>`
+          )
+          .join(""),
+        nodes: [],
+      });
     },
   },
+
   "/disconnect": {
     description: "Disconnect from a MultiWorld Server.",
-    callback: async (slot) => {},
+    callback: (sessionName) => {
+      const session = client.sessions.get(sessionName);
+      if (!session) {
+        return;
+      }
+
+      session.disconnect();
+    },
   },
+
   "/items": {
     args: {
       search: {
@@ -50,7 +58,7 @@ export const APCommandDefinitions: APCommandDefinition = {
     },
     description: "List all item names for the currently running game.",
     callback: async (sessionName, ...search) => {
-      const session = archipelagoIntegration.client.sessions.get(sessionName);
+      const session = client.sessions.get(sessionName);
       if (!session) {
         return;
       }
@@ -61,36 +69,29 @@ export const APCommandDefinitions: APCommandDefinition = {
       );
 
       if (!items.length) {
-        const message = `No items found${
-          !!search ? ` matching ${search}` : ""
-        }`;
-
-        session.messages.push([
-          {
-            text: message,
-            html: message,
-            nodes: [],
-          },
-        ]);
+        session.messages.push(
+          `No items found${!!search ? ` matching ${search}` : ""}`
+        );
 
         return;
       }
 
-      session.messages.push([
-        {
-          text: items.map(([name]) => name).join("\n"),
-          html: `<ul>${items
-            .map(([name, received]) =>
-              received
-                ? `<li class="item-entry received">${name} ✓</li>`
-                : `<li class="item-entry missing">${name}</li>`
-            )
-            .join("")}</ul>`,
-          nodes: [],
-        },
-      ]);
+      session.messages.push({
+        text: items.map(([name]) => name).join("\n"),
+        html: `<ul>${items
+          .map(([name, count]) =>
+            count > 0
+              ? `<li class="item-entry received">${name}${
+                  count > 1 ? ` (x${count})` : ""
+                } ✓</li>`
+              : `<li class="item-entry missing">${name}</li>`
+          )
+          .join("")}</ul>`,
+        nodes: [],
+      });
     },
   },
+
   "/locations": {
     description: "List all location names for the currently running game.",
     args: {
@@ -99,7 +100,7 @@ export const APCommandDefinitions: APCommandDefinition = {
       },
     },
     callback: async (sessionName, ...search) => {
-      const session = archipelagoIntegration.client.sessions.get(sessionName);
+      const session = client.sessions.get(sessionName);
       if (!session) {
         return;
       }
@@ -110,40 +111,70 @@ export const APCommandDefinitions: APCommandDefinition = {
       );
 
       if (!locations.length) {
-        const message = `No locations found${
-          !!search ? ` matching ${search}` : ""
-        }`;
-
-        session.messages.push([
-          {
-            text: message,
-            html: message,
-            nodes: [],
-          },
-        ]);
+        session.messages.push(
+          `No locations found${!!search ? ` matching ${search}` : ""}`
+        );
 
         return;
       }
 
-      session.messages.push([
-        {
-          text: locations.map(([name]) => name).join("\n"),
-          html: `<ul>${locations
-            .map(([name, checked]) =>
-              checked
-                ? `<li class="location-entry checked">${name}</li>`
-                : `<li class="location-entry unchecked">${name}</li>`
-            )
-            .join("")}</ul>`,
-          nodes: [],
-        },
-      ]);
+      session.messages.push({
+        text: locations.map(([name]) => name).join("\n"),
+        html: `<ul>${locations
+          .map(
+            ([name, checked]) =>
+              `<li class="location-entry ${
+                checked ? "" : "un"
+              }checked">${name}</li>`
+          )
+          .join("")}</ul>`,
+        nodes: [],
+      });
     },
   },
+
+  "/players": {
+    description:
+      "Get a list of all players connected to session and what game they are playing",
+    callback: async (sessionName) => {
+      const session = client.sessions.get(sessionName);
+      if (!session) {
+        return;
+      }
+
+      const teams = session.players.teams;
+      logger.info(JSON.stringify(teams));
+
+      session.messages.push({
+        text: teams
+          .map(
+            (players, teamIndex) =>
+              `Team ${teamIndex + 1}\n${players
+                .map((player) => `> ${player.alias} - ${player.game}`)
+                .join("\n")}`
+          )
+          .join("\n"),
+        html: teams
+          .map(
+            (players, teamIndex) =>
+              `<ul class="team team-${teamIndex + 1}">
+          ${players
+            .map((player, playerIndex) => {
+              `<li class="player player-${teamIndex}-${playerIndex}">${player.alias} - ${player.game}</li>`;
+            })
+            .join("")}
+          </ul>`
+          )
+          .join(""),
+        nodes: [],
+      });
+    },
+  },
+
   "/ready": {
     description: "Send ready status to server.",
     callback: async (sessionName) => {
-      const session = archipelagoIntegration.client.sessions.get(sessionName);
+      const session = client.sessions.get(sessionName);
       if (!session) {
         return;
       }
@@ -151,10 +182,10 @@ export const APCommandDefinitions: APCommandDefinition = {
   },
 };
 
-function handleSearch(
-  items: Array<[string, boolean]>,
+function handleSearch<T>(
+  items: Array<[string, T]>,
   search?: string
-): Array<[string, boolean]> {
+): Array<[string, T]> {
   if (!search || !search.trim().length) {
     return items;
   }

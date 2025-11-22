@@ -1,4 +1,3 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { MessagePartType, PrintJsonType } from "../../enums";
 import {
@@ -22,16 +21,18 @@ type Events = {
   countdown: (data: { countdown: number }) => void;
   message: (data: {
     isHidden: boolean;
-    message: { text: string; html: string };
+    message: Message;
     sessionName: string;
   }) => void;
 };
 
-export type MessageLog = Array<{
+export type Message = {
   text: string;
   html: string;
-  nodes: Array<MessageNode>;
-}>;
+  nodes?: Array<MessageNode>;
+};
+
+export type MessageLog = Array<Message>;
 
 export class MessageService extends TypedEmitter<Events> {
   readonly #session: APSession;
@@ -53,16 +54,24 @@ export class MessageService extends TypedEmitter<Events> {
   }
 
   public get htmlLog(): Array<string> {
-    logger.info("Getting HTML Log");
     return this.#messages.map((entry) => entry.html);
   }
 
-  public push([message]: MessageLog, isHidden: boolean = true) {
-    this.#messages.push(message);
+  public push(message: Message | string, isHidden: boolean = true) {
+    const formattedMessage =
+      typeof message === "string"
+        ? {
+            text: message,
+            html: `<span class="text">${message}</span>`,
+            nodes: [],
+          }
+        : message;
+
+    this.#messages.push(formattedMessage);
 
     this.emit("message", {
       isHidden,
-      message: { text: message.text, html: message.html },
+      message: formattedMessage,
       sessionName: this.#session.name,
     });
   }

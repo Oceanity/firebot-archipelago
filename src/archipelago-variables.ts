@@ -94,6 +94,15 @@ const buildSessionVariables = (
     ["Hostname", "The hostname of the associated session"],
     ["Port", "The port of the associated session, the default port is `38281`"],
     ["Url", "The full Url of the associated session"],
+    [
+      "HintPoints",
+      "The hint points held by the player of the associated session",
+    ],
+    ["HintCost", "The cost of a hint in the associated session"],
+    [
+      "Hints",
+      "The number of possible usable hints held by the player of the associated session",
+    ],
   ];
 
   return countdownProperties.map(([property, description]) =>

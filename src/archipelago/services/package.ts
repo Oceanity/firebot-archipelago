@@ -1,8 +1,16 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
+import { JsonDb, logger } from "@oceanity/firebot-helpers/firebot";
+import { JsonDB } from "node-json-db";
+import { resolve } from "path";
 import { ClientCommand } from "../../enums";
 import { DataPackage, GamePackage } from "../../types";
 import { GetDataPackagePacket } from "../interfaces/packets";
 import { APSession } from "../session";
+
+type StoredGamePackageDb = {
+  [game: string]: {
+    [checksum: string]: Omit<GamePackage, "checksum">;
+  };
+};
 
 export class StoredGamePackage {
   public readonly game: string;
@@ -39,9 +47,16 @@ export class StoredGamePackage {
 }
 
 export class DataPackageService {
-  readonly #packages: Map<string, StoredGamePackage> = new Map();
+  readonly #filePath: string = resolve(__dirname, "./ap-data-packages.json");
+  readonly #packages: Map<string, Map<string, StoredGamePackage>> = new Map();
+  readonly #db: JsonDB;
 
-  constructor() {}
+  #hasLoadedDb = false;
+
+  public constructor() {
+    // @ts-expect-error ts(2351)
+    this.#db = new JsonDb(this.#filePath, true, false);
+  }
 
   public get checksums() {
     return new Set(this.#packages.keys());
@@ -52,11 +67,28 @@ export class DataPackageService {
     gameSums: Array<[string, string]>,
     update: boolean = true
   ): Promise<DataPackage> {
+    // Load existing db to local
+    if (!this.#hasLoadedDb) {
+      const existingData = await this.#db.getObject<StoredGamePackageDb>("/");
+      Object.entries(existingData).map(([game, packages]) => {
+        if (!this.#packages.get(game)) {
+          this.#packages.set(game, new Map());
+        }
+
+        Object.entries(packages).map(([checksum, data]) => {
+          this.#packages
+            .get(game)
+            .set(checksum, new StoredGamePackage(game, { ...data, checksum }));
+        });
+      });
+
+      this.#hasLoadedDb = true;
+    }
+
     const data: DataPackage = { games: {} };
 
-    const existingChecksums = this.checksums;
     const filteredGameSums = gameSums.filter(([game, checksum]) => {
-      if (existingChecksums.has(checksum)) {
+      if (this.#packages.get(game)?.has(checksum)) {
         logger.info(
           `Archipelago: Skipping fetching package for '${game}' (checksum: '${checksum}') as it already exists.`
         );
@@ -96,21 +128,33 @@ export class DataPackageService {
 
   public storePackage = (dataPackage: DataPackage): void => {
     Object.entries(dataPackage.games).forEach(([game, data]) => {
+      const { checksum, ...gameData } = data;
+
       logger.info(
-        `Archipelago: Storing data package for game '${game}' (checksum: '${data.checksum}')`
+        `Archipelago: Storing data package for game '${game}' (checksum: '${checksum}')`
       );
 
-      this.#packages.set(
-        data.checksum,
-        new StoredGamePackage(data.checksum, data)
-      );
+      // Create base game package locally if none exists
+      if (!this.#packages.get(game)) {
+        this.#packages.set(game, new Map());
+      }
+
+      this.#packages
+        .get(game)
+        .set(checksum, new StoredGamePackage(checksum, data));
+
+      this.#db.push(`/${game}/${checksum}`, gameData);
     });
   };
 
-  public getPackage = (checksum: string): StoredGamePackage | null =>
-    this.#packages.get(checksum) ?? null;
+  public getPackage = (
+    game: string,
+    checksum: string
+  ): StoredGamePackage | null =>
+    this.#packages.get(game)?.get(checksum) ?? null;
 
   public getItemName(
+    game: string,
     checksum: string,
     id: string | number,
     fallback: boolean = true
@@ -121,7 +165,7 @@ export class DataPackageService {
       id = parseInt(id);
     }
 
-    const gamePackage = this.getPackage(checksum);
+    const gamePackage = this.getPackage(game, checksum);
     if (!gamePackage) {
       return fallback ? fallbackName : undefined;
     }
@@ -130,7 +174,17 @@ export class DataPackageService {
     return name ?? (fallback ? fallbackName : undefined);
   }
 
+  public searchItemName(
+    game: string,
+    checksum: string,
+    itemName: string,
+    limit?: number
+  ): Array<string> {
+    return [];
+  }
+
   public getLocationName(
+    game: string,
     checksum: string,
     id: string | number,
     fallback: boolean = true
@@ -141,7 +195,7 @@ export class DataPackageService {
       id = parseInt(id);
     }
 
-    const gamePackage = this.getPackage(checksum);
+    const gamePackage = this.getPackage(game, checksum);
     if (!gamePackage) {
       return fallback ? fallbackName : undefined;
     }

@@ -42,13 +42,14 @@ export const ArchipelagoUIExtension: UIExtension = {
           }
 
           .archipelago-message {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 0.75rem;
+            line-height: 2.5rem;
+          }
+          
+          .archipelago-message span {
+            white-space: pre-wrap;
           }
         </style>
-        <div style="display: flex; flex-direction: column; height: 100%">
+        <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
           <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
 
             <div class="p-6" style="display: flex; gap: 1.5rem">
@@ -70,7 +71,7 @@ export const ArchipelagoUIExtension: UIExtension = {
                 ng-model="slot"
                 ng-keydown="handleConnectKeydown($event)" />
               <input
-                type="text"
+                type="password"
                 class="form-control ng-animate-disabled"
                 placeholder="Password (optional)"
                 disable-variable-menu="true"
@@ -88,12 +89,12 @@ export const ArchipelagoUIExtension: UIExtension = {
             <div class="fb-tab-wrapper">
               <ul class="nav nav-tabs fb-tabs">
                 <li
-                  ng-repeat="slotName in slots"
+                  ng-repeat="sessionName in sessions"
                   role="presentation"
-                  ng-class="{'active' : selectedSession === slotName}"
-                  ng-click="selectSlot(slotName)"
+                  ng-class="{'active' : selectedSession === sessionName}"
+                  ng-click="selectSlot(sessionName)"
                 >
-                  <a href>{{ slotName }}</a>
+                  <a href>{{ sessionName }}</a>
                 </li>
               </ul>
             </div>
@@ -102,9 +103,9 @@ export const ArchipelagoUIExtension: UIExtension = {
               tab-index="-1"
               ng-click="scrollGlued = false"
               ng-blur="scrollGlued = true"
-              style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; background: rgba(0,0,0,0.65);">
+              style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; background: rgba(0,0,0,0.65);cursor: default;">
               <div scroll-glue="scrollGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
-                <div ng-repeat="message in messages track by $index">
+                <div ng-repeat="message in messages[selectedSession] track by $index">
                   <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />
                   <div class="p-3 archipelago-message" ng-bind-html="message"></div>
                 </div>
@@ -130,10 +131,12 @@ export const ArchipelagoUIExtension: UIExtension = {
       controller: ($scope, backendCommunicator) => {
         $scope.selectSlot = (slot: string) => {
           $scope.selectedSession = slot;
-          $scope.messages = backendCommunicator.fireEventSync(
-            "archipelago:getMessageLog",
-            $scope.selectedSession
-          );
+          if (!$scope.messages[slot]) {
+            $scope.messages[slot] = backendCommunicator.fireEventSync(
+              "archipelago:getHtmlMessageLog",
+              $scope.selectedSession
+            );
+          }
         };
 
         $scope.key = "";
@@ -141,19 +144,35 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.slot = "";
         $scope.password = "";
         $scope.chatText = "";
+        $scope.result = {};
         $scope.selectedSession = "";
-        $scope.messages = [];
+        $scope.messages = {};
         $scope.scrollGlued = true;
         $scope.isConnecting = false;
 
         // Load current data
-        $scope.slots = backendCommunicator.fireEventSync(
+        $scope.sessions = backendCommunicator.fireEventSync(
           "archipelago:getSessionNames"
         );
 
-        if ($scope.slots.length) {
-          $scope.selectSlot($scope.slots[0]);
+        if ($scope.sessions.length) {
+          $scope.selectSlot($scope.sessions[0]);
         }
+
+        backendCommunicator.on(
+          "archipelago:disconnected",
+          (sessionName: string) => {
+            $scope.sessions = $scope.sessions.filter(
+              (session: string) => session != sessionName
+            );
+
+            if ($scope.selectedSession === sessionName) {
+              $scope.selectSlot(
+                $scope.sessions.length ? $scope.sessions[0] : ""
+              );
+            }
+          }
+        );
 
         backendCommunicator.on(
           "archipelago:gotLogMessage",
@@ -163,20 +182,9 @@ export const ArchipelagoUIExtension: UIExtension = {
           }) => {
             const { message, sessionName } = data;
 
-            if (sessionName !== $scope.selectedSession) {
-              return;
-            }
-
-            $scope.messages.push(message.html);
+            $scope.messages[sessionName].push(message.html);
           }
         );
-
-        $scope.slotChanged = async () => {
-          $scope.messages = await backendCommunicator.fireEventAsync(
-            "archipelago:getMessageLog",
-            $scope.selectedSession
-          );
-        };
 
         $scope.handleChatKeydown = async ($event: KeyboardEvent) => {
           const keyCode = $event.which || $event.keyCode;
@@ -225,17 +233,17 @@ export const ArchipelagoUIExtension: UIExtension = {
             }
           );
 
+          $scope.result = result;
+
           if (!result || !result.success) {
             // Oshi TODO: Show error to user
             $scope.isConnecting = false;
             return;
           }
 
-          $scope.slots = backendCommunicator.fireEventSync(
-            "archipelago:getSessionNames"
-          );
-
-          $scope.selectSlot(result.name);
+          $scope.messages[result.data.name] = [];
+          $scope.sessions.push(result.data.name);
+          $scope.selectSlot(result.data.name);
 
           $scope.hostname = "";
           $scope.slot = "";

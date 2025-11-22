@@ -222,16 +222,7 @@ export class TextMessageNode extends BaseMessageNode {
   }
 
   public get html(): string {
-    return this.part.text
-      .split("\n")
-      .map((line) => {
-        const margin = line.search(/\S/);
-
-        return `<p${
-          margin > 0 ? ` class="ml-${margin * 2}"` : ""
-        }>${line.substring(margin)}</p>`;
-      })
-      .join("");
+    return `<span>${this.part.text}</span>`;
   }
 }
 

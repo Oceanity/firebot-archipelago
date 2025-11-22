@@ -1,6 +1,8 @@
-const path = require("path");
+import { resolve } from "path";
+import * as packageJson from "./package.json";
 const TerserPlugin = require("terser-webpack-plugin");
-const packageJson = require("./package.json");
+const ZipWebpackPlugin = require("zip-webpack-plugin");
+const { scriptOutputName, version } = packageJson;
 
 module.exports = {
   target: "node",
@@ -12,9 +14,16 @@ module.exports = {
   output: {
     libraryTarget: "commonjs2",
     libraryExport: "default",
-    path: path.resolve(__dirname, "./dist"),
-    filename: `${packageJson.scriptOutputName}.js`,
+    path: resolve(__dirname, `./dist/${scriptOutputName}`),
+    filename: "index.js",
   },
+  plugins: [
+    new ZipWebpackPlugin({
+      path: resolve(__dirname, "./dist"),
+      pathPrefix: scriptOutputName,
+      filename: `${scriptOutputName}-v${version}.zip`,
+    }),
+  ],
   resolve: {
     extensions: [".ts", ".js"],
   },
