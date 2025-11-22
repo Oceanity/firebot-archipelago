@@ -41,12 +41,7 @@ export const APCommandDefinitions: APCommandDefinition = {
   "/disconnect": {
     description: "Disconnect from a MultiWorld Server.",
     callback: (sessionName) => {
-      const session = client.sessions.get(sessionName);
-      if (!session) {
-        return;
-      }
-
-      session.disconnect();
+      client.sessions.get(sessionName)?.disconnect();
     },
   },
 

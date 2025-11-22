@@ -29,6 +29,12 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
       description: "When the server's countdown updates.",
     },
     {
+      id: FirebotEvents.Disconnected,
+      name: "Connected",
+      description:
+        "When the client disconnects from any Archipelago MultiWorld server.",
+    },
+    {
       id: FirebotEvents.Message,
       name: "Message",
       description: "When a message is received from the server.",
