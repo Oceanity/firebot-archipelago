@@ -1,5 +1,6 @@
 import { TypedEmitter } from "tiny-typed-emitter";
-import { MessagePartType, PrintJsonType } from "../../enums";
+import { APCommandDefinitions } from "../../archipelago-command-definitions";
+import { ClientCommand, MessagePartType, PrintJsonType } from "../../enums";
 import {
   CountdownJSONPacket,
   HintJSONPacket,
@@ -37,6 +38,7 @@ export type MessageLog = Array<Message>;
 export class MessageService extends TypedEmitter<Events> {
   readonly #session: APSession;
   readonly #messages: MessageLog = [];
+  readonly #chatHistory: Array<string> = [];
 
   constructor(session: APSession) {
     super();
@@ -55,6 +57,42 @@ export class MessageService extends TypedEmitter<Events> {
 
   public get htmlLog(): Array<string> {
     return this.#messages.map((entry) => entry.html);
+  }
+
+  public sendChat(message: string) {
+    if (!message.length) {
+      return;
+    }
+
+    this.#chatHistory.push(message);
+
+    if (message.startsWith("/")) {
+      const args = message.split(" ").filter((p) => !!p.trim().length);
+      const command = args.shift();
+      this.#handleChatCommand(command, ...args);
+      return;
+    }
+
+    this.#session.socket.send({
+      cmd: ClientCommand.Say,
+      text: message,
+    });
+  }
+
+  public getChatHistory(entry?: number): [message: string, index: number] {
+    if (!this.#chatHistory.length) {
+      return ["", -1];
+    }
+
+    if (entry === undefined) {
+      entry = this.#chatHistory.length - 1;
+    } else if (entry < 0) {
+      entry = 0;
+    } else if (entry >= this.#chatHistory.length) {
+      return ["", this.#chatHistory.length];
+    }
+
+    return [this.#chatHistory[entry], entry];
   }
 
   public push(message: Message | string, isHidden: boolean = true) {
@@ -132,5 +170,28 @@ export class MessageService extends TypedEmitter<Events> {
       message: { text, html },
       sessionName: this.#session.name,
     });
+  };
+
+  /** Handle chat commands defined in {@link APCommandDefinitions} */
+  #handleChatCommand = (command: string, ...args: Array<string>) => {
+    if (!APCommandDefinitions.hasOwnProperty(command)) {
+      this.push({
+        text: "Unrecognized command, use /help to see all available commands",
+        html: `<p class="red">Unrecognized command, use /help to see all available commands</p>`,
+        nodes: [],
+      });
+      return;
+    }
+
+    this.push({
+      text: `${command} ${args.join(" ")}`,
+      html: `<span class="orange">${command} ${args.join(" ")}</span>`,
+      nodes: [],
+    });
+
+    APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
+      this.#session.name,
+      ...args
+    );
   };
 }

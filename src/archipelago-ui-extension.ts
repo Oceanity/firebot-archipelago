@@ -149,6 +149,7 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.messages = {};
         $scope.scrollGlued = true;
         $scope.isConnecting = false;
+        $scope.chatHistoryIndex = undefined;
 
         // Load current data
         $scope.sessions = backendCommunicator.fireEventSync(
@@ -188,13 +189,58 @@ export const ArchipelagoUIExtension: UIExtension = {
 
         $scope.handleChatKeydown = async ($event: KeyboardEvent) => {
           const keyCode = $event.which || $event.keyCode;
-          if (keyCode === 13) {
-            await $scope.sendMessage();
+          switch (keyCode) {
+            // Enter Key
+            case 13: {
+              await $scope.sendMessage();
+              break;
+            }
+
+            // Up Arrow
+            case 38: {
+              $event.preventDefault();
+              const [message, entry] = backendCommunicator.fireEventSync(
+                "archipelago:getChatHistory",
+                {
+                  sessionName: $scope.selectedSession,
+                  entry:
+                    $scope.chatHistoryIndex !== undefined
+                      ? $scope.chatHistoryIndex - 1
+                      : undefined,
+                }
+              );
+
+              $scope.chatText = message;
+              $scope.chatHistoryIndex = entry;
+              break;
+            }
+
+            // Down Arrow
+            case 40: {
+              $event.preventDefault();
+              if ($scope.chatHistoryIndex === undefined) {
+                return;
+              }
+
+              const [message, entry] = backendCommunicator.fireEventSync(
+                "archipelago:getChatHistory",
+                {
+                  sessionName: $scope.selectedSession,
+                  entry: $scope.chatHistoryIndex + 1,
+                }
+              );
+
+              $scope.chatText = message;
+              $scope.chatHistoryIndex = entry;
+              break;
+            }
           }
         };
 
         $scope.handleConnectKeydown = async ($event: KeyboardEvent) => {
           const keyCode = $event.which || $event.keyCode;
+
+          // Enter Key
           if (keyCode === 13) {
             await $scope.connect();
           }
@@ -212,6 +258,7 @@ export const ArchipelagoUIExtension: UIExtension = {
             });
 
             $scope.chatText = "";
+            $scope.chatHistoryIndex = undefined; // Invalidate chat history index to ensure we pull last
           } catch (error) {
             return;
           }
