@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["datapackage", "slateblue"]
+  "cSpell.words": ["datapackage", "slateblue"],
+  "conventionalCommits.scopes": ["🖥️ UI Extension"]
 }

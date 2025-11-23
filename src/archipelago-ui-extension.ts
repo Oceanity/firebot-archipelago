@@ -182,7 +182,7 @@ export const ArchipelagoUIExtension: UIExtension = {
           }) => {
             const { message, sessionName } = data;
 
-            $scope.messages[sessionName].push(message.html);
+            $scope.messages[sessionName]?.push(message.html);
           }
         );
 
