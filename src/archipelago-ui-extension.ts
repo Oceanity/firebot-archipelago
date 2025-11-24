@@ -1,11 +1,11 @@
 import { UIExtension } from "@crowbartools/firebot-custom-scripts-types/types/modules/ui-extension-manager";
-import { ARCHIPELAGO_INTEGRATION_ID } from "./constants";
+import { ARCHIPELAGO_CLIENT_ID } from "./constants";
 
 export const ArchipelagoUIExtension: UIExtension = {
-  id: ARCHIPELAGO_INTEGRATION_ID,
+  id: ARCHIPELAGO_CLIENT_ID,
   pages: [
     {
-      id: `${ARCHIPELAGO_INTEGRATION_ID}-main`,
+      id: `${ARCHIPELAGO_CLIENT_ID}-main`,
       name: "Archipelago",
       icon: "fa-island-tropical",
       fullPage: true,
@@ -104,7 +104,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               ng-click="scrollGlued = false"
               ng-blur="scrollGlued = true"
               style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; background: rgba(0,0,0,0.65);cursor: default;">
-              <div scroll-glue="scrollGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
+              <div scroll-glue="scrollGlued" force-glue="forceGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
                 <div ng-repeat="message in messages[selectedSession] track by $index">
                   <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />
                   <div class="p-3 archipelago-message" ng-bind-html="message"></div>
@@ -148,6 +148,7 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.selectedSession = "";
         $scope.messages = {};
         $scope.scrollGlued = true;
+        $scope.forceGlued = false;
         $scope.isConnecting = false;
         $scope.chatHistoryIndex = undefined;
 
@@ -259,6 +260,10 @@ export const ArchipelagoUIExtension: UIExtension = {
 
             $scope.chatText = "";
             $scope.chatHistoryIndex = undefined; // Invalidate chat history index to ensure we pull last
+
+            // Toggle forceGlued to move to bottom of box
+            $scope.forceGlued = true;
+            $scope.forceGlued = false;
           } catch (error) {
             return;
           }

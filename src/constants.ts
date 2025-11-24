@@ -3,18 +3,22 @@ import * as packageJson from "../package.json";
 import { FirebotEvents } from "./enums";
 
 export const {
-  displayName: ARCHIPELAGO_INTEGRATION_NAME,
-  description: ARCHIPELAGO_INTEGRATION_DESCRIPTION,
-  author: ARCHIPELAGO_INTEGRATION_AUTHOR,
-  version: ARCHIPELAGO_INTEGRATION_VERSION,
+  displayName: ARCHIPELAGO_CLIENT_NAME,
+  description: ARCHIPELAGO_CLIENT_DESCRIPTION,
+  author: ARCHIPELAGO_CLIENT_AUTHOR,
+  version: ARCHIPELAGO_CLIENT_VERSION,
 } = packageJson;
 
-export const ARCHIPELAGO_INTEGRATION_NAME_AND_AUTHOR = `${ARCHIPELAGO_INTEGRATION_NAME} (by ${ARCHIPELAGO_INTEGRATION_AUTHOR})`;
-export const ARCHIPELAGO_INTEGRATION_ID = "oceanity:archipelago";
-export const ARCHIPELAGO_INTEGRATION_FIREBOT_VERSION = "5";
+export const ARCHIPELAGO_CLIENT_NAME_AND_AUTHOR = `${ARCHIPELAGO_CLIENT_NAME} (by ${ARCHIPELAGO_CLIENT_AUTHOR})`;
+export const ARCHIPELAGO_CLIENT_ID = "oceanity:archipelago";
+export const ARCHIPELAGO_CLIENT_FIREBOT_VERSION = "5";
+
+// Message Service
+export const ARCHIPELAGO_CLIENT_MAX_MESSAGES = 100;
+export const ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY = 25;
 
 export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
-  id: ARCHIPELAGO_INTEGRATION_ID,
+  id: ARCHIPELAGO_CLIENT_ID,
   name: "Archipelago",
   events: [
     {

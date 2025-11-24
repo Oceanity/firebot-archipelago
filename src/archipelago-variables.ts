@@ -3,7 +3,7 @@ import {
   VariableConfig,
 } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-factory";
 import { ReplaceVariableManager } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
-import { ARCHIPELAGO_INTEGRATION_ID } from "./constants";
+import { ARCHIPELAGO_CLIENT_ID } from "./constants";
 import { FirebotEvents } from "./enums";
 
 type VariableDefinition = [property: string, definition: string];
@@ -81,7 +81,7 @@ export const buildArchipelagoVariable = (
 ): VariableConfig => ({
   handle: eventProperty,
   description,
-  events: events.map((event) => `${ARCHIPELAGO_INTEGRATION_ID}:${event}`),
+  events: events.map((event) => `${ARCHIPELAGO_CLIENT_ID}:${event}`),
   eventMetaKey: eventProperty,
   type: "text",
 });

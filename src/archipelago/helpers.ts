@@ -1,6 +1,6 @@
-import { ARCHIPELAGO_INTEGRATION_ID } from "../constants";
+import { ARCHIPELAGO_CLIENT_ID } from "../constants";
 
 export const getArchipelagoFilterEvent = (eventId: string) => ({
-  eventSourceId: ARCHIPELAGO_INTEGRATION_ID,
+  eventSourceId: ARCHIPELAGO_CLIENT_ID,
   eventId,
 });

@@ -1,5 +1,9 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { APCommandDefinitions } from "../../archipelago-command-definitions";
+import {
+  ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY,
+  ARCHIPELAGO_CLIENT_MAX_MESSAGES,
+} from "../../constants";
 import { ClientCommand, MessagePartType, PrintJsonType } from "../../enums";
 import {
   CountdownJSONPacket,
@@ -65,6 +69,9 @@ export class MessageService extends TypedEmitter<Events> {
     }
 
     this.#chatHistory.push(message);
+    if (this.#chatHistory.length > ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY) {
+      this.#chatHistory.shift();
+    }
 
     if (message.startsWith("/")) {
       const args = message.split(" ").filter((p) => !!p.trim().length);
@@ -106,6 +113,9 @@ export class MessageService extends TypedEmitter<Events> {
         : message;
 
     this.#messages.push(formattedMessage);
+    if (this.#messages.length > ARCHIPELAGO_CLIENT_MAX_MESSAGES) {
+      this.#messages.shift();
+    }
 
     this.emit("message", {
       isHidden,
@@ -165,6 +175,10 @@ export class MessageService extends TypedEmitter<Events> {
     const message: MessageLog = [{ text, html, nodes }];
 
     this.#messages.push(...message);
+    if (this.#messages.length > ARCHIPELAGO_CLIENT_MAX_MESSAGES) {
+      this.#messages.shift();
+    }
+
     this.emit("message", {
       isHidden: false,
       message: { text, html },

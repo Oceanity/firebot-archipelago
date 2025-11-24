@@ -2,7 +2,7 @@ import {
   eventManager,
   frontendCommunicator,
 } from "@oceanity/firebot-helpers/firebot";
-import { ARCHIPELAGO_INTEGRATION_ID } from "../../constants";
+import { ARCHIPELAGO_CLIENT_ID } from "../../constants";
 import { FirebotEvents, ItemClassification } from "../../enums";
 import { NetworkItem } from "../../types";
 import { APSession } from "../session";
@@ -19,7 +19,7 @@ export class FirebotRemoteService {
 
     this.#session.on("connected", () => {
       eventManager.triggerEvent(
-        ARCHIPELAGO_INTEGRATION_ID,
+        ARCHIPELAGO_CLIENT_ID,
         FirebotEvents.Connected,
         {
           ...this.#getSessionMetadata(),
@@ -35,7 +35,7 @@ export class FirebotRemoteService {
       );
 
       eventManager.triggerEvent(
-        ARCHIPELAGO_INTEGRATION_ID,
+        ARCHIPELAGO_CLIENT_ID,
         FirebotEvents.Disconnected,
         {
           ...this.#getSessionMetadata(),
@@ -51,7 +51,7 @@ export class FirebotRemoteService {
     this.#session.socket.on("receivedItems", (packet) => {
       packet.items.forEach((item) => {
         eventManager.triggerEvent(
-          ARCHIPELAGO_INTEGRATION_ID,
+          ARCHIPELAGO_CLIENT_ID,
           FirebotEvents.ReceivedItems,
           {
             ...this.#getSessionMetadata(),
@@ -105,7 +105,7 @@ export class FirebotRemoteService {
       this.#lastCountdown = data.countdown;
 
       eventManager.triggerEvent(
-        ARCHIPELAGO_INTEGRATION_ID,
+        ARCHIPELAGO_CLIENT_ID,
         FirebotEvents.Countdown,
         {
           ...this.#getSessionMetadata(),
@@ -125,14 +125,10 @@ export class FirebotRemoteService {
       }
 
       // Send to Firebot Events
-      eventManager.triggerEvent(
-        ARCHIPELAGO_INTEGRATION_ID,
-        FirebotEvents.Message,
-        {
-          ...this.#getSessionMetadata(),
-          ...this.#getMessageMetadata(undefined, data.message),
-        }
-      );
+      eventManager.triggerEvent(ARCHIPELAGO_CLIENT_ID, FirebotEvents.Message, {
+        ...this.#getSessionMetadata(),
+        ...this.#getMessageMetadata(undefined, data.message),
+      });
     });
 
     //#endregion

@@ -1,16 +1,16 @@
 import { IntegrationDefinition } from "@crowbartools/firebot-custom-scripts-types";
 import {
-  ARCHIPELAGO_INTEGRATION_DESCRIPTION,
-  ARCHIPELAGO_INTEGRATION_ID,
-  ARCHIPELAGO_INTEGRATION_NAME,
+  ARCHIPELAGO_CLIENT_DESCRIPTION,
+  ARCHIPELAGO_CLIENT_ID,
+  ARCHIPELAGO_CLIENT_NAME,
 } from "./constants";
 import { ArchipelagoIntegrationSettings } from "./types";
 
 export const ArchipelagoIntegrationDefinition: IntegrationDefinition<ArchipelagoIntegrationSettings> =
   {
-    id: ARCHIPELAGO_INTEGRATION_ID,
-    name: ARCHIPELAGO_INTEGRATION_NAME,
-    description: ARCHIPELAGO_INTEGRATION_DESCRIPTION,
+    id: ARCHIPELAGO_CLIENT_ID,
+    name: ARCHIPELAGO_CLIENT_NAME,
+    description: ARCHIPELAGO_CLIENT_DESCRIPTION,
     linkType: "none",
     configurable: true,
     connectionToggle: true,
