@@ -182,9 +182,14 @@ export const ArchipelagoUIExtension: UIExtension = {
             message: { text: string; html: string };
             sessionName: string;
           }) => {
-            const { message, sessionName } = data;
+            $scope.messages[data.sessionName]?.push(data.message.html);
+          }
+        );
 
-            $scope.messages[sessionName]?.push(message.html);
+        backendCommunicator.on(
+          "archipelago:chatCleared",
+          (data: { sessionName: string }) => {
+            $scope.messages[data.sessionName] = [];
           }
         );
 

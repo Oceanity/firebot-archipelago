@@ -82,54 +82,53 @@ export class FirebotRemoteService {
       }
     });
 
-    // this.#session.socket.on("sentItems", (packet) => {
-    //   logger.info("Sent Items Event");
-    //   logger.info(JSON.stringify(packet));
-    //   eventManager.triggerEvent(
-    //     ARCHIPELAGO_INTEGRATION_ID,
-    //     FirebotEvents.SentItems,
-
-    //   );
-    // });
-
     //#endregion
 
     //#region Message Events
 
-    this.#session.messages.on("countdown", (data) => {
-      // If user uses !countdown, it seems to duplicate the first number event, so let's make sure there's no repeats
-      if (data.countdown === this.#lastCountdown) {
-        return;
-      }
-
-      this.#lastCountdown = data.countdown;
-
-      eventManager.triggerEvent(
-        ARCHIPELAGO_CLIENT_ID,
-        FirebotEvents.Countdown,
-        {
-          ...this.#getSessionMetadata(),
-          ...this.#getPlayerMetadata(),
-          apCountdown: data.countdown,
+    this.#session.messages
+      .on("countdown", (data) => {
+        // If user uses !countdown, it seems to duplicate the first number event, so let's make sure there's no repeats
+        if (data.countdown === this.#lastCountdown) {
+          return;
         }
-      );
-    });
 
-    this.#session.messages.on("message", (data) => {
-      // Send to Frontend UI Extension
-      frontendCommunicator.fireEventAsync("archipelago:gotLogMessage", data);
+        this.#lastCountdown = data.countdown;
 
-      // If message is hidden, we'll skip the Event
-      if (data.isHidden) {
-        return;
-      }
+        eventManager.triggerEvent(
+          ARCHIPELAGO_CLIENT_ID,
+          FirebotEvents.Countdown,
+          {
+            ...this.#getSessionMetadata(),
+            ...this.#getPlayerMetadata(),
+            apCountdown: data.countdown,
+          }
+        );
+      })
+      .on("message", (data) => {
+        // Send to Frontend UI Extension
+        frontendCommunicator.fireEventAsync("archipelago:gotLogMessage", data);
 
-      // Send to Firebot Events
-      eventManager.triggerEvent(ARCHIPELAGO_CLIENT_ID, FirebotEvents.Message, {
-        ...this.#getSessionMetadata(),
-        ...this.#getMessageMetadata(undefined, data.message),
+        // If message is hidden, we'll skip the Event
+        if (data.isHidden) {
+          return;
+        }
+
+        // Send to Firebot Events
+        eventManager.triggerEvent(
+          ARCHIPELAGO_CLIENT_ID,
+          FirebotEvents.Message,
+          {
+            ...this.#getSessionMetadata(),
+            ...this.#getMessageMetadata(undefined, data.message),
+          }
+        );
+      })
+      .on("chatCleared", () => {
+        frontendCommunicator.fireEventAsync("archipelago:chatCleared", {
+          sessionName: this.#session.name,
+        });
       });
-    });
 
     //#endregion
   }

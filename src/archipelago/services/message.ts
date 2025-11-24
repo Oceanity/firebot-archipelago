@@ -29,6 +29,7 @@ type Events = {
     message: Message;
     sessionName: string;
   }) => void;
+  chatCleared: () => void;
 };
 
 export type Message = {
@@ -41,8 +42,9 @@ export type MessageLog = Array<Message>;
 
 export class MessageService extends TypedEmitter<Events> {
   readonly #session: APSession;
-  readonly #messages: MessageLog = [];
-  readonly #chatHistory: Array<string> = [];
+
+  #chatHistory: Array<string> = [];
+  #messages: MessageLog = [];
 
   constructor(session: APSession) {
     super();
@@ -84,6 +86,11 @@ export class MessageService extends TypedEmitter<Events> {
       cmd: ClientCommand.Say,
       text: message,
     });
+  }
+
+  public clearChat() {
+    this.#messages = [];
+    this.emit("chatCleared");
   }
 
   public getChatHistory(entry?: number): [message: string, index: number] {
