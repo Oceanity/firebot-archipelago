@@ -12,6 +12,8 @@ export const {
 export const ARCHIPELAGO_CLIENT_NAME_AND_AUTHOR = `${ARCHIPELAGO_CLIENT_NAME} (by ${ARCHIPELAGO_CLIENT_AUTHOR})`;
 export const ARCHIPELAGO_CLIENT_ID = "oceanity:archipelago";
 export const ARCHIPELAGO_CLIENT_FIREBOT_VERSION = "5";
+export const ARCHIPELAGO_CLIENT_PACKAGE_URL =
+  "https://raw.githubusercontent.com/Oceanity/firebot-archipelago/refs/heads/main/package.json";
 
 // Message Service
 export const ARCHIPELAGO_CLIENT_MAX_MESSAGES = 100;

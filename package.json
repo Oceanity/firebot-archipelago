@@ -15,7 +15,7 @@
   "license": "GNU3",
   "devDependencies": {
     "@crowbartools/firebot-custom-scripts-types": "github:crowbartools/firebot-custom-scripts-types",
-    "@oceanity/firebot-helpers": "^1.1.7",
+    "@oceanity/firebot-helpers": "^1.1.8",
     "@types/fs-extra": "^11.0.4",
     "@types/jquery": "^3.5.33",
     "@types/node": "^20.19.24",
