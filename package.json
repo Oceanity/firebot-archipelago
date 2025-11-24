@@ -2,7 +2,7 @@
   "name": "firebot-archieplago-by-oceanity",
   "displayName": "Archipelago",
   "scriptOutputName": "oceanityArchipelago",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Adds Archipelago Randomizer features to Firebot",
   "main": "",
   "scripts": {
