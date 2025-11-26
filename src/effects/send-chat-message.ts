@@ -78,13 +78,16 @@ export const SendChatMessageEffectType: Effects.EffectType<
   },
   onTriggerEvent: async ({ effect }) => {
     switch (effect.selectMode) {
+      case "first": {
+        return client.searchSession()?.messages.sendChat(effect.message);
+      }
+
       case "list": {
         return client.sessions
           .get(effect.selectedSession)
           ?.messages.sendChat(effect.message);
       }
 
-      case "first":
       case "custom": {
         return client
           .searchSession(effect.session)
