@@ -10,11 +10,13 @@ import {
   ARCHIPELAGO_CLIENT_AUTHOR,
   ARCHIPELAGO_CLIENT_DESCRIPTION,
   ARCHIPELAGO_CLIENT_FIREBOT_VERSION,
+  ARCHIPELAGO_CLIENT_ID,
   ARCHIPELAGO_CLIENT_NAME,
   ARCHIPELAGO_CLIENT_PACKAGE_URL,
   ARCHIPELAGO_CLIENT_VERSION,
   ARCHIPELAGO_EVENT_SOURCE,
 } from "./constants";
+import { AllArchipelagoEffectTypes } from "./effects";
 import { AllArchipelagoFilterEvents } from "./filters";
 
 export let client: APClient;
@@ -47,6 +49,11 @@ const script: Firebot.CustomScript = {
       ARCHIPELAGO_EVENT_SOURCE
     );
 
+    for (const effectType of AllArchipelagoEffectTypes) {
+      effectType.definition.id = `${ARCHIPELAGO_CLIENT_ID}:${effectType.definition.id}`;
+      runRequest.modules.effectManager.registerEffect(effectType as any);
+    }
+
     for (const filter of AllArchipelagoFilterEvents) {
       runRequest.modules.eventFilterManager.registerFilter(filter);
     }
@@ -66,9 +73,8 @@ const script: Firebot.CustomScript = {
     if (response && response.isRemoteNewer) {
       runRequest.modules.notificationManager.addNotification(
         {
-          title: `New version of Archipelago Client (${response.localVersion} -> ${response.remoteVersion})!`,
-          message:
-            "Go to https://github.com/Oceanity/firebot-archipelago/releases/latest to download the new version.",
+          title: "New version of Archipelago Client!",
+          message: `Oceanity has released a new version of the Archipelago Client script (${response.localVersion} -> ${response.remoteVersion}). Go to https://github.com/Oceanity/firebot-archipelago/releases/latest to download the new version.`,
           type: "update" as NotificationType,
         },
         false
