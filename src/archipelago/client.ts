@@ -106,4 +106,37 @@ export class APClient extends EventEmitter {
       }
     });
   }
+
+  public searchSession(query?: string): APSession | null {
+    // If no query specified, pull first if one exists
+    if (!query) {
+      return !!this.sessionNames.length
+        ? this.sessions.get(this.sessionNames[0])
+        : null;
+    }
+
+    const compareName = query.toLocaleLowerCase();
+
+    // Look for exact match
+    const fullMatches = this.sessionNames.filter(
+      (name) => name.toLocaleLowerCase() === compareName
+    );
+    if (!!fullMatches.length) {
+      return this.sessions.get(fullMatches.shift());
+    }
+
+    // Look for partial match
+    const partialMatches = this.sessionNames.filter((name) => {
+      const [slot, host] = name.split("@");
+      return (
+        slot.toLocaleLowerCase() === compareName ||
+        host.toLocaleLowerCase() === compareName
+      );
+    });
+    if (!!partialMatches.length) {
+      return this.sessions.get(partialMatches.shift());
+    }
+
+    return null;
+  }
 }
