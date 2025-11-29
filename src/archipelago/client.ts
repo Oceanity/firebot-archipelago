@@ -2,7 +2,7 @@ import { JsonDb, logger } from "@oceanity/firebot-helpers/firebot";
 import EventEmitter from "events";
 import { JsonDB } from "node-json-db";
 import { resolve } from "path";
-import { ServiceResponse } from "../types";
+import { connectionStringFromUrl, urlFromConnectionString } from "./helpers";
 import { DataPackageService } from "./services/package";
 import { APSession } from "./session";
 
@@ -29,8 +29,18 @@ export class APClient extends EventEmitter {
     this.sessions = new Map();
   }
 
-  public get sessionNames(): Array<string> {
+  public get sessionIds(): Array<string> {
     return Array.from(this.sessions.keys());
+  }
+
+  public get sessionTable(): Record<string, string> {
+    const output: Record<string, string> = {};
+
+    this.sessionIds.forEach((id) => {
+      output[id] = this.sessions.get(id).name;
+    });
+
+    return output;
   }
 
   public async init() {
@@ -40,22 +50,41 @@ export class APClient extends EventEmitter {
 
     const existingSessions =
       await this.#savedSessionDb.getObject<SavedSessionDetails>("/");
-
     if (existingSessions) {
-      for (const [hostname, entries] of Object.entries(existingSessions)) {
+      for (const [connectionString, entries] of Object.entries(
+        existingSessions
+      )) {
+        const url = urlFromConnectionString(connectionString);
+
         for (const [slot, password] of Object.entries(entries)) {
           try {
-            const result = await this.connect(hostname, slot, password);
-            if (!result.success) {
-              throw new Error(result.errors.join(", "));
+            const result = await this.connect(url, slot, password);
+
+            if (connectionString !== connectionStringFromUrl(result.url)) {
+              await this.#savedSessionDb.push(
+                `/${connectionStringFromUrl(result.url)}/${slot}`,
+                password
+              );
+              await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
             }
           } catch (error) {
-            // Saved address not connecting, so remove it
             logger.warn(
-              `Archipelago: Couldn't connect to saved session at '${hostname}' as '${slot}', removing.`,
-              error
+              `Archipelago: Error loading saved session '${slot}' at '${url}', removing from local DB`
             );
-            await this.#savedSessionDb.delete(`/${hostname}/${slot}`);
+            await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
+          }
+        }
+      }
+
+      // Second pass to cleanup remaining sessions in case of empty connection objects
+      const remainingSessions =
+        await this.#savedSessionDb.getObject<SavedSessionDetails>("/");
+      if (remainingSessions) {
+        for (const [connectionString, entries] of Object.entries(
+          remainingSessions
+        )) {
+          if (!Object.entries(entries).length) {
+            await this.#savedSessionDb.delete(`/${connectionString}`);
           }
         }
       }
@@ -63,80 +92,89 @@ export class APClient extends EventEmitter {
   }
 
   public async connect(
-    hostname: string,
+    url: string | URL,
     slot: string,
     password?: string
-  ): Promise<ServiceResponse> {
+  ): Promise<APSession> {
     return new Promise(async (resolve, reject) => {
-      if (Object.keys(this.sessions).includes(slot)) {
-        logger.error(
-          `Archipelago: Session with name '${slot}' already exists, skipping.`
-        );
-        return;
-      }
-
       logger.info(
-        `Archipelago: Connecting to session at '${hostname}' with slot '${slot}'...`
+        `Archipelago: Attempting to connect to session at '${url}' with slot '${slot}'...`
       );
 
       try {
-        const session = new APSession(this);
-        const response = await session.login(hostname, slot, password);
+        const session = new APSession(this, url, slot, password);
 
-        if (!response.success) {
-          throw response.errors;
+        if (this.#sessionAlreadyExists(session.name)) {
+          throw new Error(`Session '${session.name}' already exists`);
         }
 
+        await session.login();
+
         session.on("disconnected", async () => {
-          this.sessions.delete(session.name);
-          await this.#savedSessionDb.delete(`/${hostname}/${slot}`);
+          this.sessions.delete(session.id);
+          await this.#savedSessionDb.delete(
+            `/${connectionStringFromUrl(session.url)}/${slot}`
+          );
         });
 
-        this.sessions.set(session.name, session);
+        this.sessions.set(session.id, session);
 
-        await this.#savedSessionDb.push(`/${hostname}/${slot}`, password ?? "");
+        await this.#savedSessionDb.push(
+          `/${connectionStringFromUrl(session.url)}/${slot}`,
+          password ?? ""
+        );
 
-        resolve({ success: true, data: { name: session.name } });
+        logger.info(`Connected to session at ${session.url}!`);
+
+        return resolve(session);
       } catch (error) {
         logger.error(
           "Archipelago: Could not create Archipelago session",
           error
         );
-        reject({ success: false, errors: [error] });
+        reject(error.message ?? (error as string));
       }
     });
   }
 
-  public searchSession(query?: string): APSession | null {
-    // If no query specified, pull first if one exists
+  public findSession(query?: string): APSession | null {
+    const entries = Array.from(this.sessions.values());
+    if (!entries.length) {
+      return null;
+    }
+
+    // If no query specified, pull first
     if (!query) {
-      return !!this.sessionNames.length
-        ? this.sessions.get(this.sessionNames[0])
-        : null;
+      return entries[0];
     }
 
     const compareName = query.toLocaleLowerCase();
 
     // Look for exact match
-    const fullMatches = this.sessionNames.filter(
-      (name) => name.toLocaleLowerCase() === compareName
+    const fullMatches = entries.filter(
+      (session) => session.name.toLocaleLowerCase() === compareName
     );
     if (!!fullMatches.length) {
-      return this.sessions.get(fullMatches.shift());
+      return fullMatches.shift();
     }
 
     // Look for partial match
-    const partialMatches = this.sessionNames.filter((name) => {
-      const [slot, host] = name.split("@");
+    const partialMatches = entries.filter((session) => {
+      const [slot, host] = session.name.split("@");
       return (
         slot.toLocaleLowerCase() === compareName ||
         host.toLocaleLowerCase() === compareName
       );
     });
     if (!!partialMatches.length) {
-      return this.sessions.get(partialMatches.shift());
+      return partialMatches.shift();
     }
 
     return null;
   }
+
+  #sessionAlreadyExists = (sessionName: string): boolean =>
+    Array.from(this.sessions.values()).some(
+      (session) => session.name === sessionName
+    );
 }

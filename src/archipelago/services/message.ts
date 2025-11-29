@@ -27,7 +27,7 @@ type Events = {
   message: (data: {
     isHidden: boolean;
     message: Message;
-    sessionName: string;
+    sessionId: string;
   }) => void;
   chatCleared: () => void;
 };
@@ -127,7 +127,7 @@ export class MessageService extends TypedEmitter<Events> {
     this.emit("message", {
       isHidden,
       message: formattedMessage,
-      sessionName: this.#session.name,
+      sessionId: this.#session.id,
     });
   }
 
@@ -189,7 +189,7 @@ export class MessageService extends TypedEmitter<Events> {
     this.emit("message", {
       isHidden: false,
       message: { text, html },
-      sessionName: this.#session.name,
+      sessionId: this.#session.id,
     });
   };
 
@@ -211,7 +211,7 @@ export class MessageService extends TypedEmitter<Events> {
     });
 
     APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
-      this.#session.name,
+      this.#session.id,
       ...args
     );
   };

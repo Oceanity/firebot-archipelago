@@ -1,5 +1,4 @@
 import { ScriptModules } from "@crowbartools/firebot-custom-scripts-types";
-import { logger } from "@oceanity/firebot-helpers/firebot";
 import { client } from "./main";
 import { ServiceResponse } from "./types";
 
@@ -12,44 +11,52 @@ export function initFrontendCommunicator(
       hostname: string;
       slot: string;
       password?: string;
-    }): Promise<ServiceResponse> => {
-      const { hostname, slot, password } = data;
+    }): Promise<ServiceResponse<{ id: string; name: string }>> => {
       try {
-        return await client.connect(hostname, slot, password);
+        const { hostname, slot, password } = data;
+
+        const session = await client.connect(hostname, slot, password);
+
+        const { id, name } = session;
+
+        return { success: true, data: { id, name } };
       } catch (error) {
-        logger.error(
-          `Could not connect to Archipelago Session at '${hostname}' as '${slot}' with password '${
-            password ?? ""
-          }'`,
-          error
-        );
         return { success: false, errors: [error] };
       }
     }
   );
 
+  frontendCommunicator.on("archipelago:disconnect", (sessionId: string) =>
+    client.sessions.get(sessionId)?.disconnect()
+  );
+
   frontendCommunicator.on(
     "archipelago:getSessionNames",
-    (): Array<string> => client.sessionNames
+    (): Array<string> => client.sessionIds
+  );
+
+  frontendCommunicator.on(
+    `archipelago:getSessionTable`,
+    (): Record<string, string> => client.sessionTable
   );
 
   frontendCommunicator.on(
     "archipelago:getHtmlMessageLog",
-    (slot: string): Array<string> =>
-      client.sessions.get(slot)?.messages.htmlLog ?? []
+    (sessionId: string): Array<string> =>
+      client.sessions.get(sessionId)?.messages.htmlLog ?? []
   );
 
   frontendCommunicator.on(
     "archipelago:getChatHistory",
-    (data: { sessionName: string; entry?: number }) =>
+    (data: { sessionId: string; entry?: number }) =>
       client.sessions
-        .get(data.sessionName)
+        .get(data.sessionId)
         ?.messages.getChatHistory(data.entry) ?? ["", -1]
   );
 
   frontendCommunicator.on(
     "archipelago:sendMessage",
-    (data: { sessionName: string; message: string }) =>
-      client.sessions.get(data.sessionName)?.messages.sendChat(data.message)
+    (data: { sessionId: string; message: string }) =>
+      client.sessions.get(data.sessionId)?.messages.sendChat(data.message)
   );
 }

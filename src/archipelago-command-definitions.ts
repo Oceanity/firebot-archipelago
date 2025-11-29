@@ -1,20 +1,13 @@
-import Fuse from "fuse.js";
+import { argsString, searchTuples } from "./archipelago/helpers";
 import { ClientCommand, ClientStatus } from "./enums";
 import { client } from "./main";
-
-type APCommandDefinition = Record<`/${string}`, APCommandOptions>;
-
-type APCommandOptions = {
-  args?: Record<string, { optional: boolean }>;
-  description: string;
-  callback: (slot: string, ...args: Array<string>) => void | Promise<void>;
-};
+import { APCommandDefinition } from "./types";
 
 export const APCommandDefinitions: APCommandDefinition = {
   "/help": {
     description: "Returns the help listing.",
-    callback: async (slot) => {
-      client.sessions.get(slot)?.messages.push({
+    callback: async (sessionId) => {
+      client.sessions.get(sessionId)?.messages.push({
         text: Object.entries(APCommandDefinitions)
           .map(
             ([command, definition]) =>
@@ -51,8 +44,8 @@ export const APCommandDefinitions: APCommandDefinition = {
 
   "/ready": {
     description: "Send ready status to server.",
-    callback: (sessionName) => {
-      client.sessions.get(sessionName)?.socket.send({
+    callback: (sessionId) => {
+      client.sessions.get(sessionId)?.socket.send({
         cmd: ClientCommand.StatusUpdate,
         status: ClientStatus.Ready,
       });
@@ -66,13 +59,13 @@ export const APCommandDefinitions: APCommandDefinition = {
       },
     },
     description: "List all item names for the currently running game.",
-    callback: async (sessionName, ...search) => {
-      const session = client.sessions.get(sessionName);
+    callback: async (sessionId, ...search) => {
+      const session = client.sessions.get(sessionId);
       if (!session) {
         return;
       }
 
-      const items = handleSearch(
+      const items = searchTuples(
         session.itemTable.sort(([a], [b]) => a.localeCompare(b)),
         search?.join(" ") ?? undefined
       );
@@ -108,13 +101,13 @@ export const APCommandDefinitions: APCommandDefinition = {
         optional: true,
       },
     },
-    callback: async (sessionName, ...search) => {
-      const session = client.sessions.get(sessionName);
+    callback: async (sessionId, ...search) => {
+      const session = client.sessions.get(sessionId);
       if (!session) {
         return;
       }
 
-      const locations = handleSearch(
+      const locations = searchTuples(
         session.locationTable.sort(([a], [b]) => a.localeCompare(b)),
         search?.join(" ") ?? undefined
       );
@@ -179,34 +172,3 @@ export const APCommandDefinitions: APCommandDefinition = {
   //   },
   // },
 };
-
-function handleSearch<T>(
-  items: Array<[string, T]>,
-  search?: string
-): Array<[string, T]> {
-  if (!search || !search.trim().length) {
-    return items;
-  }
-
-  const fuse = new Fuse(
-    items.map(([name]) => name),
-    { threshold: 0.25 }
-  );
-
-  const matches = fuse.search(search);
-
-  return items.filter(([name]) => matches.some((match) => match.item === name));
-}
-
-function argsString(args?: APCommandOptions["args"]) {
-  if (!args) {
-    return "";
-  }
-
-  return Object.entries(args)
-    .map(
-      ([name, definition]) =>
-        `[${name}${definition.optional ? " (optional)" : ""}]`
-    )
-    .join(" ");
-}

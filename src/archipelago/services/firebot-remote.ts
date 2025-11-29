@@ -28,10 +28,10 @@ export class FirebotRemoteService {
       );
     });
 
-    this.#session.on("disconnected", (sessionName) => {
+    this.#session.on("disconnected", (sessionId) => {
       frontendCommunicator.fireEventAsync(
         "archipelago:disconnected",
-        sessionName
+        sessionId
       );
 
       eventManager.triggerEvent(

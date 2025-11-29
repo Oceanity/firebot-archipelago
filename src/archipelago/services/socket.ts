@@ -16,6 +16,7 @@ import {
   RoomUpdatePacket,
   SetReplyPacket,
 } from "../interfaces/packets";
+import { APSession } from "../session";
 
 type Events = {
   sentPackets: [packets: Array<ClientPacket>];
@@ -40,11 +41,15 @@ type EventDef = {
 };
 
 export class SocketService extends TypedEmitter<EventDef> {
+  readonly #session: APSession;
+
   #socket: WebSocket | null = null;
   #connected: boolean = false;
 
-  public constructor() {
+  public constructor(session: APSession) {
     super();
+
+    this.#session = session;
   }
 
   public get connected(): boolean {
@@ -54,86 +59,74 @@ export class SocketService extends TypedEmitter<EventDef> {
   //#region Public Methods
 
   public async connect(
-    url: URL | string
+    url: URL,
+    swapProtocols: boolean = false
   ): Promise<{ url: URL; packet: RoomInfoPacket }> {
+    if (swapProtocols) {
+      url.protocol = url.protocol === "wss:" ? "ws:" : "wss:";
+    }
+
     this.disconnect();
 
-    if (typeof url === "string") {
-      // Check if protocol was provided and URL is valid-ish, if not we'll add wss and fallback to ws if it fails.
-      const pattern = /^([a-zA-Z]+:)\/\/[A-Za-z0-9_.~\-:]+/i;
-      if (!pattern.test(url)) {
-        try {
-          // First try "wss".
-          return await this.connect(new URL(`wss://${url}`));
-        } catch {
-          // Nope, try "ws".
-          return await this.connect(new URL(`ws://${url}`));
+    try {
+      const response = await new Promise<{ url: URL; packet: RoomInfoPacket }>(
+        (resolve, reject) => {
+          const handleConnectionError = (error: Error): void => {
+            reject(
+              `WebSocket server connection error: ${JSON.stringify(error)}`
+            );
+          };
+
+          this.#socket = new WebSocket(url);
+          this.#socket
+            .on("message", this.#onMessage.bind(this))
+            .on("close", handleConnectionError.bind(this))
+            .on("error", handleConnectionError.bind(this))
+            .on("open", () => {
+              this.wait("roomInfo")
+                .then(([packet]: RoomInfoPacket[]) => {
+                  logger.info(`Connected to Archipelago WebSocket at ${url}`);
+
+                  this.#connected = true;
+
+                  if (this.#socket) {
+                    this.#socket
+                      .off("close", handleConnectionError.bind(this))
+                      .off("error", handleConnectionError.bind(this));
+
+                    this.#socket
+                      .on("close", () => {
+                        this.disconnect();
+                      })
+                      .on("error", (error) => {
+                        logger.error(
+                          "Error in Archipelago WebSocket connection",
+                          error
+                        );
+                        this.disconnect();
+                      });
+
+                    resolve({ url, packet });
+                  }
+                })
+                .catch((error) => {
+                  this.disconnect();
+                  reject(
+                    `Error connecting to WebSocket server: ${JSON.stringify(
+                      error
+                    )}`
+                  );
+                });
+            });
         }
+      );
+
+      return response;
+    } catch (error) {
+      if (!swapProtocols) {
+        return await this.connect(url, true);
       }
 
-      // Protocol provided, continue as is.
-      url = new URL(url);
-    }
-
-    if (!url.port) {
-      url.port = "38281";
-    }
-
-    if (!url.protocol.startsWith("ws")) {
-      logger.warn(
-        `URL protocol '${url.protocol}' is not a WebSocket protocol. Replacing with 'wss:'.`
-      );
-      url.protocol = "wss:";
-    }
-
-    try {
-      return new Promise((resolve, reject) => {
-        const handleConnectionError = (error?: Error): void => {
-          this.disconnect();
-          reject(
-            error ??
-              new Error("Failed to connect to Archipelago WebSocket server.")
-          );
-        };
-
-        this.#socket = new WebSocket(url);
-        this.#socket
-          .on("message", this.#onMessage.bind(this))
-          .on("close", handleConnectionError.bind(this))
-          .on("error", handleConnectionError.bind(this))
-          .on("open", () => {
-            this.wait("roomInfo")
-              .then(([packet]: RoomInfoPacket[]) => {
-                logger.info(`Connected to Archipelago WebSocket at ${url}`);
-
-                this.#connected = true;
-
-                if (this.#socket) {
-                  this.#socket.off("close", handleConnectionError.bind(this));
-                  this.#socket.off("error", handleConnectionError.bind(this));
-
-                  this.#socket
-                    .on("close", () => {
-                      this.disconnect();
-                    })
-                    .on("error", (error) => {
-                      logger.error(
-                        "Error in Archipelago WebSocket connection",
-                        error
-                      );
-                      this.disconnect();
-                    });
-
-                  resolve({ url, packet });
-                }
-              })
-              .catch((error) => {
-                this.disconnect();
-                reject(error);
-              });
-          });
-      });
-    } catch (error) {
       this.disconnect();
       throw error;
     }
@@ -143,6 +136,12 @@ export class SocketService extends TypedEmitter<EventDef> {
     if (!this.connected) {
       return;
     }
+
+    logger.warn(
+      `Archipelago: Closing WebSocket server connection for session '${
+        this.#session.name
+      }`
+    );
 
     this.#connected = false;
     this.#socket?.close();
