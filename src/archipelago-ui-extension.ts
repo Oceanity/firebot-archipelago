@@ -118,6 +118,9 @@ export const ArchipelagoUIExtension: UIExtension = {
             </div>
 
             <div class="p-6" style="display: flex; gap: 1.5rem">
+              <div class="hints-container" style="display: flex; align-items: center; font-size: 16px; font-weight:600; letter-spacing: 0.075rem">
+                Hints: {{ hints[selectedSession] }}
+              </div>
               <input
                 type="text"
                 class="form-control ng-animate-disabled"
@@ -144,15 +147,20 @@ export const ArchipelagoUIExtension: UIExtension = {
           if (!$scope.messages[sessionId]) {
             $scope.messages[sessionId] = backendCommunicator.fireEventSync(
               "archipelago:getHtmlMessageLog",
-              $scope.selectedSession
+              sessionId
             );
           }
+          $scope.hints[sessionId] = backendCommunicator.fireEventSync(
+            "archipelago:getHints",
+            sessionId
+          );
 
           delete $scope.chatText;
           delete $scope.chatHistoryIndex;
         };
 
         $scope.messages = {};
+        $scope.hints = {};
         $scope.scrollGlued = true;
         $scope.forceGlued = false;
         $scope.isConnecting = false;
@@ -195,6 +203,13 @@ export const ArchipelagoUIExtension: UIExtension = {
           "archipelago:chatCleared",
           (data: { sessionId: string }) => {
             $scope.messages[data.sessionId] = [];
+          }
+        );
+
+        backendCommunicator.on(
+          "archipelago:hintsUpdated",
+          (data: { sessionId: string; hints: number }) => {
+            $scope.hints[data.sessionId] = data.hints;
           }
         );
 
