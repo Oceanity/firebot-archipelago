@@ -8,7 +8,6 @@ import {
   ReceivedItemsPacket,
   RoomUpdatePacket,
 } from "../interfaces";
-import { ServiceResponse } from "../types";
 import { APClient } from "./client";
 import { FirebotRemoteService } from "./services/firebot-remote";
 import { MessageService } from "./services/message";
@@ -18,41 +17,62 @@ import { SocketService } from "./services/socket";
 
 type APSessionEvents = {
   connected: () => void;
-  disconnected: (sessionName: string) => void;
+  disconnected: (sessionId: string) => void;
 };
 
 export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #client: APClient;
-  readonly #id: string;
   readonly #games: Set<string> = new Set();
   readonly #checksums: Map<string, string> = new Map();
   readonly #checkedLocations: Set<number> = new Set();
   readonly #missingLocations: Set<number> = new Set();
   readonly #receivedItems: Array<number> = new Array();
 
+  #url: URL;
+  #slot: string;
+  #password: string;
+
   #startingUp: boolean = true;
   #hintPoints: number = 0;
   #hintCost: number = 0;
-  #url: URL;
+  #tags: Array<string> = [];
+  #itemHandling: ItemHandlingFlag;
 
-  public readonly socket = new SocketService();
+  public readonly id: string;
+  public readonly socket = new SocketService(this);
   public readonly messages = new MessageService(this);
   public readonly players = new PlayerService(this);
   public readonly firebotRemote = new FirebotRemoteService(this);
 
-  constructor(client: APClient) {
+  constructor(
+    client: APClient,
+    url: string | URL,
+    slot: string,
+    password?: string
+  ) {
     super();
 
+    this.id = uuid();
     this.#client = client;
-    this.#id = uuid();
+
+    // Set up url and slot locally for checking if it's a duplicate session before connecting
+    this.#url = typeof url === "string" ? this.#getUrlFromHostname(url) : url;
+    this.#slot = slot;
+    this.#password = password ?? "";
+
+    // Ensure a port is included in case a URL is passed in without one
+    if (!this.#url.port) {
+      this.#url.port = "38281";
+    }
 
     this.socket
       .on("sentPackets", (packets) => {
-        for (const packet of packets) {
+        packets.forEach((packet) => {
           if (packet.cmd === ClientCommand.ConnectUpdate) {
-            logger.info("Updated Connection Info");
+            this.#itemHandling = packet.items_handling;
+            this.#tags = packet.tags;
           }
-        }
+        });
       })
       .on("receivedItems", (packet: ReceivedItemsPacket) => {
         packet.items.forEach((itemDetails) =>
@@ -84,10 +104,6 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
   //#region Getters
 
-  get id(): string {
-    return this.#id;
-  }
-
   get startingUp(): boolean {
     return this.#startingUp;
   }
@@ -97,9 +113,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   }
 
   get name(): string {
-    return `${this.players.self.alias ?? "UnknownSlot"}@${
-      this.#url.hostname ?? "UnknownHostname"
-    }:${this.#url.port ?? "UnknownPort"}`;
+    return `${this.#slot}@${this.#url.hostname}:${this.#url.port}`;
   }
 
   get hintCost(): number {
@@ -152,17 +166,18 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
   //#region Public Methods
 
-  public async login(
-    hostname: string,
-    slot: string,
-    password?: string
-  ): Promise<ServiceResponse> {
+  public async login(): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
       try {
         logger.info(
-          `Archipelago: Logging in to session at '${hostname}' as '${slot}'`
+          `Archipelago: Logging in to session at '${this.#url}' as '${
+            this.#slot
+          }'`
         );
-        const { packet: roomInfo, url } = await this.socket.connect(hostname);
+        const response = await this.socket.connect(this.#url);
+
+        const { url, packet: roomInfo } = response;
+
         this.#url = url;
         this.#hintCost = roomInfo.hint_cost;
 
@@ -181,10 +196,10 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
         const connectPacket: ConnectPacket = {
           cmd: ClientCommand.Connect,
-          password: password,
+          password: this.#password,
           game: "",
-          name: slot,
-          uuid: this.#id,
+          name: this.#slot,
+          uuid: this.id,
           version: roomInfo.version,
           items_handling: ItemHandlingFlag.All,
           tags: ["Firebot", "TextOnly"],
@@ -193,7 +208,11 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
         const refusedListener = (packet: ConnectionRefusedPacket) => {
           logger.error(`Archipelago: Connection refused`, packet.errors);
-          throw packet.errors;
+          reject(
+            `Connection refused by Archipelago Server: ${packet.errors.join(
+              ", "
+            )}`
+          );
         };
 
         this.socket
@@ -207,41 +226,45 @@ export class APSession extends TypedEmitter<APSessionEvents> {
             packet.checked_locations.forEach((location) =>
               this.#checkedLocations.add(location)
             );
+
             packet.missing_locations.forEach((location) =>
               this.#missingLocations.add(location)
             );
 
             this.#hintPoints = packet.hint_points;
-
             this.#startingUp = false;
 
-            resolve({
-              success: true,
-            });
+            logger.info(`Logged into session as ${this.#slot}`);
+
+            resolve(true);
           })
           .catch((error) => {
-            throw error;
+            logger.info(
+              JSON.stringify(`Login error catch: ${JSON.stringify(error)}`)
+            );
+            reject(error.message);
           });
       } catch (error) {
         logger.error(
-          `Failed to connect to Archipelago Session at '${hostname}'`,
+          `Failed to connect to Archipelago Session at '${this.#url.hostname}'`,
           error
         );
-        reject({
-          success: false,
-          errors: [error],
-        });
+        reject(
+          `Failed to login to Archipelago Session at '${
+            this.#url.hostname
+          }' as '${this.#slot}', ${error}`
+        );
       }
     });
   }
 
-  public disconnect(): void {
+  public disconnect() {
     this.players.removeAllListeners();
     this.messages.removeAllListeners();
     this.socket.removeAllListeners();
     this.socket.disconnect();
 
-    this.emit("disconnected", this.name);
+    this.emit("disconnected", this.id);
 
     this.removeAllListeners();
   }
@@ -299,7 +322,23 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
   //#endregion
 
-  //#region Private helpers
+  //#region Private Helpers
+
+  #getUrlFromHostname = (hostname: string): URL => {
+    logger.info(`Getting url from hostname '${hostname}'`);
+
+    const pattern = /^(wss?:)\/\/[a-z0-9_.~\-:]+/i;
+
+    const url = new URL(
+      pattern.test(hostname) ? hostname : `wss://${hostname}`
+    );
+
+    if (!url) {
+      throw new Error(`Could not parse '${hostname}' as a URL`);
+    }
+
+    return url;
+  };
 
   #getChecksum = (game: string) => {
     const checksum = this.#checksums.get(game);

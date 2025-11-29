@@ -139,11 +139,24 @@ export type APRoom = {
   tags: Array<string>;
 };
 
-export type ServiceResponse = {
-  success: boolean;
-  data?: Record<string, unknown>;
-  errors?: Array<string>;
+export type APCommandDefinition = Record<`/${string}`, APCommandOptions>;
+
+export type APCommandOptions = {
+  args?: Record<string, { optional: boolean }>;
+  description: string;
+  callback: (sessionId: string, ...args: Array<string>) => void | Promise<void>;
 };
+
+export type ServiceResponse<T = never> =
+  | {
+      success: true;
+      data?: T;
+      errors?: null;
+    }
+  | {
+      success?: false | null;
+      errors?: Array<string>;
+    };
 
 //#region PrintJSON Message Parts
 

@@ -54,7 +54,7 @@ export const SendChatMessageEffectType: Effects.EffectType<
   optionsController: ($scope, backendCommunicator: any) => {
     $scope.getSessionNames = (): void => {
       $scope.sessions = backendCommunicator.fireEventSync(
-        "archipelago:getSessionNames"
+        "archipelago:getSessionIdsAndNames"
       );
     };
 
@@ -72,14 +72,22 @@ export const SendChatMessageEffectType: Effects.EffectType<
     }
   },
   optionsValidator: (effect) => {
-    if (!effect.message?.length) {
-      return ["Please insert a message to send"];
+    const errors: Array<string> = [];
+    if (effect.selectMode === "list" && !effect.selectedSession) {
+      errors.push("Select a session from the list");
     }
+    if (effect.selectMode === "custom" && !effect.session) {
+      errors.push("Enter the name of a session");
+    }
+    if (!effect.message?.length) {
+      errors.push("Please insert a message to send");
+    }
+    return errors;
   },
   onTriggerEvent: async ({ effect }) => {
     switch (effect.selectMode) {
       case "first": {
-        return client.searchSession()?.messages.sendChat(effect.message);
+        return client.findSession()?.messages.sendChat(effect.message);
       }
 
       case "list": {
@@ -90,7 +98,7 @@ export const SendChatMessageEffectType: Effects.EffectType<
 
       case "custom": {
         return client
-          .searchSession(effect.session)
+          .findSession(effect.session)
           ?.messages.sendChat(effect.message);
       }
     }
