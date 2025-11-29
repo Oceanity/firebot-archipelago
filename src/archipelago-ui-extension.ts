@@ -159,7 +159,7 @@ export const ArchipelagoUIExtension: UIExtension = {
 
         // Load current data
         $scope.sessions = backendCommunicator.fireEventSync(
-          "archipelago:getSessionIdsAndNames"
+          "archipelago:getSessionTable"
         );
 
         if (Object.keys($scope.sessions).length) {

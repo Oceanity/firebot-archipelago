@@ -54,7 +54,7 @@ export const SendChatMessageEffectType: Effects.EffectType<
   optionsController: ($scope, backendCommunicator: any) => {
     $scope.getSessionNames = (): void => {
       $scope.sessions = backendCommunicator.fireEventSync(
-        "archipelago:getSessionIdsAndNames"
+        "archipelago:getSessionTable"
       );
     };
 

@@ -29,7 +29,11 @@ export class APClient extends EventEmitter {
     this.sessions = new Map();
   }
 
-  public get sessionIdsAndNames(): Record<string, string> {
+  public get sessionIds(): Array<string> {
+    return Array.from(this.sessions.keys());
+  }
+
+  public get sessionTable(): Record<string, string> {
     const output: Record<string, string> = {};
 
     this.sessionIds.forEach((id) => {
@@ -37,10 +41,6 @@ export class APClient extends EventEmitter {
     });
 
     return output;
-  }
-
-  public get sessionIds(): Array<string> {
-    return Array.from(this.sessions.keys());
   }
 
   public async init() {

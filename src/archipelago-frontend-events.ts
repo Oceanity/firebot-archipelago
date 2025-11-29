@@ -36,8 +36,8 @@ export function initFrontendCommunicator(
   );
 
   frontendCommunicator.on(
-    `archipelago:getSessionIdsAndNames`,
-    (): Record<string, string> => client.sessionIdsAndNames
+    `archipelago:getSessionTable`,
+    (): Record<string, string> => client.sessionTable
   );
 
   frontendCommunicator.on(
