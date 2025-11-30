@@ -1,7 +1,7 @@
 import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
 import { client } from "../main";
 
-type SendChatProps = {
+type Props = {
   selectMode?: string;
   cause?: string;
   session?: string;
@@ -9,7 +9,7 @@ type SendChatProps = {
 };
 
 export const TriggerDeathLinkEffectType: Effects.EffectType<
-  SendChatProps,
+  Props,
   unknown,
   void
 > = {
