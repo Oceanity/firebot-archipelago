@@ -31,6 +31,7 @@ export const ArchipelagoUIExtension: UIExtension = {
           .item.useful { color: #6d8be8; }
           .item.trap { color: #fa8072; }
           .location { color: #00ff7f; }
+          .deathlink { color: #fa8072; }
 
           .item-entry.received { color: #00ff7f; }
           .location-entry.checked { color: #6d8be8; text-decoration: line-through; font-style: italic; }
@@ -99,7 +100,7 @@ export const ArchipelagoUIExtension: UIExtension = {
                   ng-class="{'active' : selectedSession === sessionId}"
                   ng-click="selectSlot(sessionId)"
                 >
-                  <a href style="display: flex; align-items: center; gap: 10px;"><span>{{ sessionName }}</span><button class="close" ng-click="disconnect(sessionId)"><i class="fal fa-times" style="display: flex; align-items: center; font-size: 14px; color: #66666633"></i></button></a>
+                  <a href style="display: flex; align-items: center; gap: 10px;"><span>{{ sessionName }}</span><button class="close" ng-click="disconnect(sessionId)"><i class="fal fa-times" style="display: flex; align-items: center; font-size: 14px; color: #66666655"></i></button></a>
                 </li>
               </ul>
             </div>
@@ -108,7 +109,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               tab-index="-1"
               ng-click="scrollGlued = false"
               ng-blur="scrollGlued = true"
-              style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; background: rgba(0,0,0,0.65);cursor: default;">
+              style="display: flex; flex: 1; flex-direction: column; overflow-x: hidden; position: relative; font-size: 16px; color:#fff; background: rgba(0,0,0,0.65);cursor: default;">
               <div scroll-glue="scrollGlued" force-glue="forceGlued" style="display: flex; flex-direction: column; margin-top: auto; overflow-y: auto;">
                 <div ng-repeat="message in messages[selectedSession] track by $index">
                   <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />

@@ -8,6 +8,7 @@ import {
 import {
   AdminCommandResultJSONPacket,
   BouncedPacket,
+  BouncePacket,
   ChatJSONPacket,
   CollectJSONPacket,
   CommandResultJSONPacket,
@@ -59,6 +60,12 @@ export enum ItemType {
   Trap = "trap",
 }
 
+export type DeathLinkData = {
+  source: string;
+  cause: string;
+  time: number;
+};
+
 export type JSONSerializable =
   | string
   | number
@@ -107,6 +114,7 @@ export type PermissionTable = {
 };
 
 export type ClientPacket =
+  | BouncePacket
   | ConnectPacket
   | ConnectUpdatePacket
   | GetDataPackagePacket

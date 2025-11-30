@@ -11,7 +11,7 @@ import {
   ItemCheatJSONPacket,
   ItemSendJSONPacket,
 } from "../../interfaces";
-import { PrintJSONPacket } from "../../types";
+import { DeathLinkData, PrintJSONPacket } from "../../types";
 import {
   ColorMessageNode,
   ItemMessageNode,
@@ -50,7 +50,9 @@ export class MessageService extends TypedEmitter<Events> {
     super();
 
     this.#session = session;
-    this.#session.socket.on("printJson", this.#onPrintJson.bind(this));
+    this.#session.socket
+      .on("printJson", this.#onPrintJson.bind(this))
+      .on("deathLink", this.#onDeathLink.bind(this));
   }
 
   public get log(): MessageLog {
@@ -190,6 +192,18 @@ export class MessageService extends TypedEmitter<Events> {
       isHidden: false,
       message: { text, html },
       sessionId: this.#session.id,
+    });
+  };
+
+  #onDeathLink = (data: DeathLinkData) => {
+    const { source, cause } = data;
+
+    this.push({
+      text: `DeathLink (${source}): ${cause || `${source} died.`}`,
+      html: `<span class="deathlink">DeathLink (${source}): ${
+        cause || `${source} died.`
+      }︎</span>`,
+      nodes: [],
     });
   };
 

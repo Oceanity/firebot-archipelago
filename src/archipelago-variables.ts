@@ -18,6 +18,7 @@ export function registerArchipelagoVariables(
       [
         FirebotEvents.Connected,
         FirebotEvents.Countdown,
+        FirebotEvents.DeathLink,
         FirebotEvents.Disconnected,
         FirebotEvents.HintsUpdated,
         FirebotEvents.Message,
@@ -32,6 +33,7 @@ export function registerArchipelagoVariables(
       [
         FirebotEvents.Connected,
         FirebotEvents.Countdown,
+        FirebotEvents.DeathLink,
         FirebotEvents.Disconnected,
         FirebotEvents.HintsUpdated,
       ],
@@ -41,6 +43,12 @@ export function registerArchipelagoVariables(
     ...buildCountdownVariables(
       "apCountdown",
       [FirebotEvents.Countdown],
+      replaceVariableFactory
+    ),
+
+    ...buildDeathLinkVariables(
+      "apDeathLink",
+      [FirebotEvents.DeathLink],
       replaceVariableFactory
     ),
 
@@ -133,6 +141,27 @@ export function buildCountdownVariables(
   ];
 
   return countdownProperties.map(([property, description]) =>
+    replaceVariableFactory.createEventDataVariable(
+      buildArchipelagoVariable(`${prefix}${property}`, description, events)
+    )
+  );
+}
+
+export function buildDeathLinkVariables(
+  prefix: string,
+  events: Array<FirebotEvents>,
+  replaceVariableFactory: ReplaceVariableFactory
+) {
+  const deathLinkProperties: Array<VariableDefinition> = [
+    ["Source", "The name of the slot that triggered the DeathLink event"],
+    [
+      "Cause",
+      "The cause of the DeathLink if the AP World provides it, otherwise will be an empty string",
+    ],
+    ["Time", "The unix timestamp of the DeathLink event"],
+  ];
+
+  return deathLinkProperties.map(([property, description]) =>
     replaceVariableFactory.createEventDataVariable(
       buildArchipelagoVariable(`${prefix}${property}`, description, events)
     )

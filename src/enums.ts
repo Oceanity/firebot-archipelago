@@ -34,6 +34,7 @@ export enum ConnectionError {
 export enum FirebotEvents {
   Connected = "connected",
   Countdown = "countdown",
+  DeathLink = "death-link",
   Disconnected = "disconnected",
   HintsUpdated = "hints-updated",
   Message = "message",
@@ -151,4 +152,13 @@ export enum SlotType {
   Spectator = 0,
   Player = 1,
   Group = 2,
+}
+
+export enum Tag {
+  AP = "AP",
+  DeathLink = "DeathLink",
+  HintGame = "HintGame",
+  Tracker = "Tracker",
+  TextOnly = "TextOnly",
+  NoText = "NoText",
 }

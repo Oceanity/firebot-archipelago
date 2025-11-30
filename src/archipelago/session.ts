@@ -1,8 +1,9 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
+import { logger, moment } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { v4 as uuid } from "uuid";
-import { ClientCommand, ItemHandlingFlag } from "../enums";
+import { ClientCommand, ItemHandlingFlag, Tag } from "../enums";
 import {
+  BouncePacket,
   ConnectionRefusedPacket,
   ConnectPacket,
   ReceivedItemsPacket,
@@ -177,6 +178,10 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     );
   }
 
+  get tags(): Array<string> {
+    return this.#tags;
+  }
+
   //#endregion
 
   //#region Public Methods
@@ -217,7 +222,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
           uuid: this.id,
           version: roomInfo.version,
           items_handling: ItemHandlingFlag.All,
-          tags: ["Firebot", "TextOnly"],
+          tags: ["Firebot", Tag.TextOnly, Tag.DeathLink],
           slot_data: true,
         };
 
@@ -283,6 +288,26 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
     this.removeAllListeners();
   }
+
+  public triggerDeathLink = async (cause: string) => {
+    if (this.#tags.includes(Tag.DeathLink)) {
+      logger.warn(
+        `Archipelago: Triggering DeathLink on session '${this.name}' that does not have DeathLink enabled.`
+      );
+    }
+
+    const deathLinkPacket: BouncePacket = {
+      cmd: ClientCommand.Bounce,
+      tags: [Tag.DeathLink],
+      data: {
+        time: moment.utc().valueOf(),
+        source: this.#slot,
+        cause,
+      },
+    };
+
+    await this.socket.send(deathLinkPacket);
+  };
 
   public getHints = (hintPoints: number) =>
     Math.floor(hintPoints / this.#hintCost);

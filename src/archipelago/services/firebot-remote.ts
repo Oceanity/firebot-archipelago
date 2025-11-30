@@ -4,7 +4,7 @@ import {
 } from "@oceanity/firebot-helpers/firebot";
 import { ARCHIPELAGO_CLIENT_ID } from "../../constants";
 import { FirebotEvents, ItemClassification } from "../../enums";
-import { NetworkItem } from "../../types";
+import { DeathLinkData, NetworkItem } from "../../types";
 import { APSession } from "../session";
 
 export class FirebotRemoteService {
@@ -93,6 +93,18 @@ export class FirebotRemoteService {
           hints: this.#session.hints,
         });
       }
+    });
+
+    this.#session.socket.on("deathLink", (data) => {
+      eventManager.triggerEvent(
+        ARCHIPELAGO_CLIENT_ID,
+        FirebotEvents.DeathLink,
+        {
+          ...this.#getSessionMetadata(),
+          ...this.#getPlayerMetadata(),
+          ...this.#getDeathLinkMetadata("apDeathLink", data),
+        }
+      );
     });
 
     //#endregion
@@ -231,6 +243,15 @@ export class FirebotRemoteService {
     [`${prefix}HintPoints`]: `${this.#session.hintPoints}`,
     [`${prefix}HintCost`]: `${this.#session.hintCost}`,
     [`${prefix}Hints`]: `${this.#session.getHints(this.#session.hintPoints)}`,
+  });
+
+  #getDeathLinkMetadata = (
+    prefix: string = "apDeathLink",
+    data: DeathLinkData
+  ): Record<string, string> => ({
+    [`${prefix}Source`]: data.source,
+    [`${prefix}Cause`]: data.cause,
+    [`${prefix}Time`]: `${data.time}`,
   });
 
   //#endregion
