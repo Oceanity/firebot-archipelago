@@ -17,13 +17,16 @@ module.exports = {
     path: resolve(__dirname, `./dist/${scriptOutputName}`),
     filename: "index.js",
   },
-  plugins: [
-    new ZipWebpackPlugin({
-      path: resolve(__dirname, "./dist"),
-      pathPrefix: scriptOutputName,
-      filename: `${scriptOutputName}-v${version}.zip`,
-    }),
-  ],
+  plugins:
+    process.env.NODE_ENV === "production"
+      ? [
+          new ZipWebpackPlugin({
+            path: resolve(__dirname, "./dist"),
+            pathPrefix: scriptOutputName,
+            filename: `${scriptOutputName}-v${version}.zip`,
+          }),
+        ]
+      : [],
   resolve: {
     extensions: [".ts", ".js"],
   },

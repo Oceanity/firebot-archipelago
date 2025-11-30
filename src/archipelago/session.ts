@@ -18,7 +18,8 @@ import { SocketService } from "./services/socket";
 
 type APSessionEvents = {
   connected: () => void;
-  disconnected: (sessionId: string) => void;
+  disconnected: () => void;
+  hintsUpdated: (hints: number) => void;
 };
 
 export class APSession extends TypedEmitter<APSessionEvents> {
@@ -95,7 +96,13 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
         // Update Hint Points
         if (!!packet.hint_points) {
+          const currentHints = this.hints;
+
           this.#hintPoints = packet.hint_points;
+
+          if (currentHints !== this.hints) {
+            this.emit("hintsUpdated", this.hints);
+          }
         }
       })
       .on("disconnected", () => {
@@ -117,12 +124,20 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return `${this.#slot}@${this.#url.hostname}:${this.#url.port}`;
   }
 
+  get totalLocations(): number {
+    return this.#checkedLocations.size + this.#missingLocations.size;
+  }
+
   get hintCost(): number {
-    return this.#hintCost;
+    return Math.floor(this.totalLocations / this.#hintCost);
   }
 
   get hintPoints(): number {
     return this.#hintPoints;
+  }
+
+  get hints(): number {
+    return Math.floor(this.hintPoints / this.hintCost);
   }
 
   get itemTable(): Array<[item: string, count: number]> {
@@ -269,7 +284,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     this.socket.removeAllListeners();
     this.socket.disconnect();
 
-    this.emit("disconnected", this.id);
+    this.emit("disconnected");
 
     this.removeAllListeners();
   }

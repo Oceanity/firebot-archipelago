@@ -41,6 +41,12 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
         "When the client disconnects from any Archipelago MultiWorld server.",
     },
     {
+      id: FirebotEvents.HintsUpdated,
+      name: "Hints Updated",
+      description:
+        "When the number of available hints changes for an Archipelago MultiWorld session.",
+    },
+    {
       id: FirebotEvents.Message,
       name: "Message",
       description: "When a message is received from the server.",

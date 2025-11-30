@@ -59,4 +59,9 @@ export function initFrontendCommunicator(
     (data: { sessionId: string; message: string }) =>
       client.sessions.get(data.sessionId)?.messages.sendChat(data.message)
   );
+
+  frontendCommunicator.on(
+    "archipelago:getHints",
+    (sessionId: string): number => client.sessions.get(sessionId)?.hints
+  );
 }

@@ -19,6 +19,7 @@ export function registerArchipelagoVariables(
         FirebotEvents.Connected,
         FirebotEvents.Countdown,
         FirebotEvents.Disconnected,
+        FirebotEvents.HintsUpdated,
         FirebotEvents.Message,
         FirebotEvents.ReceivedItems,
         FirebotEvents.SentItems,
@@ -32,6 +33,7 @@ export function registerArchipelagoVariables(
         FirebotEvents.Connected,
         FirebotEvents.Countdown,
         FirebotEvents.Disconnected,
+        FirebotEvents.HintsUpdated,
       ],
       replaceVariableFactory
     ),

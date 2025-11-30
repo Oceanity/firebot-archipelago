@@ -28,15 +28,28 @@ export class FirebotRemoteService {
       );
     });
 
-    this.#session.on("disconnected", (sessionId) => {
+    this.#session.on("disconnected", () => {
       frontendCommunicator.fireEventAsync(
         "archipelago:disconnected",
-        sessionId
+        this.#session.id
       );
 
       eventManager.triggerEvent(
         ARCHIPELAGO_CLIENT_ID,
         FirebotEvents.Disconnected,
+        {
+          ...this.#getSessionMetadata(),
+          ...this.#getPlayerMetadata(),
+        }
+      );
+    });
+
+    this.#session.on("hintsUpdated", (hints) => {
+      frontendCommunicator.fireEventAsync("archipelago:hintsUpdated", hints);
+
+      eventManager.triggerEvent(
+        ARCHIPELAGO_CLIENT_ID,
+        FirebotEvents.HintsUpdated,
         {
           ...this.#getSessionMetadata(),
           ...this.#getPlayerMetadata(),
@@ -77,7 +90,7 @@ export class FirebotRemoteService {
       if (!!packet.hint_points) {
         frontendCommunicator.fireEventAsync("archipelago:hintPointsUpdated", {
           hintPoints,
-          hints: this.#session.getHints(hintPoints),
+          hints: this.#session.hints,
         });
       }
     });
