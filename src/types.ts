@@ -8,6 +8,7 @@ import {
 import {
   AdminCommandResultJSONPacket,
   BouncedPacket,
+  BouncePacket,
   ChatJSONPacket,
   CollectJSONPacket,
   CommandResultJSONPacket,
@@ -107,6 +108,7 @@ export type PermissionTable = {
 };
 
 export type ClientPacket =
+  | BouncePacket
   | ConnectPacket
   | ConnectUpdatePacket
   | GetDataPackagePacket

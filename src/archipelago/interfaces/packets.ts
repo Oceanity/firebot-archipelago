@@ -234,6 +234,14 @@ export interface TutorialJSONPacket {
 
 //#region Client -> Server
 
+export interface BouncePacket {
+  readonly cmd: ClientCommand.Bounce;
+  readonly games?: Array<string>;
+  readonly slots?: Array<string>;
+  readonly tags?: Array<string>;
+  readonly data: Record<string, unknown>;
+}
+
 export interface ConnectPacket {
   readonly cmd: ClientCommand.Connect;
   readonly password: string;

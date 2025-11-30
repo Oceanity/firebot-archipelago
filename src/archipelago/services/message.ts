@@ -1,11 +1,18 @@
+import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { APCommandDefinitions } from "../../archipelago-command-definitions";
 import {
   ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY,
   ARCHIPELAGO_CLIENT_MAX_MESSAGES,
 } from "../../constants";
-import { ClientCommand, MessagePartType, PrintJsonType } from "../../enums";
 import {
+  ClientCommand,
+  MessagePartType,
+  PrintJsonType,
+  Tag,
+} from "../../enums";
+import {
+  BouncedPacket,
   CountdownJSONPacket,
   HintJSONPacket,
   ItemCheatJSONPacket,
@@ -50,7 +57,9 @@ export class MessageService extends TypedEmitter<Events> {
     super();
 
     this.#session = session;
-    this.#session.socket.on("printJson", this.#onPrintJson.bind(this));
+    this.#session.socket
+      .on("printJson", this.#onPrintJson.bind(this))
+      .on("bounced", this.#onBounced.bind(this));
   }
 
   public get log(): MessageLog {
@@ -191,6 +200,23 @@ export class MessageService extends TypedEmitter<Events> {
       message: { text, html },
       sessionId: this.#session.id,
     });
+  };
+
+  #onBounced = (packet: BouncedPacket) => {
+    // DeathLink
+    if (packet.tags?.includes(Tag.DeathLink)) {
+      logger.info(JSON.stringify(packet));
+
+      const { source, cause } = packet.data;
+
+      this.push({
+        text: `DeathLink (${source}): ${cause ?? `${source} died.`}`,
+        html: `<span class="deathlink">DeathLink (${source}): ${
+          cause ?? `${source} died.`
+        }︎</span>`,
+        nodes: [],
+      });
+    }
   };
 
   /** Handle chat commands defined in {@link APCommandDefinitions} */

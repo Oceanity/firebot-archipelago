@@ -139,6 +139,7 @@ export class APClient extends EventEmitter {
 
   public findSession(query?: string): APSession | null {
     const entries = Array.from(this.sessions.values());
+
     if (!entries.length) {
       return null;
     }

@@ -151,3 +151,12 @@ export enum SlotType {
   Player = 1,
   Group = 2,
 }
+
+export enum Tag {
+  AP = "AP",
+  DeathLink = "DeathLink",
+  HintGame = "HintGame",
+  Tracker = "Tracker",
+  TextOnly = "TextOnly",
+  NoText = "NoText",
+}

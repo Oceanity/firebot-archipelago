@@ -31,6 +31,7 @@ export const ArchipelagoUIExtension: UIExtension = {
           .item.useful { color: #6d8be8; }
           .item.trap { color: #fa8072; }
           .location { color: #00ff7f; }
+          .deathlink { color: #fa8072; }
 
           .item-entry.received { color: #00ff7f; }
           .location-entry.checked { color: #6d8be8; text-decoration: line-through; font-style: italic; }
