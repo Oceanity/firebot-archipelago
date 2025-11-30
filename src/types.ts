@@ -60,6 +60,12 @@ export enum ItemType {
   Trap = "trap",
 }
 
+export type DeathLinkData = {
+  source: string;
+  cause: string;
+  time: number;
+};
+
 export type JSONSerializable =
   | string
   | number

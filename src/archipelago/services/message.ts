@@ -1,24 +1,17 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { APCommandDefinitions } from "../../archipelago-command-definitions";
 import {
   ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY,
   ARCHIPELAGO_CLIENT_MAX_MESSAGES,
 } from "../../constants";
+import { ClientCommand, MessagePartType, PrintJsonType } from "../../enums";
 import {
-  ClientCommand,
-  MessagePartType,
-  PrintJsonType,
-  Tag,
-} from "../../enums";
-import {
-  BouncedPacket,
   CountdownJSONPacket,
   HintJSONPacket,
   ItemCheatJSONPacket,
   ItemSendJSONPacket,
 } from "../../interfaces";
-import { PrintJSONPacket } from "../../types";
+import { DeathLinkData, PrintJSONPacket } from "../../types";
 import {
   ColorMessageNode,
   ItemMessageNode,
@@ -59,7 +52,7 @@ export class MessageService extends TypedEmitter<Events> {
     this.#session = session;
     this.#session.socket
       .on("printJson", this.#onPrintJson.bind(this))
-      .on("bounced", this.#onBounced.bind(this));
+      .on("deathLink", this.#onDeathLink.bind(this));
   }
 
   public get log(): MessageLog {
@@ -202,21 +195,16 @@ export class MessageService extends TypedEmitter<Events> {
     });
   };
 
-  #onBounced = (packet: BouncedPacket) => {
-    // DeathLink
-    if (packet.tags?.includes(Tag.DeathLink)) {
-      logger.info(JSON.stringify(packet));
+  #onDeathLink = (data: DeathLinkData) => {
+    const { source, cause } = data;
 
-      const { source, cause } = packet.data;
-
-      this.push({
-        text: `DeathLink (${source}): ${cause ?? `${source} died.`}`,
-        html: `<span class="deathlink">DeathLink (${source}): ${
-          cause ?? `${source} died.`
-        }︎</span>`,
-        nodes: [],
-      });
-    }
+    this.push({
+      text: `DeathLink (${source}): ${cause || `${source} died.`}`,
+      html: `<span class="deathlink">DeathLink (${source}): ${
+        cause || `${source} died.`
+      }︎</span>`,
+      nodes: [],
+    });
   };
 
   /** Handle chat commands defined in {@link APCommandDefinitions} */

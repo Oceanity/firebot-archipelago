@@ -34,6 +34,7 @@ export enum ConnectionError {
 export enum FirebotEvents {
   Connected = "connected",
   Countdown = "countdown",
+  DeathLink = "death-link",
   Disconnected = "disconnected",
   HintsUpdated = "hints-updated",
   Message = "message",

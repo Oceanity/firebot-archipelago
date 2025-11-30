@@ -35,6 +35,12 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
       description: "When the server's countdown updates.",
     },
     {
+      id: FirebotEvents.DeathLink,
+      name: "DeathLink Triggered",
+      description:
+        "When another player in any Archipelago MultiWorld server triggers a DeathLink event (cannot detect when player dies).",
+    },
+    {
       id: FirebotEvents.Disconnected,
       name: "Disconnected",
       description:

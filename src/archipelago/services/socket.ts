@@ -1,8 +1,13 @@
 import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import WebSocket from "ws";
-import { ServerCommand } from "../../enums";
-import { ClientPacket, PrintJSONPacket, ServerPacket } from "../../types";
+import { ServerCommand, Tag } from "../../enums";
+import {
+  ClientPacket,
+  DeathLinkData,
+  PrintJSONPacket,
+  ServerPacket,
+} from "../../types";
 import {
   BouncedPacket,
   ConnectedPacket,
@@ -22,6 +27,7 @@ type Events = {
   sentPackets: [packets: Array<ClientPacket>];
   /** Archipelago passthrough */
   bounced: [packet: BouncedPacket];
+  deathLink: [data: DeathLinkData];
   connected: [packet: ConnectedPacket];
   connectionRefused: [packet: ConnectionRefusedPacket];
   disconnected: [];
@@ -184,6 +190,16 @@ export class SocketService extends TypedEmitter<EventDef> {
         switch (packet.cmd) {
           case ServerCommand.Bounced:
             this.emit("bounced", packet);
+
+            // Extra emits for specialized Bounced packets
+            if (
+              packet.tags?.includes(Tag.DeathLink) &&
+              !!packet.data &&
+              ["source", "cause", "time"].every((prop) => prop in packet.data)
+            ) {
+              this.emit("deathLink", packet.data as DeathLinkData);
+            }
+
             break;
           case ServerCommand.Connected:
             this.emit("connected", packet);
