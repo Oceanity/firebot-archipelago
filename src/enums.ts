@@ -35,6 +35,7 @@ export enum FirebotEvents {
   Connected = "connected",
   Countdown = "countdown",
   Disconnected = "disconnected",
+  HintsUpdated = "hints-updated",
   Message = "message",
   ReceivedItems = "received-items",
   SentItems = "sent-items",
