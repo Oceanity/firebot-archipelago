@@ -26,8 +26,9 @@ export function initFrontendCommunicator(
     }
   );
 
-  frontendCommunicator.on("archipelago:disconnect", (sessionId: string) =>
-    client.sessions.get(sessionId)?.disconnect()
+  frontendCommunicator.onAsync(
+    "archipelago:disconnect",
+    async (sessionId: string) => client.sessions.get(sessionId)?.disconnect()
   );
 
   frontendCommunicator.on(
@@ -54,14 +55,14 @@ export function initFrontendCommunicator(
         ?.messages.getChatHistory(data.entry) ?? ["", -1]
   );
 
-  frontendCommunicator.on(
+  frontendCommunicator.onAsync(
     "archipelago:sendMessage",
-    (data: { sessionId: string; message: string }) =>
+    async (data: { sessionId: string; message: string }) =>
       client.sessions.get(data.sessionId)?.messages.sendChat(data.message)
   );
 
-  frontendCommunicator.on(
+  frontendCommunicator.onAsync(
     "archipelago:getHints",
-    (sessionId: string): number => client.sessions.get(sessionId)?.hints
+    async (sessionId: string) => client.sessions.get(sessionId)?.getHintData()
   );
 }
