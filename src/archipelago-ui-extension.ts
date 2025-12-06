@@ -165,10 +165,11 @@ export const ArchipelagoUIExtension: UIExtension = {
 
           $scope.selectedSession = sessionId;
           if (!$scope.messages[sessionId]) {
-            $scope.messages[sessionId] = backendCommunicator.fireEventSync(
-              "archipelago:getHtmlMessageLog",
-              sessionId
-            );
+            backendCommunicator
+              .fireEventAsync("archipelago:getHtmlMessageLog", sessionId)
+              .then((log: Array<string>) => {
+                $scope.messages[sessionId] = log;
+              });
           }
 
           delete $scope.chatText;
@@ -176,13 +177,15 @@ export const ArchipelagoUIExtension: UIExtension = {
         };
 
         // Load current data
-        $scope.sessions = backendCommunicator.fireEventSync(
-          "archipelago:getSessionTable"
-        );
+        backendCommunicator
+          .fireEventAsync("archipelago:getSessionTable")
+          .then((table: Record<string, string>) => {
+            $scope.sessions = table;
 
-        if (Object.keys($scope.sessions).length) {
-          $scope.selectSlot(Object.keys($scope.sessions)[0]);
-        }
+            if (Object.keys($scope.sessions).length) {
+              $scope.selectSlot(Object.keys($scope.sessions)[0]);
+            }
+          });
 
         backendCommunicator.on(
           "archipelago:disconnected",
@@ -296,19 +299,19 @@ export const ArchipelagoUIExtension: UIExtension = {
             // Up Arrow
             case 38: {
               $event.preventDefault();
-              const [message, entry] = backendCommunicator.fireEventSync(
-                "archipelago:getChatHistory",
-                {
+              backendCommunicator
+                .fireEventAsync("archipelago:getChatHistory", {
                   sessionId: $scope.selectedSession,
                   entry:
                     $scope.chatHistoryIndex !== undefined
                       ? $scope.chatHistoryIndex - 1
                       : undefined,
-                }
-              );
-
-              $scope.chatText = message;
-              $scope.chatHistoryIndex = entry;
+                })
+                .then((data: [string, number]) => {
+                  const [message, entry] = data;
+                  $scope.chatText = message;
+                  $scope.chatHistoryIndex = entry;
+                });
               break;
             }
 
@@ -319,16 +322,17 @@ export const ArchipelagoUIExtension: UIExtension = {
                 return;
               }
 
-              const [message, entry] = backendCommunicator.fireEventSync(
-                "archipelago:getChatHistory",
-                {
+              backendCommunicator
+                .fireEventAsync("archipelago:getChatHistory", {
                   sessionId: $scope.selectedSession,
                   entry: $scope.chatHistoryIndex + 1,
-                }
-              );
+                })
+                .then((data: [string, number]) => {
+                  const [message, entry] = data;
 
-              $scope.chatText = message;
-              $scope.chatHistoryIndex = entry;
+                  $scope.chatText = message;
+                  $scope.chatHistoryIndex = entry;
+                });
               break;
             }
           }

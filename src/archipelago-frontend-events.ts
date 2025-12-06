@@ -28,28 +28,24 @@ export function initFrontendCommunicator(
 
   frontendCommunicator.onAsync(
     "archipelago:disconnect",
-    async (sessionId: string) => client.sessions.get(sessionId)?.disconnect()
+    async (sessionId: string): Promise<void> =>
+      client.sessions.get(sessionId)?.disconnect()
   );
 
-  frontendCommunicator.on(
-    "archipelago:getSessionNames",
-    (): Array<string> => client.sessionIds
-  );
-
-  frontendCommunicator.on(
+  frontendCommunicator.onAsync(
     `archipelago:getSessionTable`,
-    (): Record<string, string> => client.sessionTable
+    async (): Promise<Record<string, string>> => client.sessionTable
   );
 
-  frontendCommunicator.on(
+  frontendCommunicator.onAsync(
     "archipelago:getHtmlMessageLog",
-    (sessionId: string): Array<string> =>
+    async (sessionId: string): Promise<Array<string>> =>
       client.sessions.get(sessionId)?.messages.htmlLog ?? []
   );
 
-  frontendCommunicator.on(
+  frontendCommunicator.onAsync(
     "archipelago:getChatHistory",
-    (data: { sessionId: string; entry?: number }) =>
+    async (data: { sessionId: string; entry?: number }) =>
       client.sessions
         .get(data.sessionId)
         ?.messages.getChatHistory(data.entry) ?? ["", -1]
