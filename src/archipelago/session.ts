@@ -125,6 +125,10 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return this.#hintPoints;
   }
 
+  get hintPointProgress(): number {
+    return this.hintPoints % this.hintCost;
+  }
+
   get hints(): number {
     return Math.floor(this.hintPoints / this.hintCost);
   }
@@ -301,6 +305,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   public getHintData = () => ({
     hints: this.hints,
     hintPoints: this.hintPoints,
+    hintPointProgress: this.hintPointProgress,
     hintCost: this.hintCost,
   });
 

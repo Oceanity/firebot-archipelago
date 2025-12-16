@@ -245,6 +245,7 @@ export class FirebotRemoteService {
     [`${prefix}Url`]: this.#session.url.toString(),
     [`${prefix}LocationCount`]: `${this.#session.totalLocations}`,
     [`${prefix}HintPoints`]: `${this.#session.hintPoints}`,
+    [`${prefix}HintPointProgress`]: `${this.#session.hintPointProgress}`,
     [`${prefix}HintCost`]: `${this.#session.hintCost}`,
     [`${prefix}HintCostPercent`]: `${this.#session.hintCostPercent}`,
     [`${prefix}Hints`]: `${this.#session.hints}`,

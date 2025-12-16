@@ -119,7 +119,11 @@ const buildSessionVariables = (
     ],
     [
       "HintPoints",
-      "The hint points held by the player of the associated session",
+      "The total number of hint points held by the player of the associated session",
+    ],
+    [
+      "HintPointProgress",
+      "The number of hint points in relation to the next hint",
     ],
     ["HintCost", "The cost of a hint in the associated session"],
     ["HintCostPercent", "The cost of a hint in the associated session"],

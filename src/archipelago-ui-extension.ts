@@ -115,15 +115,17 @@ export const ArchipelagoUIExtension: UIExtension = {
             </div>
 
             <div class="p-6" style="display: flex; gap: 1.5rem">
-              <div class="hints-container" style="flex-basis: 100px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-                <span style="font-size: 16px; font-weight:600; letter-spacing: 0.075rem;">Hints: {{ sessionData[selectedSession].hints }}</span>
+              <div
+                class="hints-container"
+                tooltip-placement="top"
+                uib-tooltip="Hint Points: {{sessionData[selectedSession].hintPointProgress || '0'}} / {{sessionData[selectedSession].hintCost || '0'}}"
+                style="flex-basis: 100px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <span style="font-size: 16px; font-weight:600; letter-spacing: 0.075rem;">Hints: {{ sessionData[selectedSession].hints || '0' }}</span>
                 <uib-progressbar
                   type="warning"
-                  tooltip-placement="top"
-                  uib-tooltip="Hint Points: {{sessionData[selectedSession].hintPoints % sessionData[selectedSession].hintCost}} / {{sessionData[selectedSession].hintCost}}"
                   class="progress-striped active"
-                  max="sessionData[selectedSession].hintCost"
-                  value="sessionData[selectedSession].hintPoints % sessionData[selectedSession].hintCost"
+                  max="sessionData[selectedSession].hintCost || 1"
+                  value="sessionData[selectedSession].hintPointProgress || 0"
                   style="margin: 0; width: 100%; height:10px;" />
               </div>
               <input
