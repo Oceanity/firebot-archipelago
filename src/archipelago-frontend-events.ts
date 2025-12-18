@@ -1,5 +1,4 @@
 import { ScriptModules } from "@crowbartools/firebot-custom-scripts-types";
-import { logger } from "@oceanity/firebot-helpers/firebot";
 import { client } from "./main";
 import { ServiceResponse } from "./types";
 
@@ -60,13 +59,6 @@ export function initFrontendCommunicator(
 
   frontendCommunicator.onAsync(
     "archipelago:getHints",
-    async (sessionId: string) => {
-      logger.info(
-        `Got hints for session ${sessionId}: ${JSON.stringify(
-          client.sessions.get(sessionId)?.getHintData()
-        )}`
-      );
-      return client.sessions.get(sessionId)?.getHintData();
-    }
+    async (sessionId: string) => client.sessions.get(sessionId)?.getHintData()
   );
 }
