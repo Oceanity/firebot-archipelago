@@ -19,7 +19,11 @@ import { SocketService } from "./services/socket";
 type APSessionEvents = {
   connected: () => void;
   disconnected: () => void;
-  hintsUpdated: (hints: number) => void;
+  hintsUpdated: (data: {
+    hintPoints: number;
+    hintCost: number;
+    hints: number;
+  }) => void;
 };
 
 export class APSession extends TypedEmitter<APSessionEvents> {
@@ -85,26 +89,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         logger.info(`Location Info`);
         logger.info(JSON.stringify(packet));
       })
-      .on("roomUpdate", (packet: RoomUpdatePacket) => {
-        // Update Checked Locations
-        packet.checked_locations
-          ?.filter((location) => !this.#checkedLocations.has(location))
-          .forEach((location) => {
-            this.#checkedLocations.add(location);
-            this.#missingLocations.delete(location);
-          });
-
-        // Update Hint Points
-        if (!!packet.hint_points) {
-          const currentHints = this.hints;
-
-          this.#hintPoints = packet.hint_points;
-
-          if (currentHints !== this.hints) {
-            this.emit("hintsUpdated", this.hints);
-          }
-        }
-      })
+      .on("roomUpdate", this.#onRoomUpdate)
       .on("disconnected", () => {
         this.disconnect();
       });
@@ -128,12 +113,20 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return this.#checkedLocations.size + this.#missingLocations.size;
   }
 
+  get hintCostPercent(): number {
+    return this.#hintCost;
+  }
+
   get hintCost(): number {
-    return Math.floor(this.totalLocations / this.#hintCost);
+    return Math.floor((this.totalLocations * this.#hintCost) / 100);
   }
 
   get hintPoints(): number {
     return this.#hintPoints;
+  }
+
+  get hintPointProgress(): number {
+    return this.hintPoints % this.hintCost;
   }
 
   get hints(): number {
@@ -309,8 +302,12 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     await this.socket.send(deathLinkPacket);
   };
 
-  public getHints = (hintPoints: number) =>
-    Math.floor(hintPoints / this.#hintCost);
+  public getHintData = () => ({
+    hints: this.hints,
+    hintPoints: this.hintPoints,
+    hintPointProgress: this.hintPointProgress,
+    hintCost: this.hintCost,
+  });
 
   //#endregion
 
@@ -359,6 +356,30 @@ export class APSession extends TypedEmitter<APSessionEvents> {
       return "Unknown Location";
     }
   }
+
+  //#endregion
+
+  //#region Handlers
+
+  #onRoomUpdate = (packet: RoomUpdatePacket) => {
+    // Update Checked Locations
+    packet.checked_locations
+      ?.filter((location) => !this.#checkedLocations.has(location))
+      .forEach((location) => {
+        this.#checkedLocations.add(location);
+        this.#missingLocations.delete(location);
+      });
+
+    // Update Hint Points
+    if (!!packet.hint_points) {
+      this.#hintPoints = packet.hint_points;
+      this.emit("hintsUpdated", {
+        hintPoints: this.hintPoints,
+        hintCost: this.hintCost,
+        hints: this.hints,
+      });
+    }
+  };
 
   //#endregion
 

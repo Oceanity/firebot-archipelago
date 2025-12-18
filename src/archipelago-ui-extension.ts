@@ -1,5 +1,6 @@
 import { UIExtension } from "@crowbartools/firebot-custom-scripts-types/types/modules/ui-extension-manager";
 import { ARCHIPELAGO_CLIENT_ID } from "./constants";
+import { ServiceResponse } from "./types";
 
 export const ArchipelagoUIExtension: UIExtension = {
   id: ARCHIPELAGO_CLIENT_ID,
@@ -52,11 +53,6 @@ export const ArchipelagoUIExtension: UIExtension = {
         </style>
         <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
           <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
-
-            <div ng-if="!!error" style="display: flex; align-items: flex-start; padding: 10px; text-align: center; background: darkred">
-              <p style="flex: 1">{{ error }}</p>
-              <button class="close" aria-label="Close" ng-click="clearError()" style="display: flex; align-items: center; color:#fff"><i class="fal fa-times"></i></button>
-            </div>
 
             <div class="p-6" style="display: flex; gap: 1.5rem">
               <input
@@ -119,8 +115,18 @@ export const ArchipelagoUIExtension: UIExtension = {
             </div>
 
             <div class="p-6" style="display: flex; gap: 1.5rem">
-              <div class="hints-container" style="display: flex; align-items: center; font-size: 16px; font-weight:600; letter-spacing: 0.075rem">
-                Hints: {{ hints[selectedSession] }}
+              <div
+                class="hints-container"
+                tooltip-placement="top"
+                uib-tooltip="Hint Points: {{sessionData[selectedSession].hintPointProgress || '0'}} / {{sessionData[selectedSession].hintCost || '0'}}"
+                style="flex-basis: 100px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <span style="font-size: 16px; font-weight:600; letter-spacing: 0.075rem;">Hints: {{ sessionData[selectedSession].hints || '0' }}</span>
+                <uib-progressbar
+                  type="warning"
+                  class="progress-striped active"
+                  max="sessionData[selectedSession].hintCost || 1"
+                  value="sessionData[selectedSession].hintPointProgress || 0"
+                  style="margin: 0; width: 100%; height:10px;" />
               </div>
               <input
                 type="text"
@@ -137,47 +143,56 @@ export const ArchipelagoUIExtension: UIExtension = {
         </div>
       `,
       //@ts-expect-error ts(7006)
-      controller: ($scope, backendCommunicator) => {
+      controller: ($scope, backendCommunicator, ngToast) => {
+        $scope.alerts = [];
+        $scope.sessionData = {};
+        $scope.messages = {};
+        $scope.scrollGlued = true;
+        $scope.forceGlued = false;
+        $scope.isConnecting = false;
+
         $scope.selectSlot = (sessionId: string) => {
           if (!sessionId) {
             delete $scope.selectedSession;
             return;
           }
 
+          if (!$scope.sessionData[sessionId]) {
+            backendCommunicator
+              .fireEventAsync("archipelago:getHints", sessionId)
+              .then((data: Record<string, number>) => {
+                $scope.sessionData[sessionId] = data;
+              });
+          }
+
           $scope.selectedSession = sessionId;
           if (!$scope.messages[sessionId]) {
-            $scope.messages[sessionId] = backendCommunicator.fireEventSync(
-              "archipelago:getHtmlMessageLog",
-              sessionId
-            );
+            backendCommunicator
+              .fireEventAsync("archipelago:getHtmlMessageLog", sessionId)
+              .then((log: Array<string>) => {
+                $scope.messages[sessionId] = log;
+              });
           }
-          $scope.hints[sessionId] = backendCommunicator.fireEventSync(
-            "archipelago:getHints",
-            sessionId
-          );
 
           delete $scope.chatText;
           delete $scope.chatHistoryIndex;
         };
 
-        $scope.messages = {};
-        $scope.hints = {};
-        $scope.scrollGlued = true;
-        $scope.forceGlued = false;
-        $scope.isConnecting = false;
-
         // Load current data
-        $scope.sessions = backendCommunicator.fireEventSync(
-          "archipelago:getSessionTable"
-        );
+        backendCommunicator
+          .fireEventAsync("archipelago:getSessionTable")
+          .then((table: Record<string, string>) => {
+            $scope.sessions = table;
 
-        if (Object.keys($scope.sessions).length) {
-          $scope.selectSlot(Object.keys($scope.sessions)[0]);
-        }
+            if (Object.keys($scope.sessions).length) {
+              $scope.selectSlot(Object.keys($scope.sessions)[0]);
+            }
+          });
 
         backendCommunicator.on(
           "archipelago:disconnected",
           (sessionId: string) => {
+            delete $scope.sessionData[sessionId];
             delete $scope.sessions[sessionId];
 
             if ($scope.selectedSession === sessionId) {
@@ -209,8 +224,17 @@ export const ArchipelagoUIExtension: UIExtension = {
 
         backendCommunicator.on(
           "archipelago:hintsUpdated",
-          (data: { sessionId: string; hints: number }) => {
-            $scope.hints[data.sessionId] = data.hints;
+          (data: {
+            sessionId: string;
+            hints: number;
+            hintPoints: number;
+            hintCost: number;
+          }) => {
+            const { sessionId, ...hintData } = data;
+            $scope.sessionData[sessionId] = {
+              ...$scope.sessionData[sessionId],
+              ...hintData,
+            };
           }
         );
 
@@ -218,42 +242,48 @@ export const ArchipelagoUIExtension: UIExtension = {
           $scope.error = undefined;
 
           if (!$scope.hostname) {
-            $scope.error = "Hostname is required.";
-            return;
+            return $scope.sendToast("Hostname is required.", "danger");
           } else if (!$scope.slot) {
-            $scope.error = "Slot name is required.";
-            return;
+            return $scope.sendToast("Slot name is required.", "danger");
           }
 
           $scope.isConnecting = true;
 
-          const response = await backendCommunicator.fireEventAsync(
-            "archipelago:connect",
-            {
+          backendCommunicator
+            .fireEventAsync("archipelago:connect", {
               hostname: $scope.hostname,
               slot: $scope.slot,
               password: $scope.password,
-            }
-          );
+            })
+            .then((response: ServiceResponse<{ name: string; id: string }>) => {
+              if (!response.success) {
+                $scope.isConnecting = false;
+                return $scope.sendToast(
+                  response.errors?.join(", "),
+                  "danger",
+                  true,
+                  10000
+                );
+              }
 
-          if (!response.success) {
-            $scope.isConnecting = false;
-            $scope.error = response.errors?.join(", ");
-            return;
-          }
+              $scope.messages[response.data.name] = [];
+              $scope.sessions[response.data.id] = response.data.name;
+              $scope.selectSlot(response.data.id);
 
-          $scope.messages[response.data.name] = [];
-          $scope.sessions[response.data.id] = response.data.name;
-          $scope.selectSlot(response.data.id);
+              delete $scope.hostname;
+              delete $scope.slot;
+              delete $scope.password;
+              $scope.isConnecting = false;
 
-          delete $scope.hostname;
-          delete $scope.slot;
-          delete $scope.password;
-          $scope.isConnecting = false;
+              $scope.sendToast(
+                `Successfully connected to '${response.data.name}'`,
+                "success"
+              );
+            });
         };
 
         $scope.disconnect = (sessionId: string) => {
-          backendCommunicator.fireEventSync(
+          backendCommunicator.fireEventAsync(
             "archipelago:disconnect",
             sessionId
           );
@@ -271,19 +301,19 @@ export const ArchipelagoUIExtension: UIExtension = {
             // Up Arrow
             case 38: {
               $event.preventDefault();
-              const [message, entry] = backendCommunicator.fireEventSync(
-                "archipelago:getChatHistory",
-                {
+              backendCommunicator
+                .fireEventAsync("archipelago:getChatHistory", {
                   sessionId: $scope.selectedSession,
                   entry:
                     $scope.chatHistoryIndex !== undefined
                       ? $scope.chatHistoryIndex - 1
                       : undefined,
-                }
-              );
-
-              $scope.chatText = message;
-              $scope.chatHistoryIndex = entry;
+                })
+                .then((data: [string, number]) => {
+                  const [message, entry] = data;
+                  $scope.chatText = message;
+                  $scope.chatHistoryIndex = entry;
+                });
               break;
             }
 
@@ -294,16 +324,17 @@ export const ArchipelagoUIExtension: UIExtension = {
                 return;
               }
 
-              const [message, entry] = backendCommunicator.fireEventSync(
-                "archipelago:getChatHistory",
-                {
+              backendCommunicator
+                .fireEventAsync("archipelago:getChatHistory", {
                   sessionId: $scope.selectedSession,
                   entry: $scope.chatHistoryIndex + 1,
-                }
-              );
+                })
+                .then((data: [string, number]) => {
+                  const [message, entry] = data;
 
-              $scope.chatText = message;
-              $scope.chatHistoryIndex = entry;
+                  $scope.chatText = message;
+                  $scope.chatHistoryIndex = entry;
+                });
               break;
             }
           }
@@ -323,25 +354,33 @@ export const ArchipelagoUIExtension: UIExtension = {
             return;
           }
 
-          try {
-            backendCommunicator.fireEventSync("archipelago:sendMessage", {
+          backendCommunicator
+            .fireEventAsync("archipelago:sendMessage", {
               sessionId: $scope.selectedSession,
               message: $scope.chatText,
+            })
+            .then(() => {
+              delete $scope.chatText;
+              delete $scope.chatHistoryIndex;
+
+              // Toggle forceGlued to move to bottom of box
+              $scope.forceGlued = true;
+              $scope.forceGlued = false;
             });
-
-            delete $scope.chatText;
-            delete $scope.chatHistoryIndex;
-
-            // Toggle forceGlued to move to bottom of box
-            $scope.forceGlued = true;
-            $scope.forceGlued = false;
-          } catch (error) {
-            return;
-          }
         };
 
-        $scope.clearError = () => {
-          delete $scope.error;
+        $scope.sendToast = (
+          message: string,
+          type: "info" | "success" | "warning" | "danger" = "warning",
+          dismissOnTimeout: boolean = true,
+          timeout: number = 5000
+        ) => {
+          ngToast.create({
+            content: message,
+            className: type,
+            dismissOnTimeout,
+            timeout: dismissOnTimeout ? timeout : undefined,
+          });
         };
       },
     },

@@ -198,7 +198,10 @@ export class SocketService extends TypedEmitter<EventDef> {
               ["source", "cause", "time"].every((prop) => prop in packet.data)
             ) {
               this.emit("deathLink", packet.data as DeathLinkData);
+              return;
             }
+
+            logger.info(`Bounced: ${JSON.stringify(packet)}`);
 
             break;
           case ServerCommand.Connected:
@@ -229,6 +232,7 @@ export class SocketService extends TypedEmitter<EventDef> {
             this.emit("roomInfo", packet);
             break;
           case ServerCommand.RoomUpdate:
+            logger.info(`Room Update: ${JSON.stringify(packet)}`);
             this.emit("roomUpdate", packet);
             break;
           case ServerCommand.SetReply:

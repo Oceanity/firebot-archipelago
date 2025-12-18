@@ -44,8 +44,11 @@ export class FirebotRemoteService {
       );
     });
 
-    this.#session.on("hintsUpdated", (hints) => {
-      frontendCommunicator.fireEventAsync("archipelago:hintsUpdated", hints);
+    this.#session.on("hintsUpdated", (data) => {
+      frontendCommunicator.fireEventAsync("archipelago:hintsUpdated", {
+        sessionId: this.#session.id,
+        ...data,
+      });
 
       eventManager.triggerEvent(
         ARCHIPELAGO_CLIENT_ID,
@@ -240,9 +243,12 @@ export class FirebotRemoteService {
     [`${prefix}Hostname`]: this.#session.url.hostname,
     [`${prefix}Port`]: `${this.#session.url.port}`,
     [`${prefix}Url`]: this.#session.url.toString(),
+    [`${prefix}LocationCount`]: `${this.#session.totalLocations}`,
     [`${prefix}HintPoints`]: `${this.#session.hintPoints}`,
+    [`${prefix}HintPointProgress`]: `${this.#session.hintPointProgress}`,
     [`${prefix}HintCost`]: `${this.#session.hintCost}`,
-    [`${prefix}Hints`]: `${this.#session.getHints(this.#session.hintPoints)}`,
+    [`${prefix}HintCostPercent`]: `${this.#session.hintCostPercent}`,
+    [`${prefix}Hints`]: `${this.#session.hints}`,
   });
 
   #getDeathLinkMetadata = (
