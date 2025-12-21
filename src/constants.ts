@@ -41,30 +41,35 @@ export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
       id: FirebotEvents.DeathLink,
       name: "DeathLink Triggered",
       description:
-        "When another player in any Archipelago MultiWorld server triggers a DeathLink event (cannot detect when player dies).",
+        "When another player in any Archipelago session triggers a DeathLink event (cannot detect when player dies).",
     },
     {
       id: FirebotEvents.Disconnected,
       name: "Disconnected",
-      description:
-        "When the client disconnects from any Archipelago MultiWorld server.",
+      description: "When the client disconnects from any Archipelago session.",
     },
     {
       id: FirebotEvents.HintsUpdated,
       name: "Hints Updated",
       description:
-        "When the number of available hints changes for an Archipelago MultiWorld session.",
+        "When the number of available hints changes for an Archipelago session.",
+    },
+    {
+      id: FirebotEvents.InitialItems,
+      name: "Received Initial Inventory Item",
+      description:
+        "When the player connecting to an Archipelago session receives an item during initial inventory listing.",
     },
     {
       id: FirebotEvents.Message,
       name: "Message",
-      description: "When a message is received from the server.",
+      description: "When a message is received from any Archipelago session.",
     },
     {
       id: FirebotEvents.ReceivedItems,
-      name: "Received Items",
+      name: "Received Item",
       description:
-        "When the current player of a connected MultiWorld server receives an item.",
+        "When the connected player of an Archipelago session receives an item.",
     },
   ],
 };
