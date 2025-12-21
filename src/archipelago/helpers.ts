@@ -15,9 +15,6 @@ export const isValidConnectionString = (connectionString: string) => {
   );
 };
 
-export const connectionStringFromUrl = (url: URL): string =>
-  `${url.protocol}${url.hostname}:${url.port}`;
-
 export const urlFromConnectionString = (
   connectionString: string
 ): URL | null => {

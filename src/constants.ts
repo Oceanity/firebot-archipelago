@@ -19,6 +19,9 @@ export const ARCHIPELAGO_CLIENT_PACKAGE_URL =
 export const ARCHIPELAGO_CLIENT_MAX_MESSAGES = 100;
 export const ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY = 25;
 
+// Socket Service
+export const ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS = 5;
+
 export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
   id: ARCHIPELAGO_CLIENT_ID,
   name: "Archipelago",

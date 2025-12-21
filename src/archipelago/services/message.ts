@@ -67,6 +67,31 @@ export class MessageService extends TypedEmitter<Events> {
     return this.#messages.map((entry) => entry.html);
   }
 
+  public sendLog(
+    message: string,
+    level: "info" | "warning" | "error" = "info"
+  ) {
+    if (!message.length) {
+      return;
+    }
+
+    let color = "default";
+    switch (level) {
+      case "warning":
+        color = "orange";
+        break;
+      case "error":
+        color = "red";
+        break;
+    }
+
+    this.push({
+      text: message,
+      html: `<span class="log ${color}">${message}</span>`,
+      nodes: [],
+    });
+  }
+
   public sendChat(message: string) {
     if (!message.length) {
       return;
@@ -198,31 +223,23 @@ export class MessageService extends TypedEmitter<Events> {
   #onDeathLink = (data: DeathLinkData) => {
     const { source, cause } = data;
 
-    this.push({
-      text: `DeathLink (${source}): ${cause || `${source} died.`}`,
-      html: `<span class="deathlink">DeathLink (${source}): ${
-        cause || `${source} died.`
-      }︎</span>`,
-      nodes: [],
-    });
+    this.sendLog(
+      `DeathLink (${source}): ${cause || `${source} died.`}`,
+      "error"
+    );
   };
 
   /** Handle chat commands defined in {@link APCommandDefinitions} */
   #handleChatCommand = (command: string, ...args: Array<string>) => {
     if (!APCommandDefinitions.hasOwnProperty(command)) {
-      this.push({
-        text: "Unrecognized command, use /help to see all available commands",
-        html: `<p class="red">Unrecognized command, use /help to see all available commands</p>`,
-        nodes: [],
-      });
+      this.sendLog(
+        "Unrecognized command, use /help to see all available commands",
+        "error"
+      );
       return;
     }
 
-    this.push({
-      text: `${command} ${args.join(" ")}`,
-      html: `<span class="orange">${command} ${args.join(" ")}</span>`,
-      nodes: [],
-    });
+    this.sendLog(`${command} ${args.join(" ")}`, "warning");
 
     APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
       this.#session.id,

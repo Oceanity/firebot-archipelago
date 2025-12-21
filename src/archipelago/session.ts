@@ -1,6 +1,7 @@
 import { logger, moment } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { v4 as uuid } from "uuid";
+import { ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS } from "../constants";
 import { ClientCommand, ItemHandlingFlag, Tag } from "../enums";
 import {
   BouncePacket,
@@ -18,7 +19,7 @@ import { SocketService } from "./services/socket";
 
 type APSessionEvents = {
   connected: () => void;
-  disconnected: () => void;
+  closed: () => void;
   hintsUpdated: (data: {
     hintPoints: number;
     hintCost: number;
@@ -61,15 +62,10 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     this.id = uuid();
     this.#client = client;
 
-    // Set up url and slot locally for checking if it's a duplicate session before connecting
-    this.#url = typeof url === "string" ? this.#getUrlFromHostname(url) : url;
     this.#slot = slot;
     this.#password = password ?? "";
 
-    // Ensure a port is included in case a URL is passed in without one
-    if (!this.#url.port) {
-      this.#url.port = "38281";
-    }
+    this.socket.init(url);
 
     this.socket
       .on("sentPackets", (packets) => {
@@ -90,23 +86,13 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         logger.info(JSON.stringify(packet));
       })
       .on("roomUpdate", this.#onRoomUpdate)
-      .on("disconnected", () => {
-        this.disconnect();
-      });
+      .on("disconnected", this.#onDisconnected);
   }
 
   //#region Getters
 
   get startingUp(): boolean {
     return this.#startingUp;
-  }
-
-  get url(): URL {
-    return this.#url;
-  }
-
-  get name(): string {
-    return `${this.#slot}@${this.#url.hostname}:${this.#url.port}`;
   }
 
   get totalLocations(): number {
@@ -175,19 +161,22 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return this.#tags;
   }
 
+  public toString = (): string => `${this.#slot}@${this.socket}`;
+
   //#endregion
 
   //#region Public Methods
 
-  public async login(): Promise<boolean> {
+  public async login(reconnectOnError: boolean = false): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
       try {
         logger.info(
-          `Archipelago: Logging in to session at '${this.#url}' as '${
+          `Archipelago: Logging in to session at '${this.socket}' as '${
             this.#slot
           }'`
         );
-        const response = await this.socket.connect(this.#url);
+
+        const response = await this.socket.connect(false, reconnectOnError);
 
         const { url, packet: roomInfo } = response;
 
@@ -271,21 +260,21 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     });
   }
 
-  public disconnect() {
+  public close = async () => {
     this.players.removeAllListeners();
     this.messages.removeAllListeners();
     this.socket.removeAllListeners();
-    this.socket.disconnect();
+    await this.socket.disconnect();
 
-    this.emit("disconnected");
+    this.emit("closed");
 
     this.removeAllListeners();
-  }
+  };
 
   public triggerDeathLink = async (cause: string) => {
     if (this.#tags.includes(Tag.DeathLink)) {
       logger.warn(
-        `Archipelago: Triggering DeathLink on session '${this.name}' that does not have DeathLink enabled.`
+        `Archipelago: Triggering DeathLink on session '${this}' that does not have DeathLink enabled.`
       );
     }
 
@@ -381,32 +370,43 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     }
   };
 
+  #onDisconnected = async (
+    reconnect: boolean,
+    timeout: number = ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS
+  ) => {
+    if (!reconnect) {
+      await this.close();
+      return;
+    }
+
+    this.messages.sendLog(
+      `Disconnected from the Archipelago server, reconnecting in ${timeout} seconds...`,
+      "warning"
+    );
+
+    setTimeout(async () => {
+      try {
+        await this.login(true);
+      } catch (error) {
+        const nextTimeout = Math.min(
+          timeout + ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS,
+          60
+        );
+        await this.#onDisconnected(reconnect, nextTimeout);
+      }
+    }, timeout * 1000);
+  };
+
   //#endregion
 
   //#region Private Helpers
-
-  #getUrlFromHostname = (hostname: string): URL => {
-    logger.info(`Getting url from hostname '${hostname}'`);
-
-    const pattern = /^(wss?:)\/\/[a-z0-9_.~\-:]+/i;
-
-    const url = new URL(
-      pattern.test(hostname) ? hostname : `wss://${hostname}`
-    );
-
-    if (!url) {
-      throw new Error(`Could not parse '${hostname}' as a URL`);
-    }
-
-    return url;
-  };
 
   #getChecksum = (game: string) => {
     const checksum = this.#checksums.get(game);
 
     if (!checksum) {
       throw new Error(
-        `Archipelago: Could not get checksum for game '${game}' in session '${this.name}'`
+        `Archipelago: Could not get checksum for game '${game}' in session '${this}'`
       );
     }
 

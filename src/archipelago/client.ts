@@ -2,7 +2,7 @@ import { JsonDb, logger } from "@oceanity/firebot-helpers/firebot";
 import EventEmitter from "events";
 import { JsonDB } from "node-json-db";
 import { resolve } from "path";
-import { connectionStringFromUrl, urlFromConnectionString } from "./helpers";
+import { urlFromConnectionString } from "./helpers";
 import { DataPackageService } from "./services/package";
 import { APSession } from "./session";
 
@@ -37,7 +37,7 @@ export class APClient extends EventEmitter {
     const output: Record<string, string> = {};
 
     this.sessionIds.forEach((id) => {
-      output[id] = this.sessions.get(id).name;
+      output[id] = this.sessions.get(id).toString();
     });
 
     return output;
@@ -60,9 +60,9 @@ export class APClient extends EventEmitter {
           try {
             const result = await this.connect(url, slot, password);
 
-            if (connectionString !== connectionStringFromUrl(result.url)) {
+            if (connectionString !== result.socket.connectionString) {
               await this.#savedSessionDb.push(
-                `/${connectionStringFromUrl(result.url)}/${slot}`,
+                `/${result.socket.connectionString}/${slot}`,
                 password
               );
               await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
@@ -104,27 +104,27 @@ export class APClient extends EventEmitter {
       try {
         const session = new APSession(this, url, slot, password);
 
-        if (this.#sessionAlreadyExists(session.name)) {
-          throw new Error(`Session '${session.name}' already exists`);
+        if (this.#sessionAlreadyExists(session.toString())) {
+          throw new Error(`Session '${session}' already exists`);
         }
 
         await session.login();
 
-        session.on("disconnected", async () => {
+        session.on("closed", async () => {
           this.sessions.delete(session.id);
           await this.#savedSessionDb.delete(
-            `/${connectionStringFromUrl(session.url)}/${slot}`
+            `/${session.socket.connectionString}/${slot}`
           );
         });
 
         this.sessions.set(session.id, session);
 
         await this.#savedSessionDb.push(
-          `/${connectionStringFromUrl(session.url)}/${slot}`,
+          `/${session.socket.connectionString}/${slot}`,
           password ?? ""
         );
 
-        logger.info(`Connected to session at ${session.url}!`);
+        logger.info(`Connected to session at '${session.socket}'!`);
 
         return resolve(session);
       } catch (error) {
@@ -153,7 +153,7 @@ export class APClient extends EventEmitter {
 
     // Look for exact match
     const fullMatches = entries.filter(
-      (session) => session.name.toLocaleLowerCase() === compareName
+      (session) => session.toString().toLocaleLowerCase() === compareName
     );
     if (!!fullMatches.length) {
       return fullMatches.shift();
@@ -161,7 +161,7 @@ export class APClient extends EventEmitter {
 
     // Look for partial match
     const partialMatches = entries.filter((session) => {
-      const [slot, host] = session.name.split("@");
+      const [slot, host] = session.toString().split("@");
       return (
         slot.toLocaleLowerCase() === compareName ||
         host.toLocaleLowerCase() === compareName
@@ -176,6 +176,6 @@ export class APClient extends EventEmitter {
 
   #sessionAlreadyExists = (sessionName: string): boolean =>
     Array.from(this.sessions.values()).some(
-      (session) => session.name === sessionName
+      (session) => session.toString() === sessionName
     );
 }

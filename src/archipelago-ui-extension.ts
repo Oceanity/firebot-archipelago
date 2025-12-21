@@ -190,7 +190,7 @@ export const ArchipelagoUIExtension: UIExtension = {
           });
 
         backendCommunicator.on(
-          "archipelago:disconnected",
+          "archipelago:sessionClosed",
           (sessionId: string) => {
             delete $scope.sessionData[sessionId];
             delete $scope.sessions[sessionId];

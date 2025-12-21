@@ -33,7 +33,7 @@ export const APCommandDefinitions: APCommandDefinition = {
 
   "/disconnect": {
     description: "Disconnect from a MultiWorld Server.",
-    callback: (sessionName) => client.sessions.get(sessionName)?.disconnect(),
+    callback: (sessionName) => client.sessions.get(sessionName)?.close(),
   },
 
   "/clear": {
@@ -71,8 +71,9 @@ export const APCommandDefinitions: APCommandDefinition = {
       );
 
       if (!items.length) {
-        session.messages.push(
-          `No items found${!!search ? ` matching ${search}` : ""}`
+        session.messages.sendLog(
+          `No items found${!!search ? ` matching ${search}` : ""}`,
+          "warning"
         );
 
         return;
@@ -113,8 +114,9 @@ export const APCommandDefinitions: APCommandDefinition = {
       );
 
       if (!locations.length) {
-        session.messages.push(
-          `No locations found${!!search ? ` matching ${search}` : ""}`
+        session.messages.sendLog(
+          `No locations found${!!search ? ` matching ${search}` : ""}`,
+          "warning"
         );
 
         return;
