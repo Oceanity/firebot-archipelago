@@ -13,13 +13,16 @@ export function initFrontendCommunicator(
       password?: string;
     }): Promise<ServiceResponse<{ id: string; name: string }>> => {
       try {
-        const { hostname, slot, password } = data;
+        const session = await client.connect(
+          data.hostname,
+          data.slot,
+          data.password
+        );
 
-        const session = await client.connect(hostname, slot, password);
-
-        const { id, name } = session;
-
-        return { success: true, data: { id, name } };
+        return {
+          success: true,
+          data: { id: session.id, name: session.toString() },
+        };
       } catch (error) {
         return { success: false, errors: [error] };
       }
@@ -29,7 +32,7 @@ export function initFrontendCommunicator(
   frontendCommunicator.onAsync(
     "archipelago:disconnect",
     async (sessionId: string): Promise<void> =>
-      client.sessions.get(sessionId)?.disconnect()
+      client.sessions.get(sessionId)?.close()
   );
 
   frontendCommunicator.onAsync(

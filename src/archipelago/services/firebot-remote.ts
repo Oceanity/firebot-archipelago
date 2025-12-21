@@ -28,9 +28,9 @@ export class FirebotRemoteService {
       );
     });
 
-    this.#session.on("disconnected", () => {
+    this.#session.on("closed", () => {
       frontendCommunicator.fireEventAsync(
-        "archipelago:disconnected",
+        "archipelago:sessionClosed",
         this.#session.id
       );
 
@@ -154,7 +154,7 @@ export class FirebotRemoteService {
       })
       .on("chatCleared", () => {
         frontendCommunicator.fireEventAsync("archipelago:chatCleared", {
-          sessionName: this.#session.name,
+          sessionId: this.#session.id,
         });
       });
 
@@ -238,11 +238,11 @@ export class FirebotRemoteService {
   #getSessionMetadata = (
     prefix: string = "apSession"
   ): Record<string, string> => ({
-    [`${prefix}Name`]: this.#session.name,
+    [`${prefix}Name`]: `${this.#session}`,
     [`${prefix}IsStarting`]: `${this.#session.startingUp}`,
-    [`${prefix}Hostname`]: this.#session.url.hostname,
-    [`${prefix}Port`]: `${this.#session.url.port}`,
-    [`${prefix}Url`]: this.#session.url.toString(),
+    [`${prefix}Hostname`]: this.#session.socket.url.hostname,
+    [`${prefix}Port`]: `${this.#session.socket.url.port}`,
+    [`${prefix}Url`]: `${this.#session.socket.url}`,
     [`${prefix}LocationCount`]: `${this.#session.totalLocations}`,
     [`${prefix}HintPoints`]: `${this.#session.hintPoints}`,
     [`${prefix}HintPointProgress`]: `${this.#session.hintPointProgress}`,
