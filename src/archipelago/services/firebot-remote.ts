@@ -28,12 +28,7 @@ export class FirebotRemoteService {
       );
     });
 
-    this.#session.on("closed", () => {
-      frontendCommunicator.fireEventAsync(
-        "archipelago:sessionClosed",
-        this.#session.id
-      );
-
+    this.#session.socket.on("disconnected", () => {
       eventManager.triggerEvent(
         ARCHIPELAGO_CLIENT_ID,
         FirebotEvents.Disconnected,
@@ -41,6 +36,13 @@ export class FirebotRemoteService {
           ...this.#getSessionMetadata(),
           ...this.#getPlayerMetadata(),
         }
+      );
+    });
+
+    this.#session.on("closed", () => {
+      frontendCommunicator.fireEventAsync(
+        "archipelago:sessionClosed",
+        this.#session.id
       );
     });
 
@@ -64,18 +66,19 @@ export class FirebotRemoteService {
 
     //#region Socket Events
 
-    this.#session.socket.on("receivedItems", (packet) => {
+    this.#session.on("receivedNewItems", (packet) => {
+      // If first item handshake, divert to Initial Items event to not spam Received Items events
+      const event = packet.isInitialInventory
+        ? FirebotEvents.InitialItems
+        : FirebotEvents.ReceivedItems;
+
       packet.items.forEach((item) => {
-        eventManager.triggerEvent(
-          ARCHIPELAGO_CLIENT_ID,
-          FirebotEvents.ReceivedItems,
-          {
-            ...this.#getSessionMetadata(),
-            ...this.#getItemMetadata(undefined, item),
-            ...this.#getPlayerMetadata("apSender", item.player),
-            ...this.#getPlayerMetadata("apReceiver"),
-          }
-        );
+        eventManager.triggerEvent(ARCHIPELAGO_CLIENT_ID, event, {
+          ...this.#getSessionMetadata(),
+          ...this.#getItemMetadata(undefined, item),
+          ...this.#getPlayerMetadata("apSender", item.player),
+          ...this.#getPlayerMetadata("apReceiver"),
+        });
       });
     });
 
@@ -239,7 +242,7 @@ export class FirebotRemoteService {
     prefix: string = "apSession"
   ): Record<string, string> => ({
     [`${prefix}Name`]: `${this.#session}`,
-    [`${prefix}IsStarting`]: `${this.#session.startingUp}`,
+    [`${prefix}IsStarting`]: `${this.#session.ready}`,
     [`${prefix}Hostname`]: this.#session.socket.url.hostname,
     [`${prefix}Port`]: `${this.#session.socket.url.port}`,
     [`${prefix}Url`]: `${this.#session.socket.url}`,

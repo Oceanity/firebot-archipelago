@@ -17,6 +17,7 @@ export function registerArchipelagoVariables(
       FirebotEvents.DeathLink,
       FirebotEvents.Disconnected,
       FirebotEvents.HintsUpdated,
+      FirebotEvents.InitialItems,
       FirebotEvents.Message,
       FirebotEvents.ReceivedItems,
       FirebotEvents.SentItems,
@@ -39,20 +40,21 @@ export function registerArchipelagoVariables(
     ]),
 
     ...buildItemVariables(replaceVariableFactory, "apItem", [
+      FirebotEvents.InitialItems,
       FirebotEvents.ReceivedItems,
     ]),
 
     ...buildPlayerVariables(
       replaceVariableFactory,
       "apSender",
-      [FirebotEvents.ReceivedItems],
+      [FirebotEvents.InitialItems, FirebotEvents.ReceivedItems],
       "player who sent the item"
     ),
 
     ...buildPlayerVariables(
       replaceVariableFactory,
       "apReceiver",
-      [FirebotEvents.ReceivedItems],
+      [FirebotEvents.InitialItems, FirebotEvents.ReceivedItems],
       "player who received the item"
     ),
 

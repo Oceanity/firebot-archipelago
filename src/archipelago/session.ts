@@ -10,6 +10,7 @@ import {
   ReceivedItemsPacket,
   RoomUpdatePacket,
 } from "../interfaces";
+import { NetworkItem } from "../types";
 import { APClient } from "./client";
 import { FirebotRemoteService } from "./services/firebot-remote";
 import { MessageService } from "./services/message";
@@ -25,6 +26,10 @@ type APSessionEvents = {
     hintCost: number;
     hints: number;
   }) => void;
+  receivedNewItems: (data: {
+    isInitialInventory: boolean;
+    items: Array<NetworkItem>;
+  }) => void;
 };
 
 export class APSession extends TypedEmitter<APSessionEvents> {
@@ -33,13 +38,13 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #checksums: Map<string, string> = new Map();
   readonly #checkedLocations: Set<number> = new Set();
   readonly #missingLocations: Set<number> = new Set();
-  readonly #receivedItems: Array<number> = new Array();
+  readonly #receivedItems: Array<NetworkItem> = new Array();
 
   #url: URL;
   #slot: string;
   #password: string;
 
-  #startingUp: boolean = true;
+  #ready: boolean = false;
   #hintPoints: number = 0;
   #hintCost: number = 0;
   #tags: Array<string> = [];
@@ -76,10 +81,29 @@ export class APSession extends TypedEmitter<APSessionEvents> {
           }
         });
       })
-      .on("receivedItems", (packet: ReceivedItemsPacket) => {
-        packet.items.forEach((itemDetails) =>
-          this.#receivedItems.push(itemDetails.item)
+      .on("receivedItems", async (packet: ReceivedItemsPacket) => {
+        const newItems = packet.items.filter(
+          (incomingItem) =>
+            !this.#receivedItems.some(
+              (receivedItem) =>
+                incomingItem.item === receivedItem.item &&
+                incomingItem.player === receivedItem.player &&
+                incomingItem.location === receivedItem.location
+            )
         );
+
+        if (!newItems.length) {
+          return;
+        }
+
+        newItems.forEach((itemDetails) =>
+          this.#receivedItems.push(itemDetails)
+        );
+
+        this.emit("receivedNewItems", {
+          items: newItems,
+          isInitialInventory: !this.#ready,
+        });
       })
       .on("locationInfo", (packet) => {
         logger.info(`Location Info`);
@@ -91,8 +115,8 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
   //#region Getters
 
-  get startingUp(): boolean {
-    return this.#startingUp;
+  get ready(): boolean {
+    return this.#ready;
   }
 
   get totalLocations(): number {
@@ -123,10 +147,10 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     const items = this.getPackage(this.players.self.game).itemTable;
     return Object.entries(items).map(
       ([name, id]) =>
-        [name, this.#receivedItems.filter((item) => item === id).length] as [
-          string,
-          number
-        ]
+        [
+          name,
+          this.#receivedItems.filter((item) => item.item === id).length,
+        ] as [string, number]
     );
   }
 
@@ -234,7 +258,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
             );
 
             this.#hintPoints = packet.hint_points;
-            this.#startingUp = false;
+            this.#ready = true; // To let events know the session was successfully started
 
             logger.info(`Logged into session as ${this.#slot}`);
 
@@ -248,13 +272,13 @@ export class APSession extends TypedEmitter<APSessionEvents> {
           });
       } catch (error) {
         logger.error(
-          `Failed to connect to Archipelago Session at '${this.#url.hostname}'`,
+          `Failed to connect to Archipelago Session at '${this.socket}'`,
           error
         );
         reject(
-          `Failed to login to Archipelago Session at '${
-            this.#url.hostname
-          }' as '${this.#slot}', ${error}`
+          `Failed to login to Archipelago Session at '${this.socket}' as '${
+            this.#slot
+          }', ${error}`
         );
       }
     });
@@ -362,11 +386,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     // Update Hint Points
     if (!!packet.hint_points) {
       this.#hintPoints = packet.hint_points;
-      this.emit("hintsUpdated", {
-        hintPoints: this.hintPoints,
-        hintCost: this.hintCost,
-        hints: this.hints,
-      });
+      this.emit("hintsUpdated", this.getHintData());
     }
   };
 

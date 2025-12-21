@@ -54,9 +54,11 @@ export const TriggerDeathLinkEffectType: Effects.EffectType<
   `,
   optionsController: ($scope, backendCommunicator: any) => {
     $scope.getSessionNames = (): void => {
-      $scope.sessions = backendCommunicator.fireEventSync(
-        "archipelago:getSessionTable"
-      );
+      backendCommunicator
+        .fireEventAsync("archipelago:getSessionTable")
+        .then((data: Record<string, string>) => {
+          $scope.sessions = data;
+        });
     };
 
     //@ts-expect-error ts(2349)

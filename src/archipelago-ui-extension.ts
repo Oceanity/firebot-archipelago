@@ -224,12 +224,7 @@ export const ArchipelagoUIExtension: UIExtension = {
 
         backendCommunicator.on(
           "archipelago:hintsUpdated",
-          (data: {
-            sessionId: string;
-            hints: number;
-            hintPoints: number;
-            hintCost: number;
-          }) => {
+          (data: Record<string, any>) => {
             const { sessionId, ...hintData } = data;
             $scope.sessionData[sessionId] = {
               ...$scope.sessionData[sessionId],

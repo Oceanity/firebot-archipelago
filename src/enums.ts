@@ -37,6 +37,7 @@ export enum FirebotEvents {
   DeathLink = "death-link",
   Disconnected = "disconnected",
   HintsUpdated = "hints-updated",
+  InitialItems = "initial-items",
   Message = "message",
   ReceivedItems = "received-items",
   SentItems = "sent-items",
