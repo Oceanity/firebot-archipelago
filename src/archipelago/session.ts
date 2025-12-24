@@ -51,6 +51,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   #itemHandling: ItemHandlingFlag;
 
   public readonly id: string;
+  public readonly wasSaved: boolean;
   public readonly socket = new SocketService(this);
   public readonly messages = new MessageService(this);
   public readonly players = new PlayerService(this);
@@ -60,11 +61,16 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     client: APClient,
     url: string | URL,
     slot: string,
-    password?: string
+    password?: string,
+    id?: string
   ) {
     super();
 
-    this.id = uuid();
+    this.wasSaved = !!id;
+
+    logger.info(`Was Saved: ${this.wasSaved}`);
+
+    this.id = id || uuid();
     this.#client = client;
 
     this.#slot = slot;

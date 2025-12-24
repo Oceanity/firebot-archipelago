@@ -7,7 +7,10 @@ import { DataPackageService } from "./services/package";
 import { APSession } from "./session";
 
 type SavedSessionDetails = {
-  [hostname: string]: Record<string, string>;
+  [hostname: string]: Record<
+    string,
+    string | { slot: string; password?: string }
+  >;
 };
 
 export class APClient extends EventEmitter {
@@ -56,14 +59,32 @@ export class APClient extends EventEmitter {
       )) {
         const url = urlFromConnectionString(connectionString);
 
-        for (const [slot, password] of Object.entries(entries)) {
-          try {
-            const result = await this.connect(url, slot, password);
+        for (const [id, data] of Object.entries(entries)) {
+          // TODO: In future update, remove compatibility layer for old save format
+          const [slot, password, sessionId] =
+            typeof data === "string" // Old form where saved value is just password
+              ? [id, data, undefined]
+              : [data.slot, data.password, id];
 
-            if (connectionString !== result.socket.connectionString) {
+          try {
+            const result = await this.connect(
+              url,
+              slot,
+              password,
+              sessionId,
+              true
+            );
+
+            if (
+              connectionString !== result.socket.connectionString ||
+              !sessionId
+            ) {
               await this.#savedSessionDb.push(
-                `/${result.socket.connectionString}/${slot}`,
-                password
+                `/${result.socket.connectionString}/${result.id}`,
+                {
+                  slot,
+                  password,
+                }
               );
               await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
             }
@@ -94,7 +115,9 @@ export class APClient extends EventEmitter {
   public async connect(
     url: string | URL,
     slot: string,
-    password?: string
+    password?: string,
+    id?: string,
+    reconnectOnError?: boolean
   ): Promise<APSession> {
     return new Promise(async (resolve, reject) => {
       logger.info(
@@ -102,13 +125,15 @@ export class APClient extends EventEmitter {
       );
 
       try {
-        const session = new APSession(this, url, slot, password);
+        const session = new APSession(this, url, slot, password, id);
 
         if (this.#sessionAlreadyExists(session.toString())) {
           throw new Error(`Session '${session}' already exists`);
         }
 
-        await session.login();
+        this.sessions.set(session.id, session);
+
+        await session.login(reconnectOnError);
 
         session.on("closed", async () => {
           this.sessions.delete(session.id);
@@ -116,8 +141,6 @@ export class APClient extends EventEmitter {
             `/${session.socket.connectionString}/${slot}`
           );
         });
-
-        this.sessions.set(session.id, session);
 
         await this.#savedSessionDb.push(
           `/${session.socket.connectionString}/${slot}`,

@@ -29,9 +29,10 @@ export const SendChatMessageEffectType: Effects.EffectType<
 
       <div ng-if="effect.selectMode === 'list'" style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 20px;">
         <firebot-select
+          ng-if="sessionsLoaded"
           selected="effect.selectedSession"
           options="sessions" />
-        <button class="btn btn-link" ng-click="getSessionNames()">Refresh Sessions</button>
+        <button class="btn btn-link" ng-click="getSessions()">Refresh Sessions</button>
       </div>
 
       <div ng-if="effect.selectMode === 'custom'" style="margin-bottom: 20px;">
@@ -52,16 +53,18 @@ export const SendChatMessageEffectType: Effects.EffectType<
     </eos-container>
   `,
   optionsController: ($scope, backendCommunicator: any) => {
-    $scope.getSessionNames = (): void => {
+    $scope.sessionsLoaded = false;
+    $scope.getSessions = (): void => {
       backendCommunicator
         .fireEventAsync("archipelago:getSessionTable")
         .then((data: Record<string, string>) => {
           $scope.sessions = data;
+          $scope.sessionsLoaded = true;
         });
     };
 
     //@ts-expect-error ts(2349)
-    $scope.getSessionNames();
+    $scope.getSessions();
 
     $scope.selectModes = {
       first: "First available session",

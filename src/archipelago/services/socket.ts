@@ -52,12 +52,13 @@ export class SocketService extends TypedEmitter<EventDef> {
   #socket: WebSocket | null = null;
   #connected: boolean = false;
   #url: URL;
-  #urlVerified: boolean = false;
+  #urlVerified: boolean;
 
   public constructor(session: APSession) {
     super();
 
     this.#session = session;
+    this.#urlVerified = session.wasSaved;
   }
 
   public get connected(): boolean {
@@ -191,13 +192,14 @@ export class SocketService extends TypedEmitter<EventDef> {
         return await this.connect(true, reconnectOnError);
       }
 
-      this.disconnect();
+      this.disconnect(this.#urlVerified);
       throw error;
     }
   }
 
   public async disconnect(reconnect: boolean = false): Promise<void> {
-    if (!this.connected) {
+    // If saved session, expect potential need to reconnect if Firebot started without Arch server being up
+    if (!this.connected && !this.#session.wasSaved) {
       return;
     }
 
