@@ -1,10 +1,22 @@
 import { Firebot } from "@crowbartools/firebot-custom-scripts-types";
 import { NotificationType } from "@crowbartools/firebot-custom-scripts-types/types/modules/notification-manager";
-import { initModules, logger } from "@oceanity/firebot-helpers/firebot";
+import {
+  effectManager,
+  eventFilterManager,
+  eventManager,
+  initModules,
+  logger,
+  replaceVariableFactory,
+  replaceVariableManager,
+  uiExtensionManager,
+} from "@oceanity/firebot-helpers/firebot";
 import { remoteVersionCheck } from "@oceanity/firebot-helpers/package";
 import { initFrontendCommunicator } from "./archipelago-frontend-events";
 import { ArchipelagoUIExtension } from "./archipelago-ui-extension";
-import { registerArchipelagoVariables } from "./archipelago-variables";
+import {
+  registerArchipelagoVariables,
+  unregisterArchipelagoVariables,
+} from "./archipelago-variables";
 import { APClient } from "./archipelago/client";
 import {
   ARCHIPELAGO_CLIENT_AUTHOR,
@@ -41,26 +53,22 @@ const script: Firebot.CustomScript = {
 
     initFrontendCommunicator(runRequest.modules.frontendCommunicator);
 
-    runRequest.modules.uiExtensionManager.registerUIExtension(
-      ArchipelagoUIExtension
-    );
+    uiExtensionManager?.registerUIExtension(ArchipelagoUIExtension);
 
-    runRequest.modules.eventManager.registerEventSource(
-      ARCHIPELAGO_EVENT_SOURCE
-    );
+    eventManager.registerEventSource(ARCHIPELAGO_EVENT_SOURCE);
 
     for (const effectType of AllArchipelagoEffectTypes) {
       effectType.definition.id = `${ARCHIPELAGO_CLIENT_ID}:${effectType.definition.id}`;
-      runRequest.modules.effectManager.registerEffect(effectType as any);
+      effectManager.registerEffect(effectType as any);
     }
 
     for (const filter of AllArchipelagoFilterEvents) {
-      runRequest.modules.eventFilterManager.registerFilter(filter);
+      eventFilterManager.registerFilter(filter);
     }
 
     registerArchipelagoVariables(
-      runRequest.modules.replaceVariableFactory,
-      runRequest.modules.replaceVariableManager
+      replaceVariableFactory,
+      replaceVariableManager,
     );
 
     await client.init();
@@ -68,7 +76,7 @@ const script: Firebot.CustomScript = {
     // Check for updates
     const response = await remoteVersionCheck(
       ARCHIPELAGO_CLIENT_VERSION,
-      ARCHIPELAGO_CLIENT_PACKAGE_URL
+      ARCHIPELAGO_CLIENT_PACKAGE_URL,
     );
     if (response && response.isRemoteNewer) {
       runRequest.modules.notificationManager.addNotification(
@@ -77,7 +85,25 @@ const script: Firebot.CustomScript = {
           message: `Oceanity has released a new version of the Archipelago Client script (${response.localVersion} -> ${response.remoteVersion}). Go to https://github.com/Oceanity/firebot-archipelago/releases/latest to download the new version.`,
           type: "update" as NotificationType,
         },
-        false
+        false,
+      );
+    }
+  },
+  stop: (uninstalling) => {
+    if (uninstalling) {
+      eventManager.unregisterEventSource(ARCHIPELAGO_EVENT_SOURCE.id);
+
+      for (const effectType of AllArchipelagoEffectTypes) {
+        effectManager.unregisterEffect(effectType.definition.id);
+      }
+
+      for (const filter of AllArchipelagoFilterEvents) {
+        eventFilterManager.unregisterFilter(filter.id);
+      }
+
+      unregisterArchipelagoVariables(
+        replaceVariableFactory,
+        replaceVariableManager,
       );
     }
   },

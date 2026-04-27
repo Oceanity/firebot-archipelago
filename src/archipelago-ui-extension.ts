@@ -199,10 +199,10 @@ export const ArchipelagoUIExtension: UIExtension = {
               const sessionIds = Object.keys($scope.sessions);
 
               $scope.selectSlot(
-                !!sessionIds.length ? sessionIds.shift() : undefined
+                !!sessionIds.length ? sessionIds.shift() : undefined,
               );
             }
-          }
+          },
         );
 
         backendCommunicator.on(
@@ -212,14 +212,14 @@ export const ArchipelagoUIExtension: UIExtension = {
             sessionId: string;
           }) => {
             $scope.messages[data.sessionId]?.push(data.message.html);
-          }
+          },
         );
 
         backendCommunicator.on(
           "archipelago:chatCleared",
           (data: { sessionId: string }) => {
             $scope.messages[data.sessionId] = [];
-          }
+          },
         );
 
         backendCommunicator.on(
@@ -230,7 +230,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               ...$scope.sessionData[sessionId],
               ...hintData,
             };
-          }
+          },
         );
 
         $scope.connect = async () => {
@@ -251,13 +251,13 @@ export const ArchipelagoUIExtension: UIExtension = {
               password: $scope.password,
             })
             .then((response: ServiceResponse<{ name: string; id: string }>) => {
-              if (!response.success) {
+              if (!response.success || !response.data) {
                 $scope.isConnecting = false;
                 return $scope.sendToast(
                   response.errors?.join(", "),
                   "danger",
                   true,
-                  10000
+                  10000,
                 );
               }
 
@@ -272,7 +272,7 @@ export const ArchipelagoUIExtension: UIExtension = {
 
               $scope.sendToast(
                 `Successfully connected to '${response.data.name}'`,
-                "success"
+                "success",
               );
             });
         };
@@ -280,7 +280,7 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.disconnect = (sessionId: string) => {
           backendCommunicator.fireEventAsync(
             "archipelago:disconnect",
-            sessionId
+            sessionId,
           );
         };
 
@@ -368,7 +368,7 @@ export const ArchipelagoUIExtension: UIExtension = {
           message: string,
           type: "info" | "success" | "warning" | "danger" = "warning",
           dismissOnTimeout: boolean = true,
-          timeout: number = 5000
+          timeout: number = 5000,
         ) => {
           ngToast.create({
             content: message,

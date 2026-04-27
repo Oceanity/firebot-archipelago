@@ -2,13 +2,12 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "target": "ES2022",
-    "module": "CommonJS",
+    "module": "nodenext",
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": true,
     "sourceMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "experimentalDecorators": true,
-    "downlevelIteration": true,
     "resolveJsonModule": true,
     "esModuleInterop": true
   },
