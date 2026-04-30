@@ -2,15 +2,17 @@ import {
   eventManager,
   frontendCommunicator,
 } from "@oceanity/firebot-helpers/firebot";
+import { apLogger } from "../../archipelago-logger";
 import { ARCHIPELAGO_CLIENT_ID } from "../../constants";
-import { FirebotEvents, ItemClassification } from "../../enums";
+import { FirebotEvents } from "../../enums";
 import { DeathLinkData, NetworkItem } from "../../types";
+import { itemClassificationString } from "../helpers";
 import { APSession } from "../session";
 
 export class FirebotRemoteService {
   readonly #session: APSession;
 
-  #lastCountdown: number;
+  #lastCountdown: number = 0;
 
   constructor(session: APSession) {
     this.#session = session;
@@ -24,7 +26,7 @@ export class FirebotRemoteService {
         {
           ...this.#getSessionMetadata(),
           ...this.#getPlayerMetadata(),
-        }
+        },
       );
     });
 
@@ -35,14 +37,14 @@ export class FirebotRemoteService {
         {
           ...this.#getSessionMetadata(),
           ...this.#getPlayerMetadata(),
-        }
+        },
       );
     });
 
     this.#session.on("closed", () => {
       frontendCommunicator.fireEventAsync(
         "archipelago:sessionClosed",
-        this.#session.id
+        this.#session.id,
       );
     });
 
@@ -58,7 +60,7 @@ export class FirebotRemoteService {
         {
           ...this.#getSessionMetadata(),
           ...this.#getPlayerMetadata(),
-        }
+        },
       );
     });
 
@@ -109,7 +111,7 @@ export class FirebotRemoteService {
           ...this.#getSessionMetadata(),
           ...this.#getPlayerMetadata(),
           ...this.#getDeathLinkMetadata("apDeathLink", data),
-        }
+        },
       );
     });
 
@@ -133,7 +135,7 @@ export class FirebotRemoteService {
             ...this.#getSessionMetadata(),
             ...this.#getPlayerMetadata(),
             apCountdown: data.countdown,
-          }
+          },
         );
       })
       .on("message", (data) => {
@@ -152,7 +154,7 @@ export class FirebotRemoteService {
           {
             ...this.#getSessionMetadata(),
             ...this.#getMessageMetadata(undefined, data.message),
-          }
+          },
         );
       })
       .on("chatCleared", () => {
@@ -169,52 +171,39 @@ export class FirebotRemoteService {
   #getItemMetadata = (
     prefix: string = "apItem",
     itemData: NetworkItem,
-    game?: string
+    game?: string,
   ) => {
     if (!game) {
       game = this.#session.players.self.game;
     }
 
-    const foundInGame =
+    let foundInGame =
       itemData.location > 0
-        ? this.#session.players.getPlayer(itemData.player).game
+        ? this.#session.players.getPlayer(itemData.player)?.game
         : "Archipelago";
+    if (!foundInGame) {
+      apLogger.warn(
+        `Could not fetch Game data for Player '${itemData.player ?? "Archipelago"}'`,
+      );
+      foundInGame = "Unknown";
+    }
 
     const locationName = this.#session.getLocationName(
       foundInGame,
       itemData.location,
-      true
     );
-
-    let classification = "filler";
-    if (
-      (itemData.flags & ItemClassification.Progression) ===
-      ItemClassification.Progression
-    ) {
-      classification = "progression";
-    } else if (
-      (itemData.flags & ItemClassification.Useful) ===
-      ItemClassification.Useful
-    ) {
-      classification = "useful";
-    } else if (
-      (itemData.flags & ItemClassification.Trap) ===
-      ItemClassification.Trap
-    ) {
-      classification = "trap";
-    }
 
     return {
       [`${prefix}Id`]: itemData.item,
-      [`${prefix}Name`]: this.#session.getItemName(game, itemData.item, true),
+      [`${prefix}Name`]: this.#session.getItemName(game, itemData.item),
       [`${prefix}Location`]: locationName,
-      [`${prefix}Classification`]: classification,
+      [`${prefix}Classification`]: itemClassificationString(itemData.flags),
     };
   };
 
   #getMessageMetadata = (
     prefix: string = "apMessage",
-    message: { html: string; text: string }
+    message: { html: string; text: string },
   ): Record<string, string> => ({
     [`${prefix}Html`]: message.html,
     [`${prefix}Text`]: message.text,
@@ -222,11 +211,18 @@ export class FirebotRemoteService {
 
   #getPlayerMetadata = (
     prefix: string = "apPlayer",
-    player?: number
+    player?: number,
   ): Record<string, string> => {
     const playerData = !!player
       ? this.#session.players.getPlayer(player)
       : this.#session.players.self;
+
+    if (!playerData) {
+      apLogger.error(
+        `Could not fetch Player Data for ${player ? `Player ${player}` : "Active Player"}`,
+      );
+      return {};
+    }
 
     return {
       [`${prefix}Slot`]: `${playerData.slot}`,
@@ -239,7 +235,7 @@ export class FirebotRemoteService {
   };
 
   #getSessionMetadata = (
-    prefix: string = "apSession"
+    prefix: string = "apSession",
   ): Record<string, string> => ({
     [`${prefix}Name`]: `${this.#session}`,
     [`${prefix}IsStarting`]: `${this.#session.ready}`,
@@ -256,7 +252,7 @@ export class FirebotRemoteService {
 
   #getDeathLinkMetadata = (
     prefix: string = "apDeathLink",
-    data: DeathLinkData
+    data: DeathLinkData,
   ): Record<string, string> => ({
     [`${prefix}Source`]: data.source,
     [`${prefix}Cause`]: data.cause,

@@ -8,8 +8,8 @@ export class PlayerService extends TypedEmitter {
 
   #players: Array<Array<NetworkPlayer>>;
   #slots: Readonly<Record<string, NetworkSlot>>;
-  #slot: number;
-  #team: number;
+  #slot: number = -1;
+  #team: number = -1;
 
   public constructor(session: APSession) {
     super();
@@ -76,7 +76,7 @@ export class PlayerService extends TypedEmitter {
       players[team] = new Array();
       for (let player = 0; player < this.#players[team].length; player++) {
         players[team].push(
-          new Player(this.#session, this.#players[team][player])
+          new Player(this.#session, this.#players[team][player]),
         );
       }
     }
@@ -84,8 +84,8 @@ export class PlayerService extends TypedEmitter {
     return players;
   }
 
-  public getPlayer(slot: string | number, team?: number): Player | undefined {
-    if (team === undefined) {
+  public getPlayer(slot: string | number, team?: number): Player | null {
+    if (!team) {
       team = this.#session.players.self.team;
     }
 
@@ -98,6 +98,6 @@ export class PlayerService extends TypedEmitter {
       return new Player(this.#session, this.#players[team][slot]);
     }
 
-    return undefined;
+    return null;
   }
 }

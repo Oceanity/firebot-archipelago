@@ -9,7 +9,8 @@
     "moduleResolution": "nodenext",
     "experimentalDecorators": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "useUnknownInCatchVariables": false
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*", "parcel.d.ts"]
 }

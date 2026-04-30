@@ -5,13 +5,13 @@ import {
   eventFilterManager,
   eventManager,
   initModules,
-  logger,
   replaceVariableFactory,
   replaceVariableManager,
   uiExtensionManager,
 } from "@oceanity/firebot-helpers/firebot";
 import { remoteVersionCheck } from "@oceanity/firebot-helpers/package";
 import { initFrontendCommunicator } from "./archipelago-frontend-events";
+import { apLogger } from "./archipelago-logger";
 import { ArchipelagoUIExtension } from "./archipelago-ui-extension";
 import {
   registerArchipelagoVariables,
@@ -22,7 +22,6 @@ import {
   ARCHIPELAGO_CLIENT_AUTHOR,
   ARCHIPELAGO_CLIENT_DESCRIPTION,
   ARCHIPELAGO_CLIENT_FIREBOT_VERSION,
-  ARCHIPELAGO_CLIENT_ID,
   ARCHIPELAGO_CLIENT_NAME,
   ARCHIPELAGO_CLIENT_PACKAGE_URL,
   ARCHIPELAGO_CLIENT_VERSION,
@@ -47,18 +46,24 @@ const script: Firebot.CustomScript = {
   run: async (runRequest) => {
     initModules(runRequest.modules);
 
-    logger.info("Archipelago: Starting client script...");
+    apLogger.info("Starting client script...");
 
     client = new APClient();
 
-    initFrontendCommunicator(runRequest.modules.frontendCommunicator);
+    // There's currently no way to unregister a UI Extension, so best bet is to just skip registering if it throws an error and let user know to restart Firebot
+    try {
+      initFrontendCommunicator(runRequest.modules.frontendCommunicator);
 
-    uiExtensionManager?.registerUIExtension(ArchipelagoUIExtension);
+      uiExtensionManager?.registerUIExtension(ArchipelagoUIExtension);
+    } catch (error) {
+      apLogger.warn(
+        "Archipelago UI Extension already registered, restart Firebot if the UI Extension has been updated since last install!",
+      );
+    }
 
     eventManager.registerEventSource(ARCHIPELAGO_EVENT_SOURCE);
 
     for (const effectType of AllArchipelagoEffectTypes) {
-      effectType.definition.id = `${ARCHIPELAGO_CLIENT_ID}:${effectType.definition.id}`;
       effectManager.registerEffect(effectType as any);
     }
 
@@ -90,7 +95,7 @@ const script: Firebot.CustomScript = {
     }
   },
   stop: (uninstalling) => {
-    if (uninstalling) {
+    try {
       eventManager.unregisterEventSource(ARCHIPELAGO_EVENT_SOURCE.id);
 
       for (const effectType of AllArchipelagoEffectTypes) {
@@ -105,6 +110,12 @@ const script: Firebot.CustomScript = {
         replaceVariableFactory,
         replaceVariableManager,
       );
+
+      if (uninstalling) {
+        apLogger.info("Archipelago Plugin uninstalled successfully!");
+      }
+    } catch (error) {
+      apLogger.error("Error unloading Archipelago Plugin", error);
     }
   },
 };

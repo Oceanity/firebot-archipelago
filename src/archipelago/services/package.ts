@@ -1,6 +1,7 @@
-import { JsonDb, logger } from "@oceanity/firebot-helpers/firebot";
+import { JsonDb } from "@oceanity/firebot-helpers/firebot";
 import { JsonDB } from "node-json-db";
 import { resolve } from "path";
+import { apLogger } from "../../archipelago-logger";
 import { ClientCommand } from "../../enums";
 import { DataPackage, GamePackage } from "../../types";
 import { GetDataPackagePacket } from "../interfaces/packets";
@@ -27,13 +28,13 @@ export class StoredGamePackage {
     this.locationTable = Object.freeze(pkg.location_name_to_id);
     this.reverseItemTable = Object.freeze(
       Object.fromEntries(
-        Object.entries(pkg.item_name_to_id).map(([name, id]) => [id, name])
-      )
+        Object.entries(pkg.item_name_to_id).map(([name, id]) => [id, name]),
+      ),
     );
     this.reverseLocationTable = Object.freeze(
       Object.fromEntries(
-        Object.entries(pkg.location_name_to_id).map(([name, id]) => [id, name])
-      )
+        Object.entries(pkg.location_name_to_id).map(([name, id]) => [id, name]),
+      ),
     );
   }
 
@@ -65,7 +66,7 @@ export class DataPackageService {
   public async fetchPackage(
     session: APSession,
     gameSums: Array<[string, string]>,
-    update: boolean = true
+    update: boolean = true,
   ): Promise<DataPackage> {
     // Load existing db to local
     if (!this.#hasLoadedDb) {
@@ -78,7 +79,7 @@ export class DataPackageService {
         Object.entries(packages).map(([checksum, data]) => {
           this.#packages
             .get(game)
-            .set(checksum, new StoredGamePackage(game, { ...data, checksum }));
+            ?.set(checksum, new StoredGamePackage(game, { ...data, checksum }));
         });
       });
 
@@ -88,7 +89,7 @@ export class DataPackageService {
     const data: DataPackage = { games: {} };
 
     const filteredGameSums = gameSums.filter(
-      ([game, checksum]) => !this.#packages.get(game)?.has(checksum)
+      ([game, checksum]) => !this.#packages.get(game)?.has(checksum),
     );
 
     for (const [game, checksum] of filteredGameSums) {
@@ -97,15 +98,13 @@ export class DataPackageService {
         games: [game],
       };
 
-      logger.info(
-        `Archipelago: Fetching package for '${game}' (checksum: '${checksum}')`
-      );
+      apLogger.info(`Fetching package for '${game}' (checksum: '${checksum}')`);
 
       const [response] = await session.socket.send(request).wait("dataPackage");
 
       if (response.data.games[game].checksum !== checksum) {
-        logger.error(
-          `Archipelago: Checksum mismatch for game '${game}'! The server returned unexpected checksum '${response.data.games[game].checksum}`
+        apLogger.error(
+          `Checksum mismatch for game '${game}'! The server returned unexpected checksum '${response.data.games[game].checksum}`,
         );
         continue;
       }
@@ -124,8 +123,8 @@ export class DataPackageService {
     Object.entries(dataPackage.games).forEach(([game, data]) => {
       const { checksum, ...gameData } = data;
 
-      logger.info(
-        `Archipelago: Storing data package for game '${game}' (checksum: '${checksum}')`
+      apLogger.info(
+        `Storing data package for game '${game}' (checksum: '${checksum}')`,
       );
 
       // Create base game package locally if none exists
@@ -135,7 +134,7 @@ export class DataPackageService {
 
       this.#packages
         .get(game)
-        .set(checksum, new StoredGamePackage(checksum, data));
+        ?.set(checksum, new StoredGamePackage(checksum, data));
 
       this.#db.push(`/${game}/${checksum}`, gameData);
     });
@@ -143,7 +142,7 @@ export class DataPackageService {
 
   public getPackage = (
     game: string,
-    checksum: string
+    checksum: string,
   ): StoredGamePackage | null =>
     this.#packages.get(game)?.get(checksum) ?? null;
 
@@ -151,8 +150,7 @@ export class DataPackageService {
     game: string,
     checksum: string,
     id: string | number,
-    fallback: boolean = true
-  ): string | undefined {
+  ): string {
     const fallbackName = `Item #${id}`;
 
     if (typeof id === "string") {
@@ -161,28 +159,24 @@ export class DataPackageService {
 
     const gamePackage = this.getPackage(game, checksum);
     if (!gamePackage) {
-      return fallback ? fallbackName : undefined;
+      this.#warnGamePackageNotFound(game, checksum);
+      return fallbackName;
     }
 
     const name = gamePackage.reverseItemTable[id];
-    return name ?? (fallback ? fallbackName : undefined);
-  }
+    if (!name) {
+      this.#warnItemNotFound(game, checksum, id);
+      return fallbackName;
+    }
 
-  public searchItemName(
-    game: string,
-    checksum: string,
-    itemName: string,
-    limit?: number
-  ): Array<string> {
-    return [];
+    return name;
   }
 
   public getLocationName(
     game: string,
     checksum: string,
     id: string | number,
-    fallback: boolean = true
-  ): string | undefined {
+  ): string {
     const fallbackName = `Location #${id}`;
 
     if (typeof id === "string") {
@@ -191,10 +185,42 @@ export class DataPackageService {
 
     const gamePackage = this.getPackage(game, checksum);
     if (!gamePackage) {
-      return fallback ? fallbackName : undefined;
+      this.#warnGamePackageNotFound(game, checksum);
+      return fallbackName;
     }
 
     const name = gamePackage.reverseLocationTable[id];
-    return name ?? (fallback ? fallbackName : undefined);
+    if (!name) {
+      this.#warnLocationNotFound(game, checksum, id);
+      return fallbackName;
+    }
+
+    return name;
   }
+
+  public searchItemName(
+    game: string,
+    checksum: string,
+    itemName: string,
+    limit?: number,
+  ): Array<string> {
+    return [];
+  }
+
+  //#region Logger methods
+  #warnGamePackageNotFound = (game: string, checksum: string) =>
+    apLogger.warn(
+      `Unable to find Game Package for game '${game}' (checksum '${checksum}'), using fallback.`,
+    );
+
+  #warnItemNotFound = (game: string, checksum: string, id: number) =>
+    apLogger.warn(
+      `Unable to find Item with ID '${id}' in game '${game}' (checksum '${checksum}'), using fallback`,
+    );
+
+  #warnLocationNotFound = (game: string, checksum: string, id: number) =>
+    apLogger.warn(
+      `Unable to find Location with ID '${id}' in game '${game}' (checksum '${checksum}'), using fallback`,
+    );
+  //#endregion
 }

@@ -3,7 +3,7 @@ import { client } from "./main";
 import { ServiceResponse } from "./types";
 
 export function initFrontendCommunicator(
-  frontendCommunicator: ScriptModules["frontendCommunicator"]
+  frontendCommunicator: ScriptModules["frontendCommunicator"],
 ) {
   frontendCommunicator.onAsync(
     "archipelago:connect",
@@ -16,7 +16,7 @@ export function initFrontendCommunicator(
         const session = await client.connect(
           data.hostname,
           data.slot,
-          data.password
+          data.password,
         );
 
         return {
@@ -24,26 +24,29 @@ export function initFrontendCommunicator(
           data: { id: session.id, name: session.toString() },
         };
       } catch (error) {
-        return { success: false, errors: [error] };
+        return {
+          success: false,
+          errors: [error?.toString() ?? "Unknown Error"],
+        };
       }
-    }
+    },
   );
 
   frontendCommunicator.onAsync(
     "archipelago:disconnect",
     async (sessionId: string): Promise<void> =>
-      client.sessions.get(sessionId)?.close()
+      client.sessions.get(sessionId)?.close(),
   );
 
   frontendCommunicator.onAsync(
     `archipelago:getSessionTable`,
-    async (): Promise<Record<string, string>> => client.sessionTable
+    async (): Promise<Record<string, string>> => client.sessionTable,
   );
 
   frontendCommunicator.onAsync(
     "archipelago:getHtmlMessageLog",
     async (sessionId: string): Promise<Array<string>> =>
-      client.sessions.get(sessionId)?.messages.htmlLog ?? []
+      client.sessions.get(sessionId)?.messages.htmlLog ?? [],
   );
 
   frontendCommunicator.onAsync(
@@ -51,17 +54,17 @@ export function initFrontendCommunicator(
     async (data: { sessionId: string; entry?: number }) =>
       client.sessions
         .get(data.sessionId)
-        ?.messages.getChatHistory(data.entry) ?? ["", -1]
+        ?.messages.getChatHistory(data.entry) ?? ["", -1],
   );
 
   frontendCommunicator.onAsync(
     "archipelago:sendMessage",
     async (data: { sessionId: string; message: string }) =>
-      client.sessions.get(data.sessionId)?.messages.sendChat(data.message)
+      client.sessions.get(data.sessionId)?.messages.sendChat(data.message),
   );
 
   frontendCommunicator.onAsync(
     "archipelago:getHints",
-    async (sessionId: string) => client.sessions.get(sessionId)?.getHintData()
+    async (sessionId: string) => client.sessions.get(sessionId)?.getHintData(),
   );
 }

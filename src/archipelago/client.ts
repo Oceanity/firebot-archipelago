@@ -1,7 +1,8 @@
-import { JsonDb, logger } from "@oceanity/firebot-helpers/firebot";
+import { JsonDb } from "@oceanity/firebot-helpers/firebot";
 import EventEmitter from "events";
 import { JsonDB } from "node-json-db";
 import { resolve } from "path";
+import { apLogger } from "../archipelago-logger";
 import { urlFromConnectionString } from "./helpers";
 import { DataPackageService } from "./services/package";
 import { APSession } from "./session";
@@ -40,7 +41,14 @@ export class APClient extends EventEmitter {
     const output: Record<string, string> = {};
 
     this.sessionIds.forEach((id) => {
-      output[id] = this.sessions.get(id).toString();
+      const session = this.sessions.get(id);
+
+      if (!session) {
+        apLogger.warn(`Could not fetch session with id '${id}'`);
+        return;
+      }
+
+      output[id] = session.toString();
     });
 
     return output;
@@ -55,7 +63,7 @@ export class APClient extends EventEmitter {
       await this.#savedSessionDb.getObject<SavedSessionDetails>("/");
     if (existingSessions) {
       for (const [connectionString, entries] of Object.entries(
-        existingSessions
+        existingSessions,
       )) {
         const url = urlFromConnectionString(connectionString);
 
@@ -72,7 +80,7 @@ export class APClient extends EventEmitter {
               slot,
               password,
               sessionId,
-              true
+              true,
             );
 
             if (
@@ -84,13 +92,13 @@ export class APClient extends EventEmitter {
                 {
                   slot,
                   password,
-                }
+                },
               );
               await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
             }
           } catch (error) {
-            logger.warn(
-              `Archipelago: Error loading saved session '${slot}' at '${url}', removing from local DB`
+            apLogger.warn(
+              `Error loading saved session '${slot}' at '${url}', removing from local DB`,
             );
             await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
           }
@@ -102,7 +110,7 @@ export class APClient extends EventEmitter {
         await this.#savedSessionDb.getObject<SavedSessionDetails>("/");
       if (remainingSessions) {
         for (const [connectionString, entries] of Object.entries(
-          remainingSessions
+          remainingSessions,
         )) {
           if (!Object.entries(entries).length) {
             await this.#savedSessionDb.delete(`/${connectionString}`);
@@ -117,11 +125,11 @@ export class APClient extends EventEmitter {
     slot: string,
     password?: string,
     id?: string,
-    reconnectOnError?: boolean
+    reconnectOnError?: boolean,
   ): Promise<APSession> {
     return new Promise(async (resolve, reject) => {
-      logger.info(
-        `Archipelago: Attempting to connect to session at '${url}' with slot '${slot}'...`
+      apLogger.info(
+        `Attempting to connect to session at '${url}' with slot '${slot}'...`,
       );
 
       try {
@@ -138,24 +146,21 @@ export class APClient extends EventEmitter {
         session.on("closed", async () => {
           this.sessions.delete(session.id);
           await this.#savedSessionDb.delete(
-            `/${session.socket.connectionString}/${slot}`
+            `/${session.socket.connectionString}/${slot}`,
           );
         });
 
         await this.#savedSessionDb.push(
           `/${session.socket.connectionString}/${slot}`,
-          password ?? ""
+          password ?? "",
         );
 
-        logger.info(`Connected to session at '${session.socket}'!`);
+        apLogger.info(`Connected to session at '${session.socket}'!`);
 
         return resolve(session);
       } catch (error) {
-        logger.error(
-          "Archipelago: Could not create Archipelago session",
-          error
-        );
-        reject(error.message ?? (error as string));
+        apLogger.error("Could not create Archipelago session", error);
+        reject(error.message ?? error.toString());
       }
     });
   }
@@ -176,10 +181,10 @@ export class APClient extends EventEmitter {
 
     // Look for exact match
     const fullMatches = entries.filter(
-      (session) => session.toString().toLocaleLowerCase() === compareName
+      (session) => session.toString().toLocaleLowerCase() === compareName,
     );
     if (!!fullMatches.length) {
-      return fullMatches.shift();
+      return fullMatches.shift() ?? null;
     }
 
     // Look for partial match
@@ -191,7 +196,7 @@ export class APClient extends EventEmitter {
       );
     });
     if (!!partialMatches.length) {
-      return partialMatches.shift();
+      return partialMatches.shift() ?? null;
     }
 
     return null;
@@ -199,6 +204,6 @@ export class APClient extends EventEmitter {
 
   #sessionAlreadyExists = (sessionName: string): boolean =>
     Array.from(this.sessions.values()).some(
-      (session) => session.toString() === sessionName
+      (session) => session.toString() === sessionName,
     );
 }

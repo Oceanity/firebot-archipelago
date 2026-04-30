@@ -1,6 +1,6 @@
-import { logger } from "@oceanity/firebot-helpers/firebot";
 import { TypedEmitter } from "tiny-typed-emitter";
 import WebSocket from "ws";
+import { apLogger } from "../../archipelago-logger";
 import { ServerCommand, Tag } from "../../enums";
 import {
   ClientPacket,
@@ -86,7 +86,7 @@ export class SocketService extends TypedEmitter<EventDef> {
       const pattern = /^(wss?:)\/\/[a-z0-9_.~\-:]+/i;
 
       const url = new URL(
-        pattern.test(hostname) ? hostname : `wss://${hostname}`
+        pattern.test(hostname) ? hostname : `wss://${hostname}`,
       );
 
       if (!url) {
@@ -106,13 +106,15 @@ export class SocketService extends TypedEmitter<EventDef> {
 
   public async connect(
     swapProtocols: boolean = false,
-    reconnectOnError: boolean = false
+    reconnectOnError: boolean = false,
   ): Promise<{ url: URL; packet: RoomInfoPacket }> {
     if (!this.#url) {
-      logger.error(
-        "Archipelago: Session does not have a URL to connect to, disconnecting"
+      apLogger.error(
+        "Session does not have a URL to connect to, disconnecting",
       );
-      return;
+      throw new Error(
+        "Session does not have a URL to connect to, disconnecting",
+      );
     }
 
     if (swapProtocols) {
@@ -121,14 +123,14 @@ export class SocketService extends TypedEmitter<EventDef> {
 
     try {
       this.#session.messages.sendLog(
-        `Attempting to connect to the Archipelago server at '${this}' using ${this.protocolName} protocol...`
+        `Attempting to connect to the Archipelago server at '${this}' using ${this.protocolName} protocol...`,
       );
 
       const response = await new Promise<{ url: URL; packet: RoomInfoPacket }>(
         (resolve, reject) => {
           const handleConnectionError = (error: Error): void => {
             reject(
-              `WebSocket server connection error: ${JSON.stringify(error)}`
+              `WebSocket server connection error: ${JSON.stringify(error)}`,
             );
           };
 
@@ -144,11 +146,11 @@ export class SocketService extends TypedEmitter<EventDef> {
 
               this.wait("roomInfo")
                 .then(([packet]: RoomInfoPacket[]) => {
-                  logger.info(
-                    `Connected to Archipelago WebSocket server at '${this}'!`
+                  apLogger.info(
+                    `Connected to Archipelago WebSocket server at '${this}'!`,
                   );
                   this.#session.messages.sendLog(
-                    `Connected to Archipelago WebSocket server at '${this}'!`
+                    `Connected to Archipelago WebSocket server at '${this}'!`,
                   );
 
                   this.#connected = true;
@@ -163,9 +165,9 @@ export class SocketService extends TypedEmitter<EventDef> {
                         this.disconnect(true);
                       })
                       .on("error", (error) => {
-                        logger.error(
+                        apLogger.error(
                           "Error in Archipelago WebSocket connection",
-                          error
+                          error,
                         );
                         this.disconnect(reconnectOnError);
                       });
@@ -177,12 +179,12 @@ export class SocketService extends TypedEmitter<EventDef> {
                   this.disconnect(reconnectOnError);
                   reject(
                     `Error connecting to WebSocket server: ${JSON.stringify(
-                      error
-                    )}`
+                      error,
+                    )}`,
                   );
                 });
             });
-        }
+        },
       );
 
       return response;
@@ -203,10 +205,8 @@ export class SocketService extends TypedEmitter<EventDef> {
       return;
     }
 
-    logger.warn(
-      `Archipelago: Closing WebSocket server connection for session '${
-        this.#session
-      }`
+    apLogger.warn(
+      `Closing WebSocket server connection for session '${this.#session}`,
     );
 
     this.#connected = false;
@@ -226,7 +226,7 @@ export class SocketService extends TypedEmitter<EventDef> {
   }
 
   public wait = <Event extends keyof Events>(
-    event: Event
+    event: Event,
   ): Promise<Events[Event]> => {
     return new Promise((resolve) => {
       const listener = ((...args: Events[Event]) => {
@@ -255,13 +255,15 @@ export class SocketService extends TypedEmitter<EventDef> {
             if (
               packet.tags?.includes(Tag.DeathLink) &&
               !!packet.data &&
-              ["source", "cause", "time"].every((prop) => prop in packet.data)
+              ["source", "cause", "time"].every(
+                (prop) => prop in (packet.data ?? {}),
+              )
             ) {
               this.emit("deathLink", packet.data as DeathLinkData);
               return;
             }
 
-            logger.info(`Bounced: ${JSON.stringify(packet)}`);
+            apLogger.info(`Bounced: ${JSON.stringify(packet)}`);
 
             break;
           case ServerCommand.Connected:
@@ -292,7 +294,7 @@ export class SocketService extends TypedEmitter<EventDef> {
             this.emit("roomInfo", packet);
             break;
           case ServerCommand.RoomUpdate:
-            logger.info(`Room Update: ${JSON.stringify(packet)}`);
+            apLogger.info(`Room Update: ${JSON.stringify(packet)}`);
             this.emit("roomUpdate", packet);
             break;
           case ServerCommand.SetReply:
@@ -301,7 +303,7 @@ export class SocketService extends TypedEmitter<EventDef> {
         }
       }
     } catch (error) {
-      logger.error("Error parsing Archipelago Message", error);
+      apLogger.error("Error parsing Archipelago Message", error);
     }
   };
 

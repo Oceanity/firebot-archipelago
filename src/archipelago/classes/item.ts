@@ -13,7 +13,7 @@ export class Item {
     session: APSession,
     item: NetworkItem,
     sender: Player,
-    receiver: Player
+    receiver: Player,
   ) {
     this.#session = session;
     this.#item = item;
@@ -32,7 +32,7 @@ export class Item {
   }
 
   public get name(): string {
-    return this.#session.getItemName(this.game, this.#item.item, true);
+    return this.#session.getItemName(this.game, this.#item.item);
   }
 
   public get id(): number {
@@ -40,11 +40,7 @@ export class Item {
   }
 
   public get locationName(): string {
-    return this.#session.getLocationName(
-      this.sender.game,
-      this.#item.location,
-      true
-    );
+    return this.#session.getLocationName(this.sender.game, this.#item.location);
   }
 
   public get game(): string {

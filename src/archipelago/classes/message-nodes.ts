@@ -1,5 +1,4 @@
 import {
-  ItemClassification,
   MessageColor,
   MessageNodeType,
   MessagePartType,
@@ -12,6 +11,7 @@ import {
   LocationJSONMessagePart,
   TextJSONMessagePart,
 } from "../../types";
+import { itemClassificationString } from "../helpers";
 import {
   HintJSONPacket,
   ItemCheatJSONPacket,
@@ -33,7 +33,7 @@ export abstract class BaseMessageNode {
 }
 
 export class ColorMessageNode extends BaseMessageNode {
-  protected declare readonly part: ColorJSONMessagePart;
+  declare protected readonly part: ColorJSONMessagePart;
   public readonly type = MessageNodeType.Color;
 
   public readonly color: MessageColor;
@@ -55,7 +55,7 @@ export class ColorMessageNode extends BaseMessageNode {
 }
 
 export class ItemMessageNode extends BaseMessageNode {
-  protected declare readonly part: ItemJSONMessagePart;
+  declare protected readonly part: ItemJSONMessagePart;
   public readonly type = MessageNodeType.Item;
 
   public readonly item: Item;
@@ -63,18 +63,18 @@ export class ItemMessageNode extends BaseMessageNode {
   public constructor(
     session: APSession,
     part: ItemJSONMessagePart,
-    itemPacket: ItemSendJSONPacket | ItemCheatJSONPacket | HintJSONPacket
+    itemPacket: ItemSendJSONPacket | ItemCheatJSONPacket | HintJSONPacket,
   ) {
     super(session, part);
 
     const receiver: Player = session.players.getPlayer(
       itemPacket.receiving,
-      itemPacket.type === PrintJsonType.ItemCheat ? itemPacket.team : undefined
+      itemPacket.type === PrintJsonType.ItemCheat ? itemPacket.team : undefined,
     );
 
     const player = session.players.getPlayer(
       part.player,
-      receiver.team
+      receiver.team,
     ) as Player;
     this.part = part;
     this.item = new Item(session, itemPacket.item, player, receiver);
@@ -85,37 +85,18 @@ export class ItemMessageNode extends BaseMessageNode {
   }
 
   public get html(): string {
-    const { flags } = this.item;
+    const { name, flags } = this.item;
 
-    const classes = ["item"];
+    const classes = ["item", itemClassificationString(flags)];
 
-    if ((flags & ItemClassification.None) === ItemClassification.None) {
-      classes.push("filler");
-    }
-
-    if (
-      (flags & ItemClassification.Progression) ===
-      ItemClassification.Progression
-    ) {
-      classes.push("progression");
-    }
-
-    if ((flags & ItemClassification.Trap) === ItemClassification.Trap) {
-      classes.push("trap");
-    }
-
-    if ((flags & ItemClassification.Useful) === ItemClassification.Useful) {
-      classes.push("useful");
-    }
-
-    return `<span class="${classes.join(" ")}">${this.item.name}</span>`;
+    return `<span class="${classes.join(" ")}">${name}</span>`;
   }
 }
 
 export class LocationMessageNode extends BaseMessageNode {
   readonly #name: string;
 
-  protected declare readonly part: LocationJSONMessagePart;
+  declare protected readonly part: LocationJSONMessagePart;
   public readonly type = MessageNodeType.Location;
 
   public readonly id: number;
@@ -136,7 +117,7 @@ export class LocationMessageNode extends BaseMessageNode {
 
       default: {
         this.id = parseInt(part.text);
-        this.#name = session.getLocationName(player.game, part.text, true);
+        this.#name = session.getLocationName(player.game, part.text);
         break;
       }
     }
@@ -152,7 +133,7 @@ export class LocationMessageNode extends BaseMessageNode {
 }
 
 export class PlayerMessageNode extends BaseMessageNode {
-  protected declare readonly part: TextJSONMessagePart;
+  declare protected readonly part: TextJSONMessagePart;
   public readonly type = MessageNodeType.Player;
 
   public readonly player: Player;
@@ -169,7 +150,7 @@ export class PlayerMessageNode extends BaseMessageNode {
 
       default: {
         const player = session.players.teams[session.players.self.team].find(
-          (p) => p.name === part.text
+          (p) => p.name === part.text,
         );
 
         if (!player) {
@@ -200,7 +181,7 @@ export class PlayerMessageNode extends BaseMessageNode {
 }
 
 export class TextMessageNode extends BaseMessageNode {
-  protected declare readonly part: TextJSONMessagePart;
+  declare protected readonly part: TextJSONMessagePart;
   public readonly type: MessageNodeType.Entrance | MessageNodeType.Text;
 
   public constructor(session: APSession, part: TextJSONMessagePart) {
