@@ -1,8 +1,8 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import { APCommandDefinitions } from "../../archipelago-command-definitions";
 import {
-  ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY,
-  ARCHIPELAGO_CLIENT_MAX_MESSAGES,
+  ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY,
+  ARCHIPELAGO_PLUGIN_MAX_MESSAGES,
 } from "../../constants";
 import { ClientCommand, MessagePartType, PrintJsonType } from "../../enums";
 import {
@@ -69,7 +69,7 @@ export class MessageService extends TypedEmitter<Events> {
 
   public sendLog(
     message: string,
-    level: "info" | "warning" | "error" = "info"
+    level: "info" | "warning" | "error" = "info",
   ) {
     if (!message.length) {
       return;
@@ -98,7 +98,7 @@ export class MessageService extends TypedEmitter<Events> {
     }
 
     this.#chatHistory.push(message);
-    if (this.#chatHistory.length > ARCHIPELAGO_CLIENT_MAX_CHAT_HISTORY) {
+    if (this.#chatHistory.length > ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY) {
       this.#chatHistory.shift();
     }
 
@@ -147,7 +147,7 @@ export class MessageService extends TypedEmitter<Events> {
         : message;
 
     this.#messages.push(formattedMessage);
-    if (this.#messages.length > ARCHIPELAGO_CLIENT_MAX_MESSAGES) {
+    if (this.#messages.length > ARCHIPELAGO_PLUGIN_MAX_MESSAGES) {
       this.#messages.shift();
     }
 
@@ -209,7 +209,7 @@ export class MessageService extends TypedEmitter<Events> {
     const message: MessageLog = [{ text, html, nodes }];
 
     this.#messages.push(...message);
-    if (this.#messages.length > ARCHIPELAGO_CLIENT_MAX_MESSAGES) {
+    if (this.#messages.length > ARCHIPELAGO_PLUGIN_MAX_MESSAGES) {
       this.#messages.shift();
     }
 
@@ -225,7 +225,7 @@ export class MessageService extends TypedEmitter<Events> {
 
     this.sendLog(
       `DeathLink (${source}): ${cause || `${source} died.`}`,
-      "error"
+      "error",
     );
   };
 
@@ -234,7 +234,7 @@ export class MessageService extends TypedEmitter<Events> {
     if (!APCommandDefinitions.hasOwnProperty(command)) {
       this.sendLog(
         "Unrecognized command, use /help to see all available commands",
-        "error"
+        "error",
       );
       return;
     }
@@ -243,7 +243,7 @@ export class MessageService extends TypedEmitter<Events> {
 
     APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
       this.#session.id,
-      ...args
+      ...args,
     );
   };
 }

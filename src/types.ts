@@ -1,3 +1,4 @@
+import { Client } from "archipelago.js";
 import {
   ItemClassification,
   MessageColor,
@@ -39,6 +40,43 @@ import {
   TagsChangedJSONPacket,
   TutorialJSONPacket,
 } from "./interfaces";
+
+export type State = {
+  sessions: Record<string, StateSession>;
+};
+
+export type SessionConnection = {
+  name: string;
+  password?: string;
+  url: string | URL;
+  handle: string;
+};
+
+export type StateSession = SessionConnection & {
+  client: Client;
+  status: SessionStatus;
+};
+
+export type StoredSession = {
+  url: string;
+  name: string;
+  password?: string;
+};
+
+export type RetrievedSession = StateSession & { id: string };
+
+export enum SessionStatus {
+  Connected = "connected",
+  CouldNotConnect = "could-not-connect",
+  Disconnected = "disconnected",
+}
+
+export type HintData = {
+  hints: number;
+  hintPoints: number;
+  hintPointProgress: number;
+  hintCost: number;
+};
 
 export type DataPackage = {
   readonly games: Record<string, GamePackage>;
@@ -155,15 +193,16 @@ export type APCommandOptions = {
   callback: (sessionId: string, ...args: Array<string>) => void | Promise<void>;
 };
 
-export type ServiceResponse<T = never> =
+export type ServiceResponse<T> =
   | {
       success: true;
-      data?: T;
-      errors?: null;
+      data: T;
+      errors?: never;
     }
   | {
-      success?: false | null;
-      errors?: Array<string>;
+      success: false;
+      data?: never;
+      errors: string[];
     };
 
 //#region PrintJSON Message Parts

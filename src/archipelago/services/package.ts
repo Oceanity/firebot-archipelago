@@ -27,13 +27,13 @@ export class StoredGamePackage {
     this.locationTable = Object.freeze(pkg.location_name_to_id);
     this.reverseItemTable = Object.freeze(
       Object.fromEntries(
-        Object.entries(pkg.item_name_to_id).map(([name, id]) => [id, name])
-      )
+        Object.entries(pkg.item_name_to_id).map(([name, id]) => [id, name]),
+      ),
     );
     this.reverseLocationTable = Object.freeze(
       Object.fromEntries(
-        Object.entries(pkg.location_name_to_id).map(([name, id]) => [id, name])
-      )
+        Object.entries(pkg.location_name_to_id).map(([name, id]) => [id, name]),
+      ),
     );
   }
 
@@ -54,7 +54,6 @@ export class DataPackageService {
   #hasLoadedDb = false;
 
   public constructor() {
-    // @ts-expect-error ts(2351)
     this.#db = new JsonDb(this.#filePath, true, false);
   }
 
@@ -65,7 +64,7 @@ export class DataPackageService {
   public async fetchPackage(
     session: APSession,
     gameSums: Array<[string, string]>,
-    update: boolean = true
+    update: boolean = true,
   ): Promise<DataPackage> {
     // Load existing db to local
     if (!this.#hasLoadedDb) {
@@ -78,7 +77,7 @@ export class DataPackageService {
         Object.entries(packages).map(([checksum, data]) => {
           this.#packages
             .get(game)
-            .set(checksum, new StoredGamePackage(game, { ...data, checksum }));
+            ?.set(checksum, new StoredGamePackage(game, { ...data, checksum }));
         });
       });
 
@@ -88,7 +87,7 @@ export class DataPackageService {
     const data: DataPackage = { games: {} };
 
     const filteredGameSums = gameSums.filter(
-      ([game, checksum]) => !this.#packages.get(game)?.has(checksum)
+      ([game, checksum]) => !this.#packages.get(game)?.has(checksum),
     );
 
     for (const [game, checksum] of filteredGameSums) {
@@ -97,15 +96,13 @@ export class DataPackageService {
         games: [game],
       };
 
-      logger.info(
-        `Archipelago: Fetching package for '${game}' (checksum: '${checksum}')`
-      );
+      logger.info(`Fetching package for '${game}' (checksum: '${checksum}')`);
 
       const [response] = await session.socket.send(request).wait("dataPackage");
 
       if (response.data.games[game].checksum !== checksum) {
         logger.error(
-          `Archipelago: Checksum mismatch for game '${game}'! The server returned unexpected checksum '${response.data.games[game].checksum}`
+          `Checksum mismatch for game '${game}'! The server returned unexpected checksum '${response.data.games[game].checksum}`,
         );
         continue;
       }
@@ -125,7 +122,7 @@ export class DataPackageService {
       const { checksum, ...gameData } = data;
 
       logger.info(
-        `Archipelago: Storing data package for game '${game}' (checksum: '${checksum}')`
+        `Storing data package for game '${game}' (checksum: '${checksum}')`,
       );
 
       // Create base game package locally if none exists
@@ -135,7 +132,7 @@ export class DataPackageService {
 
       this.#packages
         .get(game)
-        .set(checksum, new StoredGamePackage(checksum, data));
+        ?.set(checksum, new StoredGamePackage(checksum, data));
 
       this.#db.push(`/${game}/${checksum}`, gameData);
     });
@@ -143,7 +140,7 @@ export class DataPackageService {
 
   public getPackage = (
     game: string,
-    checksum: string
+    checksum: string,
   ): StoredGamePackage | null =>
     this.#packages.get(game)?.get(checksum) ?? null;
 
@@ -151,7 +148,7 @@ export class DataPackageService {
     game: string,
     checksum: string,
     id: string | number,
-    fallback: boolean = true
+    fallback: boolean = true,
   ): string | undefined {
     const fallbackName = `Item #${id}`;
 
@@ -172,7 +169,7 @@ export class DataPackageService {
     game: string,
     checksum: string,
     itemName: string,
-    limit?: number
+    limit?: number,
   ): Array<string> {
     return [];
   }
@@ -181,7 +178,7 @@ export class DataPackageService {
     game: string,
     checksum: string,
     id: string | number,
-    fallback: boolean = true
+    fallback: boolean = true,
   ): string | undefined {
     const fallbackName = `Location #${id}`;
 

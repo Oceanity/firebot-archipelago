@@ -1,114 +1,107 @@
-import { ReplaceVariableFactory } from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-factory";
-import {
-  ReplaceVariable,
-  ReplaceVariableManager,
-} from "@crowbartools/firebot-custom-scripts-types/types/modules/replace-variable-manager";
-import { ARCHIPELAGO_CLIENT_ID } from "./constants";
+import firebot, { ReplaceVariable } from "@crowbartools/firebot-types";
+import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
 import { FirebotEvents } from "./enums";
 
-export function registerArchipelagoVariables(
-  replaceVariableFactory: ReplaceVariableFactory,
-  replaceVariableManager: ReplaceVariableManager
-) {
-  const archipelagoVariables = [
-    ...buildSessionVariables(replaceVariableFactory, "apSession", [
+export const AllArchipelagoVariables: Array<ReplaceVariable> = [
+  firebot.variableFactory.createEventDataVariable({
+    handle: "apSessionId",
+    description:
+      "The Uuid of the associated session that can be used in the 'Custom' option of Archipelago-related effects",
+    events: [
       FirebotEvents.Connected,
+      FirebotEvents.Disconnected,
       FirebotEvents.Countdown,
       FirebotEvents.DeathLink,
-      FirebotEvents.Disconnected,
       FirebotEvents.HintsUpdated,
       FirebotEvents.InitialItems,
       FirebotEvents.Message,
       FirebotEvents.ReceivedItems,
       FirebotEvents.SentItems,
-    ]),
+    ].map((event) => `${ARCHIPELAGO_PLUGIN_ID}:${event}`),
+    eventMetaKey: "apSessionId",
+    type: "text",
+  }),
 
-    ...buildPlayerVariables(replaceVariableFactory, "apPlayer", [
-      FirebotEvents.Connected,
-      FirebotEvents.Countdown,
-      FirebotEvents.DeathLink,
-      FirebotEvents.Disconnected,
-      FirebotEvents.HintsUpdated,
-    ]),
+  ...buildSessionVariables("apSession", [
+    FirebotEvents.Connected,
+    FirebotEvents.Countdown,
+    FirebotEvents.DeathLink,
+    FirebotEvents.HintsUpdated,
+    FirebotEvents.InitialItems,
+    FirebotEvents.Message,
+    FirebotEvents.ReceivedItems,
+    FirebotEvents.SentItems,
+  ]),
 
-    ...buildDeathLinkVariables(replaceVariableFactory, "apDeathLink", [
-      FirebotEvents.DeathLink,
-    ]),
+  ...buildPlayerVariables("apPlayer", [
+    FirebotEvents.Connected,
+    FirebotEvents.Countdown,
+    FirebotEvents.DeathLink,
+    FirebotEvents.HintsUpdated,
+  ]),
 
-    ...buildMessageVariables(replaceVariableFactory, "apMessage", [
-      FirebotEvents.Message,
-    ]),
+  ...buildDeathLinkVariables("apDeathLink", [FirebotEvents.DeathLink]),
 
-    ...buildItemVariables(replaceVariableFactory, "apItem", [
-      FirebotEvents.InitialItems,
-      FirebotEvents.ReceivedItems,
-    ]),
+  ...buildMessageVariables("apMessage", [FirebotEvents.Message]),
 
-    ...buildPlayerVariables(
-      replaceVariableFactory,
-      "apSender",
-      [FirebotEvents.InitialItems, FirebotEvents.ReceivedItems],
-      "player who sent the item"
-    ),
+  ...buildItemVariables("apItem", [
+    FirebotEvents.InitialItems,
+    FirebotEvents.ReceivedItems,
+  ]),
 
-    ...buildPlayerVariables(
-      replaceVariableFactory,
-      "apReceiver",
-      [FirebotEvents.InitialItems, FirebotEvents.ReceivedItems],
-      "player who received the item"
-    ),
+  ...buildPlayerVariables(
+    "apSender",
+    [FirebotEvents.InitialItems, FirebotEvents.ReceivedItems],
+    "player who sent the item",
+  ),
 
-    // Countdown Variable
-    buildArchipelagoVariable(
-      replaceVariableFactory,
-      "apCountdown",
-      "The current value of the server's countdown",
-      [FirebotEvents.Countdown]
-    ),
-  ];
+  ...buildPlayerVariables(
+    "apReceiver",
+    [FirebotEvents.InitialItems, FirebotEvents.ReceivedItems],
+    "player who received the item",
+  ),
 
-  for (const variable of archipelagoVariables) {
-    replaceVariableManager.registerReplaceVariable(variable);
-  }
-}
+  // Countdown Variable
+  buildArchipelagoVariable(
+    "apCountdown",
+    "The current value of the server's countdown",
+    [FirebotEvents.Countdown],
+  ),
+];
 
-export const buildArchipelagoVariable = (
-  replaceVariableFactory: ReplaceVariableFactory,
+function buildArchipelagoVariable(
   eventProperty: string,
   description: string,
-  events: Array<FirebotEvents>
-): ReplaceVariable =>
-  replaceVariableFactory.createEventDataVariable({
+  events: Array<FirebotEvents>,
+): ReplaceVariable {
+  return firebot.variableFactory.createEventDataVariable({
     handle: eventProperty,
     description,
-    events: events.map((event) => `${ARCHIPELAGO_CLIENT_ID}:${event}`),
+    events: events.map((event) => `${ARCHIPELAGO_PLUGIN_ID}:${event}`),
     eventMetaKey: eventProperty,
     type: "text",
   });
+}
 
-export const buildArchipelagoVariables = (
-  replaceVariableFactory: ReplaceVariableFactory,
+function buildArchipelagoVariables(
   prefix: string,
   events: Array<FirebotEvents>,
-  definitions: Array<[string, string]>
-): Array<ReplaceVariable> =>
-  definitions.map(([name, description]) => {
+  definitions: Array<[string, string]>,
+): Array<ReplaceVariable> {
+  return definitions.map(([name, description]) => {
     const eventProperty = `${prefix}${name}`;
-    return replaceVariableFactory.createEventDataVariable({
+    return firebot.variableFactory.createEventDataVariable({
       handle: eventProperty,
       description,
-      events: events.map((event) => `${ARCHIPELAGO_CLIENT_ID}:${event}`),
+      events: events.map((event) => `${ARCHIPELAGO_PLUGIN_ID}:${event}`),
       eventMetaKey: eventProperty,
       type: "text",
     });
   });
+}
 
-const buildSessionVariables = (
-  replaceVariableFactory: ReplaceVariableFactory,
-  prefix: string,
-  events: Array<FirebotEvents>
-) =>
-  buildArchipelagoVariables(replaceVariableFactory, prefix, events, [
+function buildSessionVariables(prefix: string, events: Array<FirebotEvents>) {
+  return buildArchipelagoVariables(prefix, events, [
     [
       "Name",
       "The name of the associated session, formatted as `<slot>@<hostname>:<port>`",
@@ -139,13 +132,10 @@ const buildSessionVariables = (
       "The number of possible usable hints held by the player of the associated session",
     ],
   ]);
+}
 
-const buildDeathLinkVariables = (
-  replaceVariableFactory: ReplaceVariableFactory,
-  prefix: string,
-  events: Array<FirebotEvents>
-) =>
-  buildArchipelagoVariables(replaceVariableFactory, prefix, events, [
+function buildDeathLinkVariables(prefix: string, events: Array<FirebotEvents>) {
+  return buildArchipelagoVariables(prefix, events, [
     ["Source", "The name of the slot that triggered the DeathLink event"],
     [
       "Cause",
@@ -153,24 +143,21 @@ const buildDeathLinkVariables = (
     ],
     ["Time", "The unix timestamp of the DeathLink event"],
   ]);
+}
 
-const buildMessageVariables = (
-  replaceVariableFactory: ReplaceVariableFactory,
-  prefix: string,
-  events: Array<FirebotEvents>
-) =>
-  buildArchipelagoVariables(replaceVariableFactory, prefix, events, [
+function buildMessageVariables(prefix: string, events: Array<FirebotEvents>) {
+  return buildArchipelagoVariables(prefix, events, [
     ["Html", "The html formatted content of the message"],
     ["Text", "The plaintext content of the message"],
   ]);
+}
 
-const buildPlayerVariables = (
-  replaceVariableFactory: ReplaceVariableFactory,
+function buildPlayerVariables(
   prefix: string,
   events: Array<FirebotEvents>,
-  playerDescriptor = "associated player"
-) =>
-  buildArchipelagoVariables(replaceVariableFactory, prefix, events, [
+  playerDescriptor = "associated player",
+) {
+  return buildArchipelagoVariables(prefix, events, [
     ["Slot", `The slot number of the ${playerDescriptor}`],
     ["Team", `The team number of the ${playerDescriptor}`],
     ["Name", `The name of the ${playerDescriptor}`],
@@ -181,13 +168,10 @@ const buildPlayerVariables = (
     ["Game", `The name of the game the ${playerDescriptor} is playing`],
     ["Type", `The type of the ${playerDescriptor}`],
   ]);
+}
 
-const buildItemVariables = (
-  replaceVariableFactory: ReplaceVariableFactory,
-  prefix: string,
-  events: Array<FirebotEvents>
-) =>
-  buildArchipelagoVariables(replaceVariableFactory, prefix, events, [
+function buildItemVariables(prefix: string, events: Array<FirebotEvents>) {
+  return buildArchipelagoVariables(prefix, events, [
     ["Id", "The id of the item that was sent or received"],
     ["Name", "The name of the item that was sent or received"],
     ["Location", "The name of the location where the item was found"],
@@ -196,3 +180,4 @@ const buildItemVariables = (
       "The classification of the item, can be `progression`, `useful`, `filler` or `trap`",
     ],
   ]);
+}

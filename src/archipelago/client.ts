@@ -22,7 +22,6 @@ export class APClient extends EventEmitter {
   constructor() {
     super();
 
-    //@ts-expect-error ts(2351)
     this.#savedSessionDb = new JsonDb(this.#filePath, true, false);
 
     this.packages = new DataPackageService();
@@ -37,7 +36,7 @@ export class APClient extends EventEmitter {
     const output: Record<string, string> = {};
 
     this.sessionIds.forEach((id) => {
-      output[id] = this.sessions.get(id).toString();
+      output[id] = this.sessions.get(id)!.toString();
     });
 
     return output;
@@ -52,24 +51,24 @@ export class APClient extends EventEmitter {
       await this.#savedSessionDb.getObject<SavedSessionDetails>("/");
     if (existingSessions) {
       for (const [connectionString, entries] of Object.entries(
-        existingSessions
+        existingSessions,
       )) {
         const url = urlFromConnectionString(connectionString);
 
         for (const [slot, password] of Object.entries(entries)) {
           try {
-            const result = await this.connect(url, slot, password);
+            const result = await this.connect(url!, slot, password);
 
             if (connectionString !== result.socket.connectionString) {
               await this.#savedSessionDb.push(
                 `/${result.socket.connectionString}/${slot}`,
-                password
+                password,
               );
               await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
             }
           } catch (error) {
             logger.warn(
-              `Archipelago: Error loading saved session '${slot}' at '${url}', removing from local DB`
+              `Error loading saved session '${slot}' at '${url}', removing from local DB`,
             );
             await this.#savedSessionDb.delete(`/${connectionString}/${slot}`);
           }
@@ -81,7 +80,7 @@ export class APClient extends EventEmitter {
         await this.#savedSessionDb.getObject<SavedSessionDetails>("/");
       if (remainingSessions) {
         for (const [connectionString, entries] of Object.entries(
-          remainingSessions
+          remainingSessions,
         )) {
           if (!Object.entries(entries).length) {
             await this.#savedSessionDb.delete(`/${connectionString}`);
@@ -94,11 +93,11 @@ export class APClient extends EventEmitter {
   public async connect(
     url: string | URL,
     slot: string,
-    password?: string
+    password?: string,
   ): Promise<APSession> {
     return new Promise(async (resolve, reject) => {
       logger.info(
-        `Archipelago: Attempting to connect to session at '${url}' with slot '${slot}'...`
+        `Attempting to connect to session at '${url}' with slot '${slot}'...`,
       );
 
       try {
@@ -113,7 +112,7 @@ export class APClient extends EventEmitter {
         session.on("closed", async () => {
           this.sessions.delete(session.id);
           await this.#savedSessionDb.delete(
-            `/${session.socket.connectionString}/${slot}`
+            `/${session.socket.connectionString}/${slot}`,
           );
         });
 
@@ -121,18 +120,15 @@ export class APClient extends EventEmitter {
 
         await this.#savedSessionDb.push(
           `/${session.socket.connectionString}/${slot}`,
-          password ?? ""
+          password ?? "",
         );
 
         logger.info(`Connected to session at '${session.socket}'!`);
 
         return resolve(session);
       } catch (error) {
-        logger.error(
-          "Archipelago: Could not create Archipelago session",
-          error
-        );
-        reject(error.message ?? (error as string));
+        logger.error("Could not create Archipelago session", error);
+        reject("Could not create Archipelago Session");
       }
     });
   }
@@ -153,10 +149,10 @@ export class APClient extends EventEmitter {
 
     // Look for exact match
     const fullMatches = entries.filter(
-      (session) => session.toString().toLocaleLowerCase() === compareName
+      (session) => session.toString().toLocaleLowerCase() === compareName,
     );
     if (!!fullMatches.length) {
-      return fullMatches.shift();
+      return fullMatches.shift() ?? null;
     }
 
     // Look for partial match
@@ -168,7 +164,7 @@ export class APClient extends EventEmitter {
       );
     });
     if (!!partialMatches.length) {
-      return partialMatches.shift();
+      return partialMatches.shift() ?? null;
     }
 
     return null;
@@ -176,6 +172,6 @@ export class APClient extends EventEmitter {
 
   #sessionAlreadyExists = (sessionName: string): boolean =>
     Array.from(this.sessions.values()).some(
-      (session) => session.toString() === sessionName
+      (session) => session.toString() === sessionName,
     );
 }

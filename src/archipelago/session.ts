@@ -40,7 +40,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   readonly #missingLocations: Set<number> = new Set();
   readonly #receivedItems: Array<NetworkItem> = new Array();
 
-  #url: URL;
+  // #url: URL;
   #slot: string;
   #password: string;
 
@@ -48,7 +48,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   #hintPoints: number = 0;
   #hintCost: number = 0;
   #tags: Array<string> = [];
-  #itemHandling: ItemHandlingFlag;
+  // #itemHandling: ItemHandlingFlag;
 
   public readonly id: string;
   public readonly socket = new SocketService(this);
@@ -60,7 +60,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     client: APClient,
     url: string | URL,
     slot: string,
-    password?: string
+    password?: string,
   ) {
     super();
 
@@ -76,7 +76,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
       .on("sentPackets", (packets) => {
         packets.forEach((packet) => {
           if (packet.cmd === ClientCommand.ConnectUpdate) {
-            this.#itemHandling = packet.items_handling;
+            // this.#itemHandling = packet.items_handling;
             this.#tags = packet.tags;
           }
         });
@@ -88,8 +88,8 @@ export class APSession extends TypedEmitter<APSessionEvents> {
               (receivedItem) =>
                 incomingItem.item === receivedItem.item &&
                 incomingItem.player === receivedItem.player &&
-                incomingItem.location === receivedItem.location
-            )
+                incomingItem.location === receivedItem.location,
+            ),
         );
 
         if (!newItems.length) {
@@ -97,7 +97,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         }
 
         newItems.forEach((itemDetails) =>
-          this.#receivedItems.push(itemDetails)
+          this.#receivedItems.push(itemDetails),
         );
 
         this.emit("receivedNewItems", {
@@ -144,40 +144,43 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   }
 
   get itemTable(): Array<[item: string, count: number]> {
-    const items = this.getPackage(this.players.self.game).itemTable;
+    const items = this.getPackage(this.players.self.game)?.itemTable ?? {};
     return Object.entries(items).map(
       ([name, id]) =>
         [
           name,
           this.#receivedItems.filter((item) => item.item === id).length,
-        ] as [string, number]
+        ] as [string, number],
     );
   }
 
   get locationTable(): Array<[location: string, checked: boolean]> {
-    const locations = this.getPackage(this.players.self.game).locationTable;
+    const locations =
+      this.getPackage(this.players.self.game)?.locationTable ?? {};
     return Object.entries(locations)
       .filter(
         ([_name, id]) =>
-          this.#missingLocations.has(id) || this.#checkedLocations.has(id)
+          this.#missingLocations.has(id) || this.#checkedLocations.has(id),
       )
       .map(
         ([name, id]) =>
-          [name, this.#checkedLocations.has(id)] as [string, boolean]
+          [name, this.#checkedLocations.has(id)] as [string, boolean],
       );
   }
 
   get checkedLocations(): Array<[name: string, id: number]> {
-    const locations = this.getPackage(this.players.self.game).locationTable;
+    const locations =
+      this.getPackage(this.players.self.game)?.locationTable ?? {};
     return Object.entries(locations).filter(([_name, id]) =>
-      this.#checkedLocations.has(id)
+      this.#checkedLocations.has(id),
     );
   }
 
   get missingLocations(): Array<[name: string, id: number]> {
-    const locations = this.getPackage(this.players.self.game).locationTable;
+    const locations =
+      this.getPackage(this.players.self.game)?.locationTable ?? {};
     return Object.entries(locations).filter(([_name, id]) =>
-      this.#missingLocations.has(id)
+      this.#missingLocations.has(id),
     );
   }
 
@@ -195,28 +198,26 @@ export class APSession extends TypedEmitter<APSessionEvents> {
     return new Promise(async (resolve, reject) => {
       try {
         logger.info(
-          `Archipelago: Logging in to session at '${this.socket}' as '${
-            this.#slot
-          }'`
+          `Logging in to session at '${this.socket}' as '${this.#slot}'`,
         );
 
         const response = await this.socket.connect(false, reconnectOnError);
 
         const { url, packet: roomInfo } = response;
 
-        this.#url = url;
+        // this.#url = url;
         this.#hintCost = roomInfo.hint_cost;
 
         // Store local game info and fetch more to package service
         for (const [game, checksum] of Object.entries(
-          roomInfo.datapackage_checksums
+          roomInfo.datapackage_checksums,
         )) {
           this.#games.add(game);
           this.#checksums.set(game, checksum);
           await this.#client.packages.fetchPackage(
             this,
             [[game, checksum]],
-            true
+            true,
           );
         }
 
@@ -233,11 +234,11 @@ export class APSession extends TypedEmitter<APSessionEvents> {
         };
 
         const refusedListener = (packet: ConnectionRefusedPacket) => {
-          logger.error(`Archipelago: Connection refused`, packet.errors);
+          logger.error(`Connection refused`, packet.errors);
           reject(
             `Connection refused by Archipelago Server: ${packet.errors.join(
-              ", "
-            )}`
+              ", ",
+            )}`,
           );
         };
 
@@ -250,11 +251,11 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
             // Store checked/unchecked locations for cross-referencing
             packet.checked_locations.forEach((location) =>
-              this.#checkedLocations.add(location)
+              this.#checkedLocations.add(location),
             );
 
             packet.missing_locations.forEach((location) =>
-              this.#missingLocations.add(location)
+              this.#missingLocations.add(location),
             );
 
             this.#hintPoints = packet.hint_points;
@@ -266,19 +267,19 @@ export class APSession extends TypedEmitter<APSessionEvents> {
           })
           .catch((error) => {
             logger.info(
-              JSON.stringify(`Login error catch: ${JSON.stringify(error)}`)
+              JSON.stringify(`Login error catch: ${JSON.stringify(error)}`),
             );
             reject(error.message);
           });
       } catch (error) {
         logger.error(
           `Failed to connect to Archipelago Session at '${this.socket}'`,
-          error
+          error,
         );
         reject(
           `Failed to login to Archipelago Session at '${this.socket}' as '${
             this.#slot
-          }', ${error}`
+          }', ${error}`,
         );
       }
     });
@@ -298,7 +299,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   public triggerDeathLink = async (cause: string) => {
     if (this.#tags.includes(Tag.DeathLink)) {
       logger.warn(
-        `Archipelago: Triggering DeathLink on session '${this}' that does not have DeathLink enabled.`
+        `Triggering DeathLink on session '${this}' that does not have DeathLink enabled.`,
       );
     }
 
@@ -340,11 +341,13 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   public getItemName(
     game: string,
     id: number | string,
-    fallback: boolean = true
+    fallback: boolean = true,
   ): string {
     try {
       const checksum = this.#getChecksum(game);
-      return this.#client.packages.getItemName(game, checksum, id, fallback);
+      return (
+        this.#client.packages.getItemName(game, checksum, id, fallback) ?? ""
+      );
     } catch (error) {
       logger.error(error);
       return "Unknown Item";
@@ -354,15 +357,13 @@ export class APSession extends TypedEmitter<APSessionEvents> {
   public getLocationName(
     game: string,
     id: number | string,
-    fallback: boolean = true
+    fallback: boolean = true,
   ): string {
     try {
       const checksum = this.#getChecksum(game);
-      return this.#client.packages.getLocationName(
-        game,
-        checksum,
-        id,
-        fallback
+      return (
+        this.#client.packages.getLocationName(game, checksum, id, fallback) ??
+        ""
       );
     } catch (error) {
       logger.error(error);
@@ -392,7 +393,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
   #onDisconnected = async (
     reconnect: boolean,
-    timeout: number = ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS
+    timeout: number = ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS,
   ) => {
     if (!reconnect) {
       await this.close();
@@ -401,7 +402,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
     this.messages.sendLog(
       `Disconnected from the Archipelago server, reconnecting in ${timeout} seconds...`,
-      "warning"
+      "warning",
     );
 
     setTimeout(async () => {
@@ -410,7 +411,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
       } catch (error) {
         const nextTimeout = Math.min(
           timeout + ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS,
-          60
+          60,
         );
         await this.#onDisconnected(reconnect, nextTimeout);
       }
@@ -426,7 +427,7 @@ export class APSession extends TypedEmitter<APSessionEvents> {
 
     if (!checksum) {
       throw new Error(
-        `Archipelago: Could not get checksum for game '${game}' in session '${this}'`
+        `Could not get checksum for game '${game}' in session '${this}'`,
       );
     }
 
