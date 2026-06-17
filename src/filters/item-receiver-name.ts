@@ -1,6 +1,6 @@
 import firebot, { EventFilter } from "@crowbartools/firebot-types";
 import { getArchipelagoFilterEvent } from "../archipelago/helpers";
-import { FirebotEvents } from "../enums";
+import { FirebotEvents } from "../types";
 
 export const ItemReceiverNameEventFilter: EventFilter =
   firebot.eventFilterFactory.createTextFilter({

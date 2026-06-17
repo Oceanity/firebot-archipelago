@@ -6,7 +6,6 @@ import {
   SocketEvents,
 } from "archipelago.js";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import { FirebotEvents } from "./enums";
 import {
   getDeathLinkMetadata,
   getHintData,
@@ -14,6 +13,7 @@ import {
   getPlayerMetadata,
   getSessionMetadata,
 } from "./helpers";
+import { FirebotEvents } from "./types";
 
 type SocketEventDefinition = {
   [K in keyof SocketEvents]: {

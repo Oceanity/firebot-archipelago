@@ -1,4 +1,4 @@
-import { ClientStatus } from "./enums";
+import { clientStatuses } from "archipelago.js";
 import { argsString } from "./helpers";
 import { archipelago } from "./main";
 import { ChatCommandDefinition } from "./types";
@@ -44,107 +44,120 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
 
   "/ready": {
     description: "Send ready status to server.",
-    callback: (session) => {
-      session.client.updateStatus(ClientStatus.Ready);
+    callback: async (session) => {
+      const currentStatus = await session.client.players.self.fetchStatus();
+
+      if (currentStatus === clientStatuses.ready) {
+        session.messages.sendLog("You are already marked as ready", "info");
+        return;
+      }
+
+      session.client.updateStatus(clientStatuses.ready);
+
+      const newStatus = await session.client.players.self.fetchStatus();
+      if (newStatus !== clientStatuses.ready) {
+        session.messages.sendLog(
+          "Unable to update status on player",
+          "warning",
+        );
+        return;
+      }
+
+      session.messages.sendLog("You are now marked as ready!", "info");
     },
   },
 
-  // "/items": {
-  //   args: {
-  //     search: {
-  //       optional: true,
-  //     },
-  //   },
-  //   description: "List all item names for the currently running game.",
-  //   callback: async (sessionId, ...search) => {
-  //     const itemTable = archipelago.getItemTable(sessionId);
+  "/items": {
+    args: {
+      search: {
+        optional: true,
+      },
+    },
+    description: "List all item names for the currently running game.",
+    callback: async (session, ...search) => {
+      const items = session.getItemsAndFoundCount(search?.join(" "));
 
-  //     if (!Object.keys(itemTable).length) {
-  //       // TODO: No items message
-  //     }
+      if (!items.length) {
+        session.messages.sendLog(
+          `No items found${!!search ? ` matching ${search}` : ""}`,
+          "warning",
+        );
 
-  //     const items = searchTuples(
-  //       session.client.game.sort(([a], [b]) => a.localeCompare(b)),
-  //       search?.join(" ") ?? undefined,
-  //     );
+        return;
+      }
 
-  //     if (!items.length) {
-  //       session.messages.sendLog(
-  //         `No items found${!!search ? ` matching ${search}` : ""}`,
-  //         "warning",
-  //       );
+      session.messages.push({
+        text: items
+          .map(([name, count]) =>
+            count > 0 ? `${name}${count > 1 ? ` (x${count})` : ""} ✓` : name,
+          )
+          .join("\n"),
+        html: `<ul>${items
+          .map(([name, count]) =>
+            count > 0
+              ? `<li class="item-entry received">${name}${
+                  count > 1 ? ` (x${count})` : ""
+                } ✓</li>`
+              : `<li class="item-entry missing">${name}</li>`,
+          )
+          .join("")}</ul>`,
+        nodes: [],
+      });
+    },
+  },
 
-  //       return;
-  //     }
+  "/locations": {
+    description: "List all location names for the currently running game.",
+    args: {
+      search: {
+        optional: true,
+      },
+    },
+    callback: async (session, ...search) => {
+      const locations = session.getLocationsAndCheckedStatus(search?.join(" "));
 
-  //     session.messages.push({
-  //       text: items.map(([name]) => name).join("\n"),
-  //       html: `<ul>${items
-  //         .map(([name, count]) =>
-  //           count > 0
-  //             ? `<li class="item-entry received">${name}${
-  //                 count > 1 ? ` (x${count})` : ""
-  //               } ✓</li>`
-  //             : `<li class="item-entry missing">${name}</li>`,
-  //         )
-  //         .join("")}</ul>`,
-  //       nodes: [],
-  //     });
-  //   },
-  // },
+      if (!locations.length) {
+        session.messages.sendLog(
+          `No locations found${!!search ? ` matching ${search}` : ""}`,
+          "warning",
+        );
 
-  // "/locations": {
-  //   description: "List all location names for the currently running game.",
-  //   args: {
-  //     search: {
-  //       optional: true,
-  //     },
-  //   },
-  //   callback: async (sessionId, ...search) => {
-  //     const session = client.sessions.get(sessionId);
-  //     if (!session) {
-  //       return;
-  //     }
+        return;
+      }
 
-  //     const locations = searchTuples(
-  //       session.locationTable.sort(([a], [b]) => a.localeCompare(b)),
-  //       search?.join(" ") ?? undefined,
-  //     );
+      session.messages.push({
+        text: locations
+          .map(([name, checked]) => `${name}${checked ? " ✓" : ""}`)
+          .join("\n"),
+        html: `<ul>${locations
+          .map(
+            ([name, checked]) =>
+              `<li class="location-entry ${
+                checked ? "" : "un"
+              }checked">${name}</li>`,
+          )
+          .join("")}</ul>`,
+        nodes: [],
+      });
+    },
+  },
 
-  //     if (!locations.length) {
-  //       session.messages.sendLog(
-  //         `No locations found${!!search ? ` matching ${search}` : ""}`,
-  //         "warning",
-  //       );
-
-  //       return;
-  //     }
-
-  //     session.messages.push({
-  //       text: locations.map(([name]) => name).join("\n"),
-  //       html: `<ul>${locations
-  //         .map(
-  //           ([name, checked]) =>
-  //             `<li class="location-entry ${
-  //               checked ? "" : "un"
-  //             }checked">${name}</li>`,
-  //         )
-  //         .join("")}</ul>`,
-  //       nodes: [],
-  //     });
-  //   },
-  // },
-
+  // For some reason no players are getting fetched on this, unsure why
   // "/players": {
   //   description:
   //     "Get a list of all players connected to session and what game they are playing",
-  //   callback: async (sessionName) => {
-  //     const session = client.sessions.get(sessionName);
-  //     if (!session) {
+  //   callback: async (session) => {
+  //     session.getPlayers();
+  //     const teams = session.client.players.teams;
+
+  //     if (!teams.length) {
+  //       session.messages.sendLog(
+  //         `No players found for current session`,
+  //         "warning",
+  //       );
+
   //       return;
   //     }
-
-  //     const teams = session.players.teams;
 
   //     session.messages.push({
   //       text: teams
@@ -152,19 +165,19 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
   //           (players, teamIndex) =>
   //             `Team ${teamIndex + 1}\n${players
   //               .map((player) => `> ${player.alias} - ${player.game}`)
-  //               .join("\n")}`
+  //               .join("\n")}`,
   //         )
   //         .join("\n"),
   //       html: teams
   //         .map(
   //           (players, teamIndex) =>
-  //             `<ul class="team team-${teamIndex + 1}">
+  //             `<p>Team #${teamIndex + 1}</p><ul class="team team-${teamIndex + 1}">
   //         ${players
   //           .map((player, playerIndex) => {
   //             `<li class="player player-${teamIndex}-${playerIndex}">${player.alias} - ${player.game}</li>`;
   //           })
   //           .join("")}
-  //         </ul>`
+  //         </ul>`,
   //         )
   //         .join(""),
   //       nodes: [],

@@ -6,20 +6,21 @@ import {
 } from "../constants";
 
 import firebot from "@crowbartools/firebot-types";
-import { Client, itemClassifications, MessageNode } from "archipelago.js";
-import { FirebotEvents } from "../enums";
+import { itemClassifications, MessageNode } from "archipelago.js";
 import { getMessageMetadata, getSessionMetadata } from "../helpers";
-import { SessionStatus, StateLogMessage } from "../types";
-import { StateSession } from "./state-session";
+import { FirebotEvents, SessionStatus, StateLogMessage } from "../types";
+import { ArchipelagoSession } from "./archipelago-session";
 
 export class MessageService {
-  readonly #session: StateSession;
+  readonly #session: ArchipelagoSession;
 
   #chatHistory: Array<string> = [];
   #messages: Array<StateLogMessage> = [];
 
-  constructor(session: StateSession) {
+  constructor(session: ArchipelagoSession) {
     this.#session = session;
+    session.client.messages.on("message", this.#onMessage);
+    session.client.deathLink.on("deathReceived", this.#onDeathLink);
   }
 
   public get log(): Array<StateLogMessage> {
@@ -36,11 +37,6 @@ export class MessageService {
 
   public get chatHistory(): Array<string> {
     return this.#chatHistory;
-  }
-
-  async init(client: Client) {
-    client.messages.on("message", this.#onMessage);
-    client.deathLink.on("deathReceived", this.#onDeathLink);
   }
 
   sendLog(message: string, level: "info" | "warning" | "error" = "info") {
@@ -66,9 +62,15 @@ export class MessageService {
         break;
     }
 
+    const html = `<span class="log ${color}">${message}</span>`;
+    firebot.frontendCommunicator.fireEventAsync(
+      "oceanity:archipelago:got-html-log-message",
+      { sessionId: this.#session.id, html },
+    );
+
     this.#messages.push({
       text: message,
-      html: `<span class="log ${color}">${message}</span>`,
+      html,
     });
   }
 

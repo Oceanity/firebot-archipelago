@@ -1,8 +1,21 @@
 import { MessageNode } from "archipelago.js";
-import { StateSession } from "./archipelago/state-session";
+import { ArchipelagoSession } from "./archipelago/archipelago-session";
+
+export enum FirebotEvents {
+  Connected = "connected",
+  Countdown = "countdown",
+  DeathLink = "death-link",
+  Disconnected = "disconnected",
+  HintsUpdated = "hints-updated",
+  InitialItems = "initial-items",
+  Message = "message",
+  ReceivedItems = "received-items",
+  SentItems = "sent-items",
+  SlotData = "slot-data",
+}
 
 export type State = {
-  sessions: Record<string, StateSession>;
+  sessions: Record<string, ArchipelagoSession>;
 };
 
 // Object containing a leaner State Session for purpose of passing to frontend
@@ -15,12 +28,7 @@ export type SessionConnection = {
   status: SessionStatus;
 };
 
-export type StoredSession = {
-  id: string;
-  url: string;
-  name: string;
-  password?: string;
-};
+export type StoredSession = Omit<SessionConnection, "handle" | "status">;
 
 export type StateLogMessage = {
   text: string;
@@ -50,7 +58,7 @@ export type APCommandOptions = {
   args?: Record<string, { optional: boolean }>;
   description: string;
   callback: (
-    session: StateSession,
+    session: ArchipelagoSession,
     ...args: Array<string>
   ) => void | Promise<void>;
 };

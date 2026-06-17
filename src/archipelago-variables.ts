@@ -1,6 +1,6 @@
 import firebot, { ReplaceVariable } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import { FirebotEvents } from "./enums";
+import { FirebotEvents } from "./types";
 
 export const AllArchipelagoVariables: Array<ReplaceVariable> = [
   firebot.variableFactory.createEventDataVariable({

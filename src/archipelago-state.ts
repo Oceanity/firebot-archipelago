@@ -1,10 +1,10 @@
 import firebot from "@crowbartools/firebot-types";
-import { StateSession } from "./archipelago/state-session";
+import { ArchipelagoSession } from "./archipelago/archipelago-session";
 import { ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME } from "./constants";
 import { ServiceResponse, SessionConnection, StoredSession } from "./types";
 
 export class ArchipelagoState {
-  #sessions: Array<StateSession> = [];
+  #sessions: Array<ArchipelagoSession> = [];
 
   constructor() {}
 
@@ -27,11 +27,11 @@ export class ArchipelagoState {
     }));
   }
 
-  getFirstSession(): StateSession | null {
+  getFirstSession(): ArchipelagoSession | null {
     return !!this.#sessions.length ? this.#sessions[0] : null;
   }
 
-  findSession(sessionId: string): StateSession | null {
+  findSession(sessionId: string): ArchipelagoSession | null {
     const session = this.#sessions.find((session) => session.id === sessionId);
     return session ?? null;
   }
@@ -59,8 +59,8 @@ export class ArchipelagoState {
       return fallback;
     }
     return (
-      session.client.package.findPackage(session.client.players.self.game)
-        ?.itemTable ?? fallback
+      session.client.package.findPackage(session.client.game)?.itemTable ??
+      fallback
     );
   }
 
@@ -73,8 +73,8 @@ export class ArchipelagoState {
     name: string,
     password?: string,
     id?: string,
-  ): Promise<ServiceResponse<StateSession>> {
-    const session = new StateSession(url, name, password, id);
+  ): Promise<ServiceResponse<ArchipelagoSession>> {
+    const session = new ArchipelagoSession(url, name, password, id);
 
     const response = await session.connect();
     if (!response.success) {
@@ -102,6 +102,16 @@ export class ArchipelagoState {
     }
 
     const result = await session.disconnect();
+    if (!result) {
+      return false;
+    }
+
+    if (deleteFromStore) {
+      this.#sessions.splice(
+        this.#sessions.findIndex((session) => session.id === sessionId),
+      );
+      await this.#saveSessionsToStorage();
+    }
 
     return true;
   }
@@ -142,7 +152,7 @@ export class ArchipelagoState {
     return false;
   }
 
-  async #loadSessionsFromStorage(): Promise<Array<StateSession>> {
+  async #loadSessionsFromStorage(): Promise<Array<ArchipelagoSession>> {
     try {
       const contents = await firebot.storage.readTextFile(
         ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME,
@@ -187,10 +197,10 @@ export class ArchipelagoState {
             return response.data;
           }),
         )
-      ).filter((s): s is StateSession => s !== null);
+      ).filter((s): s is ArchipelagoSession => s !== null);
     } catch (error) {
       firebot.logger.error("Error loading sessions from local storage", error);
-      const fallback: Array<StateSession> = [];
+      const fallback: Array<ArchipelagoSession> = [];
       firebot.storage.writeFile(
         ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME,
         JSON.stringify(fallback),

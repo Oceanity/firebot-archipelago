@@ -6,15 +6,20 @@ import {
   ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME,
   ARCHIPELAGO_PLUGIN_ID,
 } from "../constants";
-import { FirebotEvents } from "../enums";
 import {
   hookArchipelagoEvents,
   unhookArchipelagoEvents,
 } from "../event-handler";
-import { ServiceResponse, SessionConnection, SessionStatus } from "../types";
+import { searchTuples } from "../helpers";
+import {
+  FirebotEvents,
+  ServiceResponse,
+  SessionConnection,
+  SessionStatus,
+} from "../types";
 import { MessageService } from "./message-service";
 
-export class StateSession {
+export class ArchipelagoSession {
   readonly #client: Client;
   #id: string;
   #url: string | URL;
@@ -84,7 +89,7 @@ export class StateSession {
     this.#status = SessionStatus.Initialized;
   }
 
-  async connect(): Promise<ServiceResponse<StateSession>> {
+  async connect(): Promise<ServiceResponse<ArchipelagoSession>> {
     this.#status = SessionStatus.Connecting;
 
     firebot.logger.info(
@@ -115,6 +120,7 @@ export class StateSession {
         settings,
       );
 
+      firebot.logger.info("Got session info");
       firebot.logger.info(JSON.stringify(response));
 
       // Saturate connection with better information
@@ -129,10 +135,8 @@ export class StateSession {
 
       return { success: true, data: this };
     } catch (error) {
-      firebot.logger.error(
-        `Could not connect to Archipelago Server at '${this.url}' as '${this.name}', password: '${this.password}'`,
-        error,
-      );
+      const errorMessage = `Could not connect to '${this.#url}' as '${this.#name}'`;
+      firebot.logger.error(errorMessage, error);
 
       this.#status = SessionStatus.CouldNotConnect;
 
@@ -146,10 +150,7 @@ export class StateSession {
 
       return {
         success: false,
-        errors: [
-          (error as Error).message ??
-            `Could not connect to '${this.url}' as '${this.name}'.`,
-        ],
+        errors: [(error as Error).message ?? errorMessage],
       };
     }
   }
@@ -160,12 +161,11 @@ export class StateSession {
     }
 
     firebot.logger.info(
-      `Disconnecting from AP Session with Id '${this.id}'...`,
+      `Disconnecting from AP Session with Id '${this.#id}'...`,
     );
 
     try {
-      // TODO: Deconstruct listeners
-      await unhookArchipelagoEvents(this.id, this.#client);
+      await unhookArchipelagoEvents(this.#id, this.#client);
 
       this.#client.socket.disconnect();
       this.#status = SessionStatus.Disconnected;
@@ -173,25 +173,85 @@ export class StateSession {
       // If Firebot is closing these will throw as the global firebot is deconstructed
       firebot?.frontendCommunicator?.fireEventAsync(
         "oceanity:archipelago:session-closed",
-        this.id,
+        this.#id,
       );
 
       firebot?.events?.trigger(
         ARCHIPELAGO_PLUGIN_ID,
         FirebotEvents.Disconnected,
         {
-          apSessionId: this.id,
+          apSessionId: this.#id,
         },
       );
 
       return true;
     } catch (error) {
       firebot.logger.error(
-        `Error disconnecting AP Session with Id '${this.id}'`,
+        `Error disconnecting AP Session with Id '${this.#id}'`,
         error,
       );
     }
 
     return false;
+  }
+
+  getItemsAndFoundCount(search?: string): Array<[string, number]> {
+    const itemTable =
+      this.#client.package.findPackage(this.#client.game)?.itemTable ?? null;
+
+    if (!itemTable) {
+      return [];
+    }
+
+    const items = searchTuples(
+      Object.entries(itemTable).sort(([a], [b]) => a.localeCompare(b)),
+      search,
+    );
+
+    if (!items.length) {
+      return [];
+    }
+
+    const foundItems = this.#client.items.received;
+    return items.map(([item, id]) => {
+      return [
+        item,
+        foundItems.filter((foundItem) => foundItem.id === id).length,
+      ];
+    });
+  }
+
+  getLocationsAndCheckedStatus(search?: string): Array<[string, boolean]> {
+    const locationTable =
+      this.#client.package.findPackage(this.#client.game)?.locationTable ??
+      null;
+
+    if (!locationTable) {
+      return [];
+    }
+
+    const locations = searchTuples(
+      Object.entries(locationTable).sort(([a], [b]) => a.localeCompare(b)),
+      search,
+    );
+
+    if (!locations.length) {
+      return [];
+    }
+
+    const checkedLocations = this.#client.room.checkedLocations;
+    return locations.map(([location, id]) => [
+      location,
+      checkedLocations.includes(id),
+    ]);
+  }
+
+  getPlayers() {
+    this.#client.players.teams.forEach((players) => {
+      firebot.logger.info(JSON.stringify(players));
+      players.forEach((player) => {
+        firebot.logger.info(JSON.stringify(player));
+      });
+    });
   }
 }

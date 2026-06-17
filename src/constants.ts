@@ -1,6 +1,6 @@
 import { EventSource } from "@crowbartools/firebot-types";
 import * as packageJson from "../package.json";
-import { FirebotEvents } from "./enums";
+import { FirebotEvents } from "./types";
 
 export const {
   displayName: ARCHIPELAGO_PLUGIN_NAME,

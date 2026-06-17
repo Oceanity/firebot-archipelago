@@ -16,16 +16,24 @@ export const ArchipelagoUIExtension: UIExtension = {
       template: template,
       //@ts-expect-error ts(7006)
       controller: ($scope, backendCommunicator, ngToast) => {
-        $scope.alerts = [];
-        $scope.scrollGlued = true;
-        $scope.forceGlued = false;
-        $scope.isConnecting = false;
+        $scope.form = {
+          hostname: "",
+          slot: "",
+          password: "",
+          chatText: "",
+        };
+
+        $scope.ui = {
+          scrollGlued: true,
+          forceGlued: false,
+          isConnecting: false,
+        };
         $scope.sessionData = {};
         $scope.messages = {};
 
         $scope.selectSlot = (sessionId: string) => {
           if (!sessionId) {
-            $scope.selectedSession = null;
+            $scope.currentSession = undefined;
             return;
           }
 
@@ -40,7 +48,9 @@ export const ArchipelagoUIExtension: UIExtension = {
               });
           }
 
-          $scope.selectedSession = sessionId;
+          $scope.currentSession = $scope.sessions.find(
+            (session: SessionConnection) => session.id === sessionId,
+          );
           if (!$scope.messages[sessionId]) {
             backendCommunicator
               .fireEventAsync(
@@ -52,8 +62,8 @@ export const ArchipelagoUIExtension: UIExtension = {
               });
           }
 
-          $scope.chatText = "";
-          $scope.chatHistoryIndex = null;
+          $scope.form.chatText = "";
+          $scope.chatHistoryIndex = undefined;
         };
 
         // Load current data
@@ -81,7 +91,7 @@ export const ArchipelagoUIExtension: UIExtension = {
             $scope.sessions.splice(sessionIndex, 1);
             $scope.sessionData[sessionId] = undefined;
 
-            if ($scope.selectedSession === sessionId) {
+            if ($scope.currentSession.id === sessionId) {
               const sessionIds = $scope.sessions.map(
                 (session: StoredSession) => session.id,
               );
@@ -119,24 +129,24 @@ export const ArchipelagoUIExtension: UIExtension = {
         );
 
         $scope.connect = async () => {
-          if (!$scope.hostname) {
+          if (!$scope.form.hostname) {
             return $scope.sendToast("Hostname is required.", "danger");
-          } else if (!$scope.slot) {
+          } else if (!$scope.form.slot) {
             return $scope.sendToast("Slot name is required.", "danger");
           }
 
-          $scope.isConnecting = true;
+          $scope.ui.isConnecting = true;
 
           backendCommunicator
             .fireEventAsync(
               "oceanity:archipelago:connect",
-              $scope.hostname,
-              $scope.slot,
-              $scope.password,
+              $scope.form.hostname,
+              $scope.form.slot,
+              $scope.form.password,
             )
             .then((response: ServiceResponse<SessionConnection>) => {
               if (!response.success) {
-                $scope.isConnecting = false;
+                $scope.ui.isConnecting = false;
                 return $scope.sendToast(
                   response.errors?.join(", "),
                   "danger",
@@ -165,10 +175,10 @@ export const ArchipelagoUIExtension: UIExtension = {
               });
               $scope.selectSlot(id);
 
-              $scope.hostname = "";
-              $scope.slot = "";
-              $scope.password = "";
-              $scope.isConnecting = false;
+              $scope.form.hostname = "";
+              $scope.form.slot = "";
+              $scope.form.password = "";
+              $scope.ui.isConnecting = false;
 
               $scope.sendToast(
                 `Successfully connected to '${response.data.handle}'`,
@@ -197,16 +207,19 @@ export const ArchipelagoUIExtension: UIExtension = {
             case 38: {
               $event.preventDefault();
               backendCommunicator
-                .fireEventAsync("oceanity:archipelago:get-chat-history", {
-                  sessionId: $scope.selectedSession,
-                  entry:
-                    $scope.chatHistoryIndex !== undefined
-                      ? $scope.chatHistoryIndex - 1
-                      : undefined,
-                })
+                .fireEventAsync(
+                  "oceanity:archipelago:get-chat-history",
+                  $scope.currentSession.id,
+                  $scope.chatHistoryIndex !== undefined
+                    ? $scope.chatHistoryIndex - 1
+                    : undefined,
+                )
                 .then((data: [string, number]) => {
                   const [message, entry] = data;
-                  $scope.chatText = message;
+                  if (entry === -1) {
+                    return;
+                  }
+                  $scope.form.chatText = message;
                   $scope.chatHistoryIndex = entry;
                 });
               break;
@@ -220,14 +233,19 @@ export const ArchipelagoUIExtension: UIExtension = {
               }
 
               backendCommunicator
-                .fireEventAsync("oceanity:archipelago:get-chat-history", {
-                  sessionId: $scope.selectedSession,
-                  entry: $scope.chatHistoryIndex + 1,
-                })
+                .fireEventAsync(
+                  "oceanity:archipelago:get-chat-history",
+                  $scope.currentSession.id,
+                  $scope.chatHistoryIndex !== undefined
+                    ? $scope.chatHistoryIndex + 1
+                    : undefined,
+                )
                 .then((data: [string, number]) => {
                   const [message, entry] = data;
-
-                  $scope.chatText = message;
+                  if (entry === -1) {
+                    return;
+                  }
+                  $scope.form.chatText = message;
                   $scope.chatHistoryIndex = entry;
                 });
               break;
@@ -244,24 +262,29 @@ export const ArchipelagoUIExtension: UIExtension = {
           }
         };
 
+        $scope.count = 0;
         $scope.sendMessage = async () => {
-          if ($scope.chatText === "") {
+          $scope.debug = `Triggered ${$scope.count++} times, message: ${$scope.form.chatText}`;
+
+          if ($scope.form.chatText === "") {
             return;
           }
 
           backendCommunicator
             .fireEventAsync(
               "oceanity:archipelago:send-message",
-              $scope.selectedSession,
-              $scope.chatText,
+              $scope.currentSession.id,
+              $scope.form.chatText,
             )
             .then(() => {
-              $scope.chatText = "";
+              $scope.form.chatText = "";
               $scope.chatHistoryIndex = undefined;
 
               // Toggle forceGlued to move to bottom of box
-              $scope.forceGlued = true;
-              $scope.forceGlued = false;
+              $scope.$evalAsync(() => {
+                $scope.ui.forceGlued = true;
+                $scope.ui.forceGlued = false;
+              });
             });
         };
 

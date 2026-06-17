@@ -125,18 +125,28 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
       return archipelago.findSession(sessionId)?.messages.htmlLog ?? [];
     },
   },
-  // firebot.frontendCommunicator.onAsync(
-  //   "archipelago:getChatHistory",
-  //   async (data: { sessionId: string; entry?: number }) =>
-  //     client.sessions
-  //       .get(data.sessionId)
-  //       ?.messages.getChatHistory(data.entry) ?? ["", -1],
-  // );
-  // firebot.frontendCommunicator.onAsync(
-  //   "archipelago:sendMessage",
-  //   async (data: { sessionId: string; message: string }) =>
-  //     client.sessions.get(data.sessionId)?.messages.sendChat(data.message),
-  // );
+  {
+    eventName: "get-chat-history",
+    useAsync: true,
+    handler: async (...args: Array<unknown>): Promise<[string, number]> => {
+      const [sessionId, entry] = args;
+
+      firebot.logger.info(`${entry}`);
+
+      if (typeof sessionId !== "string") {
+        firebot.logger.warn(
+          "Invalid 'sessionId' provided to frontend Get Chat History",
+        );
+        return ["", -1];
+      }
+
+      return (
+        archipelago
+          .findSession(sessionId)
+          ?.messages.getChatHistoryEntry(entry as number) ?? ["", -1]
+      );
+    },
+  },
 ].map((listener) => {
   listener.eventName = `${ARCHIPELAGO_PLUGIN_ID}:${listener.eventName}`;
   return listener;

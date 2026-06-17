@@ -16,29 +16,15 @@
   "devDependencies": {
     "@crowbartools/firebot-types": "^5.67.0-alpha22",
     "@oceanity/firebot-helpers": "^1.1.8",
-    "@types/fs-extra": "^11.0.4",
     "@types/jest": "^30.0.0",
-    "@types/jquery": "^3.5.33",
     "@types/node": "^24.13.2",
-    "@types/ws": "^8.18.1",
     "archipelago.js": "^2.1.0",
-    "bufferutil": "^4.0.9",
-    "cross-env": "^10.1.0",
-    "fs-extra": "^11.3.2",
     "fuse.js": "^7.4.2",
-    "html-loader": "^5.1.0",
     "jest": "^30.4.2",
-    "node": "^24.16.0",
-    "node-json-db": "^2.6.0",
-    "tiny-typed-emitter": "^2.1.0",
     "ts-jest": "^29.4.11",
-    "ts-loader": "^9.5.4",
-    "ts-node": "^10.9.2",
-    "tsdown": "^0.22.2",
+    "tsdown": "^0.22.3",
     "typescript": "^5.9.3",
-    "utf-8-validate": "^6.0.5",
-    "uuid": "^13.0.0",
-    "ws": "^8.18.3"
+    "uuid": "^14.0.0"
   },
   "volta": {
     "node": "24.10.0"
