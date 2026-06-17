@@ -1,71 +1,43 @@
-import { Client } from "archipelago.js";
-import {
-  ItemClassification,
-  MessageColor,
-  MessagePartType,
-  Permission,
-  SlotType,
-} from "./enums";
-import {
-  AdminCommandResultJSONPacket,
-  BouncedPacket,
-  BouncePacket,
-  ChatJSONPacket,
-  CollectJSONPacket,
-  CommandResultJSONPacket,
-  ConnectedPacket,
-  ConnectionRefusedPacket,
-  ConnectPacket,
-  ConnectUpdatePacket,
-  CountdownJSONPacket,
-  DataPackagePacket,
-  GetDataPackagePacket,
-  GoalJSONPacket,
-  HintJSONPacket,
-  InvalidPacketPacket,
-  ItemCheatJSONPacket,
-  ItemSendJSONPacket,
-  JoinJSONPacket,
-  LocationInfoPacket,
-  PartJSONPacket,
-  ReceivedItemsPacket,
-  ReleaseJSONPacket,
-  RetrievedPacket,
-  RoomInfoPacket,
-  RoomUpdatePacket,
-  SayPacket,
-  ServerChatJSONPacket,
-  SetReplyPacket,
-  StatusUpdatePacket,
-  TagsChangedJSONPacket,
-  TutorialJSONPacket,
-} from "./interfaces";
+import { Client, MessageNode } from "archipelago.js";
+import { Permission, SlotType } from "./enums";
 
 export type State = {
   sessions: Record<string, StateSession>;
 };
 
 export type SessionConnection = {
+  id: string;
   name: string;
   password?: string;
   url: string | URL;
   handle: string;
 };
 
-export type StateSession = SessionConnection & {
-  client: Client;
+export type SessionConnectionAndStatus = SessionConnection & {
   status: SessionStatus;
 };
 
+export type StateSession = SessionConnectionAndStatus & {
+  client: Client;
+  messages: Array<StateLogMessage>;
+  chatHistory: Array<string>;
+};
+
 export type StoredSession = {
+  id: string;
   url: string;
   name: string;
   password?: string;
 };
 
-export type RetrievedSession = StateSession & { id: string };
+export type StateLogMessage = {
+  text: string;
+  html: string;
+  nodes: Array<MessageNode>;
+};
 
 export enum SessionStatus {
+  Connecting = "connecting",
   Connected = "connected",
   CouldNotConnect = "could-not-connect",
   Disconnected = "disconnected",
@@ -91,12 +63,6 @@ export type GamePackage = {
 export type ArchipelagoIntegrationSettings = {
   connection: APConnectionDetails;
 };
-
-export enum ItemType {
-  Progress = "progress",
-  Useful = "useful",
-  Trap = "trap",
-}
 
 export type DeathLinkData = {
   source: string;
@@ -151,28 +117,6 @@ export type PermissionTable = {
     | Permission.Goal;
 };
 
-export type ClientPacket =
-  | BouncePacket
-  | ConnectPacket
-  | ConnectUpdatePacket
-  | GetDataPackagePacket
-  | SayPacket
-  | StatusUpdatePacket;
-
-export type ServerPacket =
-  | BouncedPacket
-  | ConnectedPacket
-  | ConnectionRefusedPacket
-  | DataPackagePacket
-  | InvalidPacketPacket
-  | LocationInfoPacket
-  | PrintJSONPacket
-  | ReceivedItemsPacket
-  | RetrievedPacket
-  | RoomInfoPacket
-  | RoomUpdatePacket
-  | SetReplyPacket;
-
 export type APConnectionDetails = {
   hostname: string;
   slot: string;
@@ -204,56 +148,3 @@ export type ServiceResponse<T> =
       data?: never;
       errors: string[];
     };
-
-//#region PrintJSON Message Parts
-
-export type ColorJSONMessagePart = {
-  readonly type: MessagePartType.Color;
-  readonly text: string;
-  readonly color: MessageColor;
-};
-
-export type ItemJSONMessagePart = {
-  readonly type: MessagePartType.ItemId | MessagePartType.ItemName;
-  readonly text: string;
-  readonly flags: ItemClassification;
-  readonly player: number;
-};
-
-export type LocationJSONMessagePart = {
-  readonly type: MessagePartType.LocationId | MessagePartType.LocationName;
-  readonly text: string;
-  readonly player: number;
-};
-
-export type TextJSONMessagePart = {
-  readonly type?:
-    | MessagePartType.Text
-    | MessagePartType.EntranceName
-    | MessagePartType.PlayerId
-    | MessagePartType.PlayerName;
-  readonly text: string;
-};
-
-export type JSONMessagePart =
-  | ColorJSONMessagePart
-  | ItemJSONMessagePart
-  | LocationJSONMessagePart
-  | TextJSONMessagePart;
-
-export type PrintJSONPacket =
-  | AdminCommandResultJSONPacket
-  | ChatJSONPacket
-  | CollectJSONPacket
-  | CommandResultJSONPacket
-  | CountdownJSONPacket
-  | GoalJSONPacket
-  | HintJSONPacket
-  | ItemSendJSONPacket
-  | ItemCheatJSONPacket
-  | JoinJSONPacket
-  | PartJSONPacket
-  | ReleaseJSONPacket
-  | ServerChatJSONPacket
-  | TagsChangedJSONPacket
-  | TutorialJSONPacket;

@@ -1,6 +1,11 @@
 import { UIExtension } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import { RetrievedSession, ServiceResponse, SessionConnection } from "./types";
+import {
+  ServiceResponse,
+  SessionConnection,
+  StateSession,
+  StoredSession,
+} from "./types";
 import template from "./ui-extension.html";
 
 export const ArchipelagoUIExtension: UIExtension = {
@@ -17,15 +22,15 @@ export const ArchipelagoUIExtension: UIExtension = {
       //@ts-expect-error ts(7006)
       controller: ($scope, backendCommunicator, ngToast) => {
         $scope.alerts = [];
-        $scope.sessionData = {};
-        $scope.messages = {};
         $scope.scrollGlued = true;
         $scope.forceGlued = false;
         $scope.isConnecting = false;
+        $scope.sessionData = {};
+        $scope.messages = {};
 
         $scope.selectSlot = (sessionId: string) => {
           if (!sessionId) {
-            delete $scope.selectedSession;
+            $scope.selectedSession = null;
             return;
           }
 
@@ -52,51 +57,58 @@ export const ArchipelagoUIExtension: UIExtension = {
               });
           }
 
-          delete $scope.chatText;
-          delete $scope.chatHistoryIndex;
+          $scope.chatText = "";
+          $scope.chatHistoryIndex = null;
         };
 
         // Load current data
         backendCommunicator
-          .fireEventAsync("oceanity:archipelago:get-session-table")
-          .then((table: Record<string, SessionConnection>) => {
+          .fireEventAsync("oceanity:archipelago:get-session-connections")
+          .then((table: Array<SessionConnection>) => {
             $scope.sessions = table;
 
-            if (Object.keys($scope.sessions).length) {
-              $scope.selectSlot(Object.keys($scope.sessions)[0]);
+            if ($scope.sessions.length) {
+              $scope.selectSlot($scope.sessions[0].id);
             }
           });
 
         backendCommunicator.on(
           "oceanity:archipelago:session-closed",
           (sessionId: string) => {
-            delete $scope.sessionData[sessionId];
-            delete $scope.sessions[sessionId];
+            const sessionIndex = $scope.sessions.findIndex(
+              (session: StoredSession) => session.id === sessionId,
+            );
+
+            if (sessionIndex === -1) {
+              return;
+            }
+
+            $scope.sessions.splice(sessionIndex, 1);
+            $scope.sessionData[sessionId] = undefined;
 
             if ($scope.selectedSession === sessionId) {
-              const sessionIds = Object.keys($scope.sessions);
-
-              $scope.selectSlot(
-                !!sessionIds.length ? sessionIds.shift() : undefined,
+              const sessionIds = $scope.sessions.map(
+                (session: StoredSession) => session.id,
               );
+
+              if (!!sessionIds.length) {
+                $scope.selectSlot(sessionIds.shift());
+              }
             }
           },
         );
 
         backendCommunicator.on(
-          "oceanity:archipelago:got-log-message",
-          (data: {
-            message: { text: string; html: string };
-            sessionId: string;
-          }) => {
-            $scope.messages[data.sessionId]?.push(data.message.html);
+          "oceanity:archipelago:got-html-log-message",
+          (data: { sessionId: string; html: string }) => {
+            $scope.messages[data.sessionId]?.push(data.html);
           },
         );
 
         backendCommunicator.on(
           "oceanity:archipelago:chat-cleared",
-          (data: { sessionId: string }) => {
-            $scope.messages[data.sessionId] = [];
+          (sessionId: string) => {
+            $scope.messages[sessionId] = [];
           },
         );
 
@@ -112,8 +124,6 @@ export const ArchipelagoUIExtension: UIExtension = {
         );
 
         $scope.connect = async () => {
-          $scope.error = undefined;
-
           if (!$scope.hostname) {
             return $scope.sendToast("Hostname is required.", "danger");
           } else if (!$scope.slot) {
@@ -129,7 +139,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               $scope.slot,
               $scope.password,
             )
-            .then((response: ServiceResponse<RetrievedSession>) => {
+            .then((response: ServiceResponse<StateSession>) => {
               if (!response.success) {
                 $scope.isConnecting = false;
                 return $scope.sendToast(
@@ -151,12 +161,13 @@ export const ArchipelagoUIExtension: UIExtension = {
               const { id, handle, name, password, status } = response.data;
 
               $scope.messages[handle] = [];
-              $scope.sessions[id] = {
+              $scope.sessions.push({
+                id,
                 name,
                 handle,
                 status,
                 ...(password ? { password } : {}),
-              };
+              });
               $scope.selectSlot(id);
 
               $scope.hostname = "";
@@ -250,8 +261,8 @@ export const ArchipelagoUIExtension: UIExtension = {
               $scope.chatText,
             )
             .then(() => {
-              delete $scope.chatText;
-              delete $scope.chatHistoryIndex;
+              $scope.chatText = "";
+              $scope.chatHistoryIndex = undefined;
 
               // Toggle forceGlued to move to bottom of box
               $scope.forceGlued = true;

@@ -1,8 +1,7 @@
 import firebot, { Plugin } from "@crowbartools/firebot-types";
 import { remoteVersionCheck } from "@oceanity/firebot-helpers/package/remoteVersionCheck";
-import { Client } from "archipelago.js";
+import { ArchipelagoState } from "./archipelago-state";
 import { AllArchipelagoVariables } from "./archipelago-variables";
-import { APClient } from "./archipelago/client";
 import {
   ARCHIPELAGO_PLUGIN_AUTHOR,
   ARCHIPELAGO_PLUGIN_DESCRIPTION,
@@ -15,17 +14,10 @@ import {
 } from "./constants";
 import { AllArchipelagoEffectTypes } from "./effects";
 import { AllArchipelagoFilterEvents } from "./filters";
-import { AllArchipelagoFrontendFilters } from "./frontend-listeners";
-import { loadSessionsFromStorage } from "./helpers";
-import { State } from "./types";
+import { AllArchipelagoFrontendListeners } from "./frontend-listeners";
 import { ArchipelagoUIExtension } from "./ui-extension";
 
-export let client: APClient;
-export let apClient: Client;
-
-export let state: State = {
-  sessions: {},
-};
+export let archipelago: ArchipelagoState;
 
 const plugin: Plugin = {
   manifest: {
@@ -43,12 +35,13 @@ const plugin: Plugin = {
     effects: AllArchipelagoEffectTypes,
     eventSources: [ARCHIPELAGO_PLUGIN_EVENT_SOURCE],
     filters: AllArchipelagoFilterEvents,
-    frontendListeners: AllArchipelagoFrontendFilters,
+    frontendListeners: AllArchipelagoFrontendListeners,
     uiExtensions: [ArchipelagoUIExtension],
     variables: AllArchipelagoVariables,
   },
   onLoad: async () => {
-    await loadSessionsFromStorage();
+    archipelago = new ArchipelagoState();
+    await archipelago.init();
 
     const response = await remoteVersionCheck(
       ARCHIPELAGO_PLUGIN_VERSION,
@@ -66,26 +59,10 @@ const plugin: Plugin = {
     }
   },
   onUnload: async () => {
-    await Promise.all(
-      Object.keys(state.sessions).map(
-        (id) =>
-          new Promise(async (resolve) => {
-            resolve(await disconnect(id));
-          }),
-      ),
-    );
+    if (!(await archipelago.close())) {
+      firebot.logger.error("Error disconnecting all active sessions");
+    }
   },
 };
-
-export async function disconnect(clientId?: string): Promise<boolean> {
-  if (!clientId) {
-    firebot.logger.warn(
-      `Could not disconnect Archipelago Client with id '${clientId}'`,
-    );
-    return false;
-  }
-
-  return true;
-}
 
 export default plugin;

@@ -1,29 +1,29 @@
-import { argsString, searchTuples } from "./archipelago/helpers";
-import { ClientCommand, ClientStatus } from "./enums";
-import { client } from "./main";
+import { argsString, searchTuples } from "./helpers";
+import { ClientStatus } from "./enums";
+import { archipelago } from "./main";
 import { APCommandDefinition } from "./types";
 
 export const APCommandDefinitions: APCommandDefinition = {
   "/help": {
     description: "Returns the help listing.",
     callback: async (sessionId) => {
-      client.sessions.get(sessionId)?.messages.push({
+      archipelago.findSession(sessionId)?.messages.push({
         text: Object.entries(APCommandDefinitions)
           .map(
             ([command, definition]) =>
               `${command} ${argsString(definition.args)}\n\t${
                 definition.description
-              }`
+              }`,
           )
           .join("\n"),
         html: Object.entries(APCommandDefinitions)
           .map(
             ([command, definition]) =>
               `<p class="command">${command} <span class="arg">${argsString(
-                definition.args
+                definition.args,
               )}</span></p><p class="ml-6 description">${
                 definition.description
-              }</p>`
+              }</p>`,
           )
           .join(""),
         nodes: [],
@@ -33,22 +33,23 @@ export const APCommandDefinitions: APCommandDefinition = {
 
   "/disconnect": {
     description: "Disconnect from a MultiWorld Server.",
-    callback: (sessionName) => client.sessions.get(sessionName)?.close(),
+    callback: (sessionId) => {
+      archipelago.disconnect(sessionId);
+    },
   },
 
   "/clear": {
     description: "Clears the chat and message log for the active session.",
     callback: (sessionName) =>
-      client.sessions.get(sessionName)?.messages.clearChat(),
+      archipelago.findSession(sessionName)?.messages.clearChat(),
   },
 
   "/ready": {
     description: "Send ready status to server.",
     callback: (sessionId) => {
-      client.sessions.get(sessionId)?.socket.send({
-        cmd: ClientCommand.StatusUpdate,
-        status: ClientStatus.Ready,
-      });
+      archipelago
+        .findSession(sessionId)
+        ?.client.updateStatus(ClientStatus.Ready);
     },
   },
 
@@ -60,20 +61,21 @@ export const APCommandDefinitions: APCommandDefinition = {
     },
     description: "List all item names for the currently running game.",
     callback: async (sessionId, ...search) => {
-      const session = client.sessions.get(sessionId);
-      if (!session) {
-        return;
+      const itemTable = archipelago.getItemTable(sessionId);
+
+      if (!Object.keys(itemTable).length) {
+        // TODO: No items message
       }
 
       const items = searchTuples(
-        session.itemTable.sort(([a], [b]) => a.localeCompare(b)),
-        search?.join(" ") ?? undefined
+        session.client.game.sort(([a], [b]) => a.localeCompare(b)),
+        search?.join(" ") ?? undefined,
       );
 
       if (!items.length) {
         session.messages.sendLog(
           `No items found${!!search ? ` matching ${search}` : ""}`,
-          "warning"
+          "warning",
         );
 
         return;
@@ -87,7 +89,7 @@ export const APCommandDefinitions: APCommandDefinition = {
               ? `<li class="item-entry received">${name}${
                   count > 1 ? ` (x${count})` : ""
                 } ✓</li>`
-              : `<li class="item-entry missing">${name}</li>`
+              : `<li class="item-entry missing">${name}</li>`,
           )
           .join("")}</ul>`,
         nodes: [],
@@ -110,13 +112,13 @@ export const APCommandDefinitions: APCommandDefinition = {
 
       const locations = searchTuples(
         session.locationTable.sort(([a], [b]) => a.localeCompare(b)),
-        search?.join(" ") ?? undefined
+        search?.join(" ") ?? undefined,
       );
 
       if (!locations.length) {
         session.messages.sendLog(
           `No locations found${!!search ? ` matching ${search}` : ""}`,
-          "warning"
+          "warning",
         );
 
         return;
@@ -129,7 +131,7 @@ export const APCommandDefinitions: APCommandDefinition = {
             ([name, checked]) =>
               `<li class="location-entry ${
                 checked ? "" : "un"
-              }checked">${name}</li>`
+              }checked">${name}</li>`,
           )
           .join("")}</ul>`,
         nodes: [],

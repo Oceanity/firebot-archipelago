@@ -1,16 +1,20 @@
 import firebot, { FrontendListener } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import { connect, disconnect, getHintData } from "./helpers";
-import { state } from "./main";
-import { RetrievedSession, ServiceResponse, SessionConnection } from "./types";
+import { getHintData } from "./helpers";
+import { archipelago } from "./main";
+import {
+  ServiceResponse,
+  SessionConnection,
+  SessionConnectionAndStatus,
+} from "./types";
 
-export const AllArchipelagoFrontendFilters: Array<FrontendListener> = [
+export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
   {
     eventName: "connect",
     useAsync: true,
     handler: async (
       ...args: Array<unknown>
-    ): Promise<ServiceResponse<RetrievedSession>> => {
+    ): Promise<ServiceResponse<SessionConnectionAndStatus>> => {
       const [url, name, password] = args;
       if (!(typeof url === "string") || !(typeof name === "string")) {
         return {
@@ -21,7 +25,11 @@ export const AllArchipelagoFrontendFilters: Array<FrontendListener> = [
         };
       }
 
-      return await connect(url, name, password as string | undefined);
+      return await archipelago.connect(
+        url,
+        name,
+        password as string | undefined,
+      );
     },
   },
   {
@@ -37,34 +45,20 @@ export const AllArchipelagoFrontendFilters: Array<FrontendListener> = [
         return false;
       }
 
-      return await disconnect(sessionId, true);
+      return await archipelago.disconnect(sessionId, true);
     },
+  },
+  {
+    eventName: "get-session-connections",
+    useAsync: true,
+    handler: async (): Promise<Array<SessionConnection>> =>
+      archipelago.sessionConnections,
   },
   {
     eventName: "get-session-table",
     useAsync: true,
-    handler: async (): Promise<Record<string, SessionConnection>> => {
-      const response: Record<string, SessionConnection> = {};
-      Object.entries(state.sessions).forEach(([id, data]) => {
-        const { client, status, url, ...connection } = data;
-        response[id] = {
-          url: typeof url === "string" ? url : url.toString(),
-          ...connection,
-        };
-      });
-      return response;
-    },
-  },
-  {
-    eventName: "get-session-names",
-    useAsync: true,
-    handler: async (): Promise<Record<string, string>> => {
-      const response: Record<string, string> = {};
-      Object.entries(state.sessions).forEach(([id, session]) => {
-        response[id] = session.handle;
-      });
-      return response;
-    },
+    handler: async (): Promise<Record<string, string>> =>
+      archipelago.sessionTable,
   },
   {
     eventName: "send-message",
@@ -79,7 +73,7 @@ export const AllArchipelagoFrontendFilters: Array<FrontendListener> = [
         return false;
       }
 
-      await state.sessions[sessionId]?.client.messages.say(message);
+      await archipelago.findSession(sessionId)?.client.messages.say(message);
 
       return true;
     },
@@ -99,7 +93,7 @@ export const AllArchipelagoFrontendFilters: Array<FrontendListener> = [
         return {};
       }
 
-      const room = state.sessions[sessionId]?.client.room;
+      const room = archipelago.findSession(sessionId)?.client.room;
       if (!room) {
         firebot.logger.warn(
           `Frontend Get Hints method could not get Room for Session with Id '${sessionId}'`,
@@ -110,11 +104,23 @@ export const AllArchipelagoFrontendFilters: Array<FrontendListener> = [
       return getHintData(room);
     },
   },
-  // firebot.frontendCommunicator.onAsync(
-  //   "archipelago:getHtmlMessageLog",
-  //   async (sessionId: string): Promise<Array<string>> =>
-  //     client.sessions.get(sessionId)?.messages.htmlLog ?? [],
-  // );
+  {
+    eventName: "get-html-message-log",
+    useAsync: true,
+    handler: async (...args: Array<unknown>): Promise<Array<string>> => {
+      const [sessionId] = args;
+      if (typeof sessionId !== "string") {
+        firebot.logger.warn(
+          "Invalid 'sessionId' provided to frontend Get HTML Message Log",
+        );
+        return [];
+      }
+
+      return (
+        archipelago.findSession(sessionId)?.messages.map((m) => m.html) ?? []
+      );
+    },
+  },
   // firebot.frontendCommunicator.onAsync(
   //   "archipelago:getChatHistory",
   //   async (data: { sessionId: string; entry?: number }) =>

@@ -1,6 +1,6 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
-import { state } from "../main";
+import { archipelago } from "../main";
 import optionsTemplate from "./send-chat-message.html";
 
 type EffectModel = {
@@ -28,7 +28,7 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
     $scope.getSessionNames = async (): Promise<void> => {
       $q.when(
         backendCommunicator.fireEventAsync(
-          "oceanity:archipelago:get-session-names",
+          "oceanity:archipelago:get-session-table",
         ),
       ).then((data: Record<string, string>) => {
         $scope.sessions = data;
@@ -51,7 +51,7 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
     }
 
     if (!$scope.effect.selectMode) {
-      $scope.effect.selectMode = "first";
+      $scope.effect.selectMode = $scope.selectModes[0];
     }
   },
   optionsValidator: (effect) => {
@@ -80,22 +80,18 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
             throw new Error("Trigger metadata has no associated 'apSessionId'");
           }
 
-          await state.sessions[`${sessionId}`]?.client.messages.say(
-            effect.message,
-          );
+          await archipelago
+            .findSession(`${sessionId}`)
+            ?.client.messages.say(effect.message);
+
           break;
         }
 
         case "first": {
-          const sessions = Object.values(state.sessions);
+          await archipelago
+            .getFirstSession()
+            ?.client.messages.say(effect.message);
 
-          if (!sessions.length) {
-            throw new Error(
-              "No connected sessions available for Send Chat Message effect",
-            );
-          }
-
-          await sessions[0]?.client.messages.say(effect.message);
           break;
         }
 
@@ -106,9 +102,9 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
             );
           }
 
-          await state.sessions[effect.selectedSession]?.client.messages.say(
-            effect.message,
-          );
+          await archipelago
+            .findSession(effect.selectedSession)
+            ?.client.messages.say(effect.message);
 
           break;
         }

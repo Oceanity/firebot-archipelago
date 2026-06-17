@@ -1,236 +1,20 @@
 import firebot from "@crowbartools/firebot-types";
 import {
   Client,
-  ConnectionOptions,
-  DataPackage,
+  itemClassifications,
+  NetworkItem,
   RoomStateManager,
 } from "archipelago.js";
-import { v4 as uuid } from "uuid";
-import {
-  ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME,
-  ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME,
-} from "./constants";
-import { hookArchipelagoFirebotEvents } from "./event-handler";
-import { state } from "./main";
-import {
-  HintData,
-  RetrievedSession,
-  ServiceResponse,
-  SessionStatus,
-  StateSession,
-  StoredSession,
-} from "./types";
-
-export async function connect(
-  url: string,
-  name: string,
-  password?: string,
-  id?: string,
-): Promise<ServiceResponse<RetrievedSession>> {
-  const client = new Client();
-
-  firebot.logger.info(`Connecting to Archipelago at '${url}' as '${name}'...`);
-
-  try {
-    const sessionId = id ?? uuid();
-
-    hookArchipelagoFirebotEvents(sessionId, client);
-
-    const cachedData = await firebot.storage.readTextFile(
-      ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME,
-    );
-    if (cachedData) {
-      const json = JSON.parse(cachedData) as DataPackage;
-
-      client.package.importPackage(json);
-    }
-
-    const settings: ConnectionOptions = getFirebotConnectionOptions(password);
-    const response = await client.login(url, name, undefined, settings);
-
-    firebot.logger.info(JSON.stringify(response));
-
-    const sessionUrl = new URL(client.socket.url);
-    const session: StateSession = {
-      client,
-      name: client.players.self.name,
-      url: sessionUrl,
-      password,
-      handle: `${client.players.self.name}@${sessionUrl.protocol}${sessionUrl.hostname}:${sessionUrl.port}`,
-      status: SessionStatus.Connected,
-    };
-
-    state.sessions[sessionId] = session;
-
-    await saveSessionsToStorage();
-
-    await firebot.storage.writeFile(
-      ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME,
-      JSON.stringify(client.package.exportPackage()),
-    );
-
-    return { success: true, data: { id: sessionId, ...session } };
-  } catch (error) {
-    firebot.logger.error(
-      `Could not connect to Archipelago Server at '${url}' as '${name}', password: '${password}'`,
-      error,
-    );
-
-    // If Id provided, we've got a saved session, return as disconnected
-    if (id) {
-      const fallbackUrl = new URL(url);
-      return {
-        success: true,
-        data: {
-          client,
-          id,
-          url: fallbackUrl,
-          name,
-          password,
-          handle: `${name}@${fallbackUrl.protocol}${fallbackUrl.hostname}:${fallbackUrl.port}`,
-          status: SessionStatus.CouldNotConnect,
-        },
-      };
-    }
-
-    return {
-      success: false,
-      errors: [
-        (error as Error).message ??
-          `Could not connect to '${url}' as '${name}'.`,
-      ],
-    };
-  }
-}
-
-export async function disconnect(
-  sessionId: string,
-  deleteFromStore: boolean = false,
-): Promise<boolean> {
-  firebot.logger.info(
-    `Disconnecting from AP Session with Id '${sessionId}'...`,
-  );
-
-  const session = state.sessions[sessionId];
-  if (!session) {
-    firebot.logger.warn(
-      `Tried to disconnect nonexistent AP Session with Id '${sessionId}'`,
-    );
-    return false;
-  }
-
-  try {
-    // TODO: Deconstruct listeners
-
-    session.client.socket.disconnect();
-    session.status = SessionStatus.Disconnected;
-
-    firebot.frontendCommunicator.fireEventAsync(
-      "oceanity:archipelago:sessionClosed",
-      sessionId,
-    );
-
-    if (deleteFromStore) {
-      delete state.sessions[sessionId];
-      await saveSessionsToStorage();
-    }
-
-    return true;
-  } catch (error) {
-    firebot.logger.error(
-      `Error disconnecting AP Session with Id '${sessionId}'`,
-      error,
-    );
-  }
-
-  return false;
-}
-
-export async function saveSessionsToStorage(): Promise<boolean> {
-  try {
-    const stored: Record<string, StoredSession> = {};
-
-    Object.entries(state.sessions).forEach(([id, session]) => {
-      stored[id] = {
-        name: session.name,
-        url: session.url.toString(),
-      };
-
-      if (session.password) {
-        stored[id].password = session.password;
-      }
-    });
-
-    await firebot.storage.writeFile(
-      ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME,
-      JSON.stringify(stored),
-    );
-
-    return true;
-  } catch (error) {
-    firebot.logger.error("Error saving AP Sessions to local storage", error);
-  }
-
-  return false;
-}
-
-export async function loadSessionsFromStorage(): Promise<
-  Record<string, StateSession>
-> {
-  const sessions: Record<string, StateSession> = {};
-
-  try {
-    const contents = await firebot.storage.readTextFile(
-      ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME,
-    );
-
-    if (!contents) {
-      return sessions;
-    }
-
-    const json = JSON.parse(contents) as Record<string, StoredSession>;
-    await Promise.all(
-      Object.entries(json).map(
-        ([id, data]) =>
-          new Promise(async (resolve) => {
-            const response = await connect(
-              data.url,
-              data.name,
-              data.password,
-              id,
-            );
-
-            if (!response.success) {
-              firebot.logger.warn(response.errors.join(", "));
-              return resolve(false);
-            }
-
-            sessions[id] = response.data;
-            resolve(true);
-          }),
-      ),
-    );
-  } catch (error) {
-    firebot.logger.error("Error loading AP Session from local storage", error);
-  }
-
-  return sessions;
-}
+import Fuse from "fuse.js";
+import { APCommandDefinitions } from "./chat-command-definitions";
+import { ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY } from "./constants";
+import { archipelago } from "./main";
+import { APCommandOptions, HintData, StateLogMessage } from "./types";
 
 export function getHandleFromClient(client: Client) {
   const url = new URL(client.socket.url);
 
   return `${client.players.self.name}@${url.protocol}${url.hostname}:${url.port}`;
-}
-
-export async function getSessionNames(): Promise<Record<string, string>> {
-  const response: Record<string, string> = {};
-
-  Object.entries(state.sessions).forEach(([id, data]) => {
-    response[id] = data.handle;
-  });
-
-  return response;
 }
 
 export function getHintData(room: RoomStateManager): HintData {
@@ -242,9 +26,231 @@ export function getHintData(room: RoomStateManager): HintData {
   };
 }
 
-function getFirebotConnectionOptions(password?: string): ConnectionOptions {
+export const searchTuples = <T>(
+  tuples: Array<[string, T]>,
+  search?: string,
+): Array<[string, T]> => {
+  if (!search || !search.trim().length) {
+    return tuples;
+  }
+
+  const fuse = new Fuse(
+    tuples.map(([name]) => name),
+    { threshold: 0.25 },
+  );
+
+  const matches = fuse.search(search);
+
+  return tuples.filter(([name]) =>
+    matches.some((match) => match.item === name),
+  );
+};
+
+export function argsString(args?: APCommandOptions["args"]) {
+  if (!args) {
+    return "";
+  }
+
+  return Object.entries(args)
+    .map(
+      ([name, definition]) =>
+        `[${name}${definition.optional ? " (optional)" : ""}]`,
+    )
+    .join(" ");
+}
+
+//#region Get Metadata Helpers
+
+export function getSessionMetadata(
+  sessionId: string,
+  client: Client,
+  prefix: string = "apSession",
+): Record<string, string> {
+  const { room } = client;
+
+  const handle = getHandleFromClient(client);
+  const url = new URL(client.socket.url);
+
   return {
-    ...(password ? { password } : {}),
-    tags: ["Firebot", "DeathLink"],
+    [`${prefix}Id`]: sessionId,
+    [`${prefix}Name`]: handle,
+    [`${prefix}IsStarting`]: "false", // TODO: Find way to implement for Archipelago.js
+    [`${prefix}Hostname`]: url.hostname,
+    [`${prefix}Port`]: url.port,
+    [`${prefix}Url`]: `${url}`,
+    [`${prefix}LocationCount`]: `${room.allLocations.length}`,
+    [`${prefix}HintPoints`]: `${room.hintPoints}`,
+    [`${prefix}HintPointProgress`]: `${room.hintPoints % room.hintCost}`,
+    [`${prefix}HintCost`]: `${room.hintCost}`,
+    [`${prefix}HintCostPercent`]: `${room.hintCostPercentage}`,
+    [`${prefix}Hints`]: `${Math.floor(room.hintPoints / room.hintCost)}`,
   };
 }
+
+export function getPlayerMetadata(
+  client: Client,
+  player?: number,
+  prefix: string = "apPlayer",
+): Record<string, string> {
+  const playerData =
+    player !== undefined
+      ? client.players.findPlayer(player)
+      : client.players.self;
+
+  if (!playerData) {
+    firebot.logger.error(`Could not retrieve player from slot '${player}'`);
+    return {};
+  }
+
+  return {
+    [`${prefix}Slot`]: `${playerData.slot}`,
+    [`${prefix}Team`]: `${playerData.team}`,
+    [`${prefix}Name`]: playerData.name,
+    [`${prefix}Alias`]: playerData.alias,
+    [`${prefix}Game`]: playerData.game,
+    [`${prefix}Type`]: `${playerData.type}`,
+  };
+}
+
+export function getItemMetadata(
+  client: Client,
+  itemData: NetworkItem,
+  game?: string,
+  prefix: string = "apItem",
+) {
+  if (!game) {
+    game = client.players.self.game;
+  }
+
+  const foundInGame =
+    itemData.location > 0
+      ? client.players.findPlayer(itemData.player)?.game
+      : "Archipelago";
+
+  if (!foundInGame) {
+    firebot.logger.error(
+      `Could not find player with slot '${itemData.player}'`,
+    );
+    return {};
+  }
+
+  const classification =
+    Object.keys(itemClassifications).find(
+      (key) =>
+        !!itemData.flags &&
+        itemClassifications[key as keyof typeof itemClassifications] ===
+          itemData.flags,
+    ) ?? "filler";
+
+  return {
+    [`${prefix}Id`]: itemData.item,
+    [`${prefix}Name`]: client.package.lookupItemName(game, itemData.item, true),
+    [`${prefix}Location`]: client.package.lookupLocationName(
+      game,
+      itemData.location,
+      true,
+    ),
+    [`${prefix}Classification`]: classification,
+  };
+}
+
+export function getMessageMetadata(
+  message: StateLogMessage,
+  prefix: string = "apMessage",
+): Record<string, string> {
+  return {
+    [`${prefix}Html`]: message.html,
+    [`${prefix}Text`]: message.text,
+  };
+}
+
+export function getDeathLinkMetadata(
+  data: { source: string; cause?: string; time: number },
+  prefix: string = "apDeathLink",
+): Record<string, string> {
+  return {
+    [`${prefix}Source`]: data.source,
+    [`${prefix}Cause`]: data.cause ?? `${data.source} died.`,
+    [`${prefix}Time`]: `${data.time}`,
+  };
+}
+
+export function sendLog(
+  sessionId: string,
+  message: string,
+  level: "info" | "warning" | "error" = "info",
+) {
+  if (!message.length) {
+    return;
+  }
+
+  const session = archipelago.findSession(sessionId);
+  if (!session) {
+    firebot.logger.warn(`Could not find session with id '${sessionId}'`);
+    return;
+  }
+
+  let color = "default";
+  switch (level) {
+    case "warning":
+      color = "orange";
+      break;
+    case "error":
+      color = "red";
+      break;
+  }
+
+  session.messages.push({
+    text: message,
+    html: `<span class="log ${color}">${message}</span>`,
+    nodes: [],
+  });
+}
+
+export function sendChat(sessionId: string, message: string) {
+  if (!message.length) {
+    return;
+  }
+
+  const session = archipelago.findSession(sessionId);
+  if (!session) {
+    firebot.logger.warn(`Could not find session with id '${sessionId}'`);
+    return;
+  }
+
+  session.chatHistory.push(message);
+  while (session.chatHistory.length > ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY) {
+    session.chatHistory.shift();
+  }
+
+  if (message.startsWith("/")) {
+    const args = message.split(" ").filter((p) => !!p.trim().length);
+    const command = args.shift();
+    handleChatCommand(sessionId, command ?? "", ...args);
+    return;
+  }
+
+  session.client.messages.say(message);
+}
+
+function handleChatCommand(
+  sessionId: string,
+  command: string,
+  ...args: Array<string>
+) {
+  if (!APCommandDefinitions.hasOwnProperty(command)) {
+    sendLog(
+      "Unrecognized command, use /help to see all available commands",
+      "error",
+    );
+    return;
+  }
+
+  sendLog(`${command} ${args.join(" ")}`, "warning");
+
+  APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
+    sessionId,
+    ...args,
+  );
+}
+//#endregion

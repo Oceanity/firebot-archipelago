@@ -1,5 +1,6 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
-import { state } from "../main";
+import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
+import { archipelago } from "../main";
 import optionsTemplate from "./trigger-death-link.html";
 
 type EffectModel = {
@@ -21,10 +22,14 @@ export const TriggerDeathLinkEffectType: EffectType<EffectModel> = {
   },
   optionsTemplate,
   optionsController: ($scope, backendCommunicator: any, $q: any) => {
+    $scope.isArchipelagoEvent =
+      $scope.trigger === "event" &&
+      $scope.triggerMeta?.triggerId?.startsWith(ARCHIPELAGO_PLUGIN_ID);
+
     $scope.getSessionNames = async (): Promise<void> => {
       $q.when(
         backendCommunicator.fireEventAsync(
-          "oceanity:archipelago:get-session-names",
+          "oceanity:archipelago:get-session-table",
         ),
       ).then((data: Record<string, string>) => {
         $scope.sessions = data;
@@ -37,8 +42,15 @@ export const TriggerDeathLinkEffectType: EffectType<EffectModel> = {
       custom: "Manually enter a name",
     };
 
+    if ($scope.isArchipelagoEvent) {
+      $scope.selectModes = {
+        associated: "Associated Archipelago Session",
+        ...$scope.selectModes,
+      };
+    }
+
     if (!$scope.effect.selectMode) {
-      $scope.effect.selectMode = "first";
+      $scope.effect.selectMode = $scope.selectModes[0];
     }
 
     $scope.getSessionNames();
@@ -53,22 +65,28 @@ export const TriggerDeathLinkEffectType: EffectType<EffectModel> = {
     }
     return errors;
   },
-  onTriggerEvent: async ({ effect }) => {
+  onTriggerEvent: async ({ effect, trigger }) => {
     const SOURCE = "Firebot";
 
     try {
       switch (effect.selectMode) {
-        case "first": {
-          const sessions = Object.values(state.sessions);
-
-          if (!sessions.length) {
-            throw new Error("No sessions available to send DeathLink Event to");
+        case "associated": {
+          const sessionId = trigger.metadata.eventData?.apSessionId;
+          if (!sessionId) {
+            throw new Error("Trigger metadata has no associated 'apSessionId'");
           }
 
-          await sessions[0].client.deathLink.sendDeathLink(
-            SOURCE,
-            effect.cause,
-          );
+          await archipelago
+            .findSession(`${sessionId}`)
+            ?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
+
+          break;
+        }
+
+        case "first": {
+          await archipelago
+            .getFirstSession()
+            ?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
 
           break;
         }
@@ -78,9 +96,9 @@ export const TriggerDeathLinkEffectType: EffectType<EffectModel> = {
             throw new Error("No session specified to send DeathLink Event to");
           }
 
-          await state.sessions[
-            effect.selectedSession
-          ]?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
+          await archipelago
+            .findSession(effect.selectedSession)
+            ?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
 
           break;
         }

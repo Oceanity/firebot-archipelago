@@ -98,7 +98,7 @@
   }
 </style>
 <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
-  <p style="width: 100%">{{ sessions }}</p>
+  <p style="width: 100%; color: pink">{{ sessions }}</p>
   <div class="chat-window-column m-6" style="border-radius: 8px; overflow: hidden;">
     <div class="p-6" style="display: flex; gap: 1.5rem">
       <input type="text" class="form-control ng-animate-disabled"
@@ -116,10 +116,10 @@
 
     <div class="fb-tab-wrapper">
       <ul class="nav nav-tabs fb-tabs">
-        <li ng-repeat="(sessionId, session) in sessions track by $index" role="presentation"
-          ng-class="{'active' : selectedSession === sessionId}" ng-click="selectSlot(sessionId)">
+        <li ng-repeat="session in sessions track by $index" role="presentation"
+          ng-class="{'active' : selectedSession === session.id}" ng-click="selectSlot(session.id)">
           <a href style="display: flex; align-items: center; gap: 10px;"><span>{{ session.handle }}</span><button
-              class="close" ng-click="disconnect(sessionId)"><i class="fal fa-times"
+              class="close" ng-click="disconnect(session.id)"><i class="fal fa-times"
                 style="display: flex; align-items: center; font-size: 14px; color: #66666655"></i></button></a>
         </li>
       </ul>
