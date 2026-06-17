@@ -1,14 +1,14 @@
-import { argsString, searchTuples } from "./helpers";
 import { ClientStatus } from "./enums";
+import { argsString } from "./helpers";
 import { archipelago } from "./main";
-import { APCommandDefinition } from "./types";
+import { ChatCommandDefinition } from "./types";
 
-export const APCommandDefinitions: APCommandDefinition = {
+export const AllChatCommandDefinitions: ChatCommandDefinition = {
   "/help": {
     description: "Returns the help listing.",
-    callback: async (sessionId) => {
-      archipelago.findSession(sessionId)?.messages.push({
-        text: Object.entries(APCommandDefinitions)
+    callback: async (session) => {
+      session.messages.push({
+        text: Object.entries(AllChatCommandDefinitions)
           .map(
             ([command, definition]) =>
               `${command} ${argsString(definition.args)}\n\t${
@@ -16,7 +16,7 @@ export const APCommandDefinitions: APCommandDefinition = {
               }`,
           )
           .join("\n"),
-        html: Object.entries(APCommandDefinitions)
+        html: Object.entries(AllChatCommandDefinitions)
           .map(
             ([command, definition]) =>
               `<p class="command">${command} <span class="arg">${argsString(
@@ -26,118 +26,114 @@ export const APCommandDefinitions: APCommandDefinition = {
               }</p>`,
           )
           .join(""),
-        nodes: [],
       });
     },
   },
 
   "/disconnect": {
     description: "Disconnect from a MultiWorld Server.",
-    callback: (sessionId) => {
-      archipelago.disconnect(sessionId);
+    callback: (session) => {
+      archipelago.closeSession(session.id, true);
     },
   },
 
   "/clear": {
     description: "Clears the chat and message log for the active session.",
-    callback: (sessionName) =>
-      archipelago.findSession(sessionName)?.messages.clearChat(),
+    callback: (session) => session.messages.clearChat(),
   },
 
   "/ready": {
     description: "Send ready status to server.",
-    callback: (sessionId) => {
-      archipelago
-        .findSession(sessionId)
-        ?.client.updateStatus(ClientStatus.Ready);
+    callback: (session) => {
+      session.client.updateStatus(ClientStatus.Ready);
     },
   },
 
-  "/items": {
-    args: {
-      search: {
-        optional: true,
-      },
-    },
-    description: "List all item names for the currently running game.",
-    callback: async (sessionId, ...search) => {
-      const itemTable = archipelago.getItemTable(sessionId);
+  // "/items": {
+  //   args: {
+  //     search: {
+  //       optional: true,
+  //     },
+  //   },
+  //   description: "List all item names for the currently running game.",
+  //   callback: async (sessionId, ...search) => {
+  //     const itemTable = archipelago.getItemTable(sessionId);
 
-      if (!Object.keys(itemTable).length) {
-        // TODO: No items message
-      }
+  //     if (!Object.keys(itemTable).length) {
+  //       // TODO: No items message
+  //     }
 
-      const items = searchTuples(
-        session.client.game.sort(([a], [b]) => a.localeCompare(b)),
-        search?.join(" ") ?? undefined,
-      );
+  //     const items = searchTuples(
+  //       session.client.game.sort(([a], [b]) => a.localeCompare(b)),
+  //       search?.join(" ") ?? undefined,
+  //     );
 
-      if (!items.length) {
-        session.messages.sendLog(
-          `No items found${!!search ? ` matching ${search}` : ""}`,
-          "warning",
-        );
+  //     if (!items.length) {
+  //       session.messages.sendLog(
+  //         `No items found${!!search ? ` matching ${search}` : ""}`,
+  //         "warning",
+  //       );
 
-        return;
-      }
+  //       return;
+  //     }
 
-      session.messages.push({
-        text: items.map(([name]) => name).join("\n"),
-        html: `<ul>${items
-          .map(([name, count]) =>
-            count > 0
-              ? `<li class="item-entry received">${name}${
-                  count > 1 ? ` (x${count})` : ""
-                } ✓</li>`
-              : `<li class="item-entry missing">${name}</li>`,
-          )
-          .join("")}</ul>`,
-        nodes: [],
-      });
-    },
-  },
+  //     session.messages.push({
+  //       text: items.map(([name]) => name).join("\n"),
+  //       html: `<ul>${items
+  //         .map(([name, count]) =>
+  //           count > 0
+  //             ? `<li class="item-entry received">${name}${
+  //                 count > 1 ? ` (x${count})` : ""
+  //               } ✓</li>`
+  //             : `<li class="item-entry missing">${name}</li>`,
+  //         )
+  //         .join("")}</ul>`,
+  //       nodes: [],
+  //     });
+  //   },
+  // },
 
-  "/locations": {
-    description: "List all location names for the currently running game.",
-    args: {
-      search: {
-        optional: true,
-      },
-    },
-    callback: async (sessionId, ...search) => {
-      const session = client.sessions.get(sessionId);
-      if (!session) {
-        return;
-      }
+  // "/locations": {
+  //   description: "List all location names for the currently running game.",
+  //   args: {
+  //     search: {
+  //       optional: true,
+  //     },
+  //   },
+  //   callback: async (sessionId, ...search) => {
+  //     const session = client.sessions.get(sessionId);
+  //     if (!session) {
+  //       return;
+  //     }
 
-      const locations = searchTuples(
-        session.locationTable.sort(([a], [b]) => a.localeCompare(b)),
-        search?.join(" ") ?? undefined,
-      );
+  //     const locations = searchTuples(
+  //       session.locationTable.sort(([a], [b]) => a.localeCompare(b)),
+  //       search?.join(" ") ?? undefined,
+  //     );
 
-      if (!locations.length) {
-        session.messages.sendLog(
-          `No locations found${!!search ? ` matching ${search}` : ""}`,
-          "warning",
-        );
+  //     if (!locations.length) {
+  //       session.messages.sendLog(
+  //         `No locations found${!!search ? ` matching ${search}` : ""}`,
+  //         "warning",
+  //       );
 
-        return;
-      }
+  //       return;
+  //     }
 
-      session.messages.push({
-        text: locations.map(([name]) => name).join("\n"),
-        html: `<ul>${locations
-          .map(
-            ([name, checked]) =>
-              `<li class="location-entry ${
-                checked ? "" : "un"
-              }checked">${name}</li>`,
-          )
-          .join("")}</ul>`,
-        nodes: [],
-      });
-    },
-  },
+  //     session.messages.push({
+  //       text: locations.map(([name]) => name).join("\n"),
+  //       html: `<ul>${locations
+  //         .map(
+  //           ([name, checked]) =>
+  //             `<li class="location-entry ${
+  //               checked ? "" : "un"
+  //             }checked">${name}</li>`,
+  //         )
+  //         .join("")}</ul>`,
+  //       nodes: [],
+  //     });
+  //   },
+  // },
 
   // "/players": {
   //   description:

@@ -6,9 +6,6 @@ import {
   RoomStateManager,
 } from "archipelago.js";
 import Fuse from "fuse.js";
-import { APCommandDefinitions } from "./chat-command-definitions";
-import { ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY } from "./constants";
-import { archipelago } from "./main";
 import { APCommandOptions, HintData, StateLogMessage } from "./types";
 
 export function getHandleFromClient(client: Client) {
@@ -175,82 +172,4 @@ export function getDeathLinkMetadata(
   };
 }
 
-export function sendLog(
-  sessionId: string,
-  message: string,
-  level: "info" | "warning" | "error" = "info",
-) {
-  if (!message.length) {
-    return;
-  }
-
-  const session = archipelago.findSession(sessionId);
-  if (!session) {
-    firebot.logger.warn(`Could not find session with id '${sessionId}'`);
-    return;
-  }
-
-  let color = "default";
-  switch (level) {
-    case "warning":
-      color = "orange";
-      break;
-    case "error":
-      color = "red";
-      break;
-  }
-
-  session.messages.push({
-    text: message,
-    html: `<span class="log ${color}">${message}</span>`,
-    nodes: [],
-  });
-}
-
-export function sendChat(sessionId: string, message: string) {
-  if (!message.length) {
-    return;
-  }
-
-  const session = archipelago.findSession(sessionId);
-  if (!session) {
-    firebot.logger.warn(`Could not find session with id '${sessionId}'`);
-    return;
-  }
-
-  session.chatHistory.push(message);
-  while (session.chatHistory.length > ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY) {
-    session.chatHistory.shift();
-  }
-
-  if (message.startsWith("/")) {
-    const args = message.split(" ").filter((p) => !!p.trim().length);
-    const command = args.shift();
-    handleChatCommand(sessionId, command ?? "", ...args);
-    return;
-  }
-
-  session.client.messages.say(message);
-}
-
-function handleChatCommand(
-  sessionId: string,
-  command: string,
-  ...args: Array<string>
-) {
-  if (!APCommandDefinitions.hasOwnProperty(command)) {
-    sendLog(
-      "Unrecognized command, use /help to see all available commands",
-      "error",
-    );
-    return;
-  }
-
-  sendLog(`${command} ${args.join(" ")}`, "warning");
-
-  APCommandDefinitions[command as keyof typeof APCommandDefinitions].callback(
-    sessionId,
-    ...args,
-  );
-}
 //#endregion

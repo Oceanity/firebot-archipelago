@@ -7,17 +7,13 @@ import {
 } from "archipelago.js";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
 import { FirebotEvents } from "./enums";
-import { getMessageHtml } from "./get-message-html";
 import {
   getDeathLinkMetadata,
   getHintData,
   getItemMetadata,
-  getMessageMetadata,
   getPlayerMetadata,
   getSessionMetadata,
 } from "./helpers";
-import { archipelago } from "./main";
-import { StateLogMessage } from "./types";
 
 type SocketEventDefinition = {
   [K in keyof SocketEvents]: {
@@ -150,29 +146,6 @@ export const hookArchipelagoEvents = async (
     },
   );
 
-  client.messages.on("message", (text: string, nodes: Array<MessageNode>) => {
-    const logMessage: StateLogMessage = {
-      text,
-      html: getMessageHtml(client, nodes),
-      nodes,
-    };
-
-    archipelago.findSession(sessionId)?.messages.push(logMessage);
-
-    firebot.frontendCommunicator.fireEventAsync(
-      "oceanity:archipelago:got-html-log-message",
-      {
-        sessionId,
-        html: logMessage.html,
-      },
-    );
-
-    // Send to Firebot Events
-    firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, FirebotEvents.Message, {
-      ...getSessionMetadata(sessionId, client),
-      ...getMessageMetadata(logMessage),
-    });
-  });
   // this.#session.on("receivedNewItems", (packet) => {
   //   // If first item handshake, divert to Initial Items event to not spam Received Items events
   //   const event = packet.isInitialInventory
@@ -204,42 +177,3 @@ export const unhookArchipelagoEvents = async (
     );
   }
 };
-// import {
-//   eventManager,
-//   frontendCommunicator,
-// } from "@oceanity/firebot-helpers/firebot";
-// import { ARCHIPELAGO_PLUGIN_ID } from "../../constants";
-// import { FirebotEvents, ItemClassification } from "../../enums";
-// import { DeathLinkData, NetworkItem } from "../../types";
-// import { APSession } from "../session";
-
-// export class FirebotRemoteService {
-
-//     this.#session.messages
-//       .on("message", (data) => {
-//         // Send to Frontend UI Extension
-//         frontendCommunicator.fireEventAsync("archipelago:gotLogMessage", data);
-
-//         // If message is hidden, we'll skip the Event
-//         if (data.isHidden) {
-//           return;
-//         }
-
-//         // Send to Firebot Events
-//         firebot.events.trigger(
-//           ARCHIPELAGO_PLUGIN_ID,
-//           FirebotEvents.Message,
-//           {
-//             ...this.#getSessionMetadata(),
-//             ...this.#getMessageMetadata(undefined, data.message),
-//           },
-//         );
-//       })
-
-//     //#endregion
-//   }
-
-//   //#region Message Helpers
-
-//   //#endregion
-// }

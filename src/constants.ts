@@ -13,12 +13,11 @@ export const ARCHIPELAGO_PLUGIN_ID = "oceanity:archipelago";
 export const ARCHIPELAGO_PLUGIN_PACKAGE_URL =
   "https://raw.githubusercontent.com/Oceanity/firebot-archipelago/refs/heads/main/package.json";
 
+export const ARCHIPELAGO_PLUGIN_CLIENT_TAGS = ["Firebot", "DeathLink"];
+
 // Message Service
 export const ARCHIPELAGO_PLUGIN_MAX_MESSAGES = 100;
 export const ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY = 25;
-
-// Socket Service
-export const ARCHIPELAGO_DEFAULT_RECONNECT_SECONDS = 5;
 
 export const ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME = "ap-sessions.json";
 export const ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME =

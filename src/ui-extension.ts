@@ -1,11 +1,6 @@
 import { UIExtension } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import {
-  ServiceResponse,
-  SessionConnection,
-  StateSession,
-  StoredSession,
-} from "./types";
+import { ServiceResponse, SessionConnection, StoredSession } from "./types";
 import template from "./ui-extension.html";
 
 export const ArchipelagoUIExtension: UIExtension = {
@@ -139,7 +134,7 @@ export const ArchipelagoUIExtension: UIExtension = {
               $scope.slot,
               $scope.password,
             )
-            .then((response: ServiceResponse<StateSession>) => {
+            .then((response: ServiceResponse<SessionConnection>) => {
               if (!response.success) {
                 $scope.isConnecting = false;
                 return $scope.sendToast(

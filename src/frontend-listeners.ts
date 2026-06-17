@@ -2,11 +2,7 @@ import firebot, { FrontendListener } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
 import { getHintData } from "./helpers";
 import { archipelago } from "./main";
-import {
-  ServiceResponse,
-  SessionConnection,
-  SessionConnectionAndStatus,
-} from "./types";
+import { ServiceResponse, SessionConnection } from "./types";
 
 export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
   {
@@ -14,7 +10,7 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
     useAsync: true,
     handler: async (
       ...args: Array<unknown>
-    ): Promise<ServiceResponse<SessionConnectionAndStatus>> => {
+    ): Promise<ServiceResponse<SessionConnection>> => {
       const [url, name, password] = args;
       if (!(typeof url === "string") || !(typeof name === "string")) {
         return {
@@ -25,11 +21,21 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
         };
       }
 
-      return await archipelago.connect(
+      const response = await archipelago.createSession(
         url,
         name,
         password as string | undefined,
       );
+
+      firebot.logger.info(JSON.stringify(response));
+
+      if (!response.success) {
+        return response; // Pass up errors
+      }
+
+      firebot.logger.info(JSON.stringify(response.data.connection));
+
+      return { success: true, data: response.data.connection };
     },
   },
   {
@@ -45,7 +51,7 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
         return false;
       }
 
-      return await archipelago.disconnect(sessionId, true);
+      return await archipelago.closeSession(sessionId, true);
     },
   },
   {
@@ -73,7 +79,7 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
         return false;
       }
 
-      await archipelago.findSession(sessionId)?.client.messages.say(message);
+      await archipelago.findSession(sessionId)?.messages.sendChat(message);
 
       return true;
     },
@@ -116,9 +122,7 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
         return [];
       }
 
-      return (
-        archipelago.findSession(sessionId)?.messages.map((m) => m.html) ?? []
-      );
+      return archipelago.findSession(sessionId)?.messages.htmlLog ?? [];
     },
   },
   // firebot.frontendCommunicator.onAsync(

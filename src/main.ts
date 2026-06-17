@@ -59,7 +59,7 @@ const plugin: Plugin = {
     }
   },
   onUnload: async () => {
-    if (!(await archipelago.close())) {
+    if (!(await archipelago.closeAllSessions())) {
       firebot.logger.error("Error disconnecting all active sessions");
     }
   },
