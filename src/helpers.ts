@@ -6,7 +6,12 @@ import {
   RoomStateManager,
 } from "archipelago.js";
 import Fuse from "fuse.js";
-import { APCommandOptions, HintData, StateLogMessage } from "./types";
+import {
+  APCommandOptions,
+  HintData,
+  SessionSelectMode,
+  StateLogMessage,
+} from "./types";
 
 export function getHandleFromClient(client: Client) {
   const url = new URL(client.socket.url);
@@ -173,3 +178,33 @@ export function getDeathLinkMetadata(
 }
 
 //#endregion
+
+export const getSessionLabelString = (
+  selectMode: SessionSelectMode,
+  session?: string,
+) => {
+  let target = "";
+  switch (selectMode) {
+    case "associated":
+      target = "Associated Archipelago Session";
+      break;
+    case "first":
+      target = "First Archipelago Session";
+      break;
+    case "list":
+      target = "Selected Archipelago Session";
+      break;
+    case "custom":
+      target = "Archipelago Session {session}";
+      break;
+  }
+
+  if (!target.length) {
+    firebot.logger.warn(
+      `getSessionLabelString was provided an invalid selectMode '${selectMode}'`,
+    );
+    target = "Unknown Archipelago Session";
+  }
+
+  return target.replace("{session}", session ?? "Undefined");
+};

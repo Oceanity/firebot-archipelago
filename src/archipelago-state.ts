@@ -1,7 +1,12 @@
 import firebot from "@crowbartools/firebot-types";
 import { ArchipelagoSession } from "./archipelago/archipelago-session";
 import { ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME } from "./constants";
-import { ServiceResponse, SessionConnection, StoredSession } from "./types";
+import {
+  ServiceResponse,
+  SessionConnection,
+  SessionStatus,
+  StoredSession,
+} from "./types";
 
 export class ArchipelagoState {
   #sessions: Array<ArchipelagoSession> = [];
@@ -87,6 +92,37 @@ export class ArchipelagoState {
     await this.#saveSessionsToStorage();
 
     return { success: true, data: session };
+  }
+
+  async reconnectSession(
+    sessionId: string,
+  ): Promise<ServiceResponse<ArchipelagoSession>> {
+    try {
+      const session = this.findSession(sessionId);
+
+      if (!session) {
+        throw new Error(`Could not find session with Id '${sessionId}'`);
+      }
+
+      if (session.status === SessionStatus.Connected) {
+        firebot.logger.warn(
+          `Session with Id '${sessionId}' already connected, skipping reconnect.`,
+        );
+        return { success: true, data: session };
+      }
+
+      if (await session.reconnect()) {
+        throw new Error(`Could not reconnect session with Id '${sessionId}'`);
+      }
+
+      return { success: true, data: session };
+    } catch (error) {
+      firebot.logger.error("Error reconnecting Archipelago Session", error);
+      return {
+        success: false,
+        errors: [(error as Error).message ?? `${error}`],
+      };
+    }
   }
 
   async closeSession(

@@ -74,3 +74,5 @@ export type ServiceResponse<T> =
       data?: never;
       errors: string[];
     };
+
+export type SessionSelectMode = "associated" | "first" | "list" | "custom";

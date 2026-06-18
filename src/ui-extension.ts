@@ -1,6 +1,11 @@
 import { UIExtension } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import { ServiceResponse, SessionConnection, StoredSession } from "./types";
+import {
+  ServiceResponse,
+  SessionConnection,
+  SessionStatus,
+  StoredSession,
+} from "./types";
 import template from "./ui-extension.html";
 
 export const ArchipelagoUIExtension: UIExtension = {
@@ -184,6 +189,33 @@ export const ArchipelagoUIExtension: UIExtension = {
                 `Successfully connected to '${response.data.handle}'`,
                 "success",
               );
+            });
+        };
+
+        $scope.reconnect = (sessionId: string) => {
+          $scope.ui.isConnecting = true;
+          backendCommunicator
+            .fireEventAsync("oceanity:archipelago:reconnect", sessionId)
+            .then((status: SessionStatus | null) => {
+              $scope.ui.isConnecting = false;
+
+              if (!status) {
+                $scope.sendToast("Unable to connect to session");
+                return;
+              }
+
+              const session = $scope.sessions.find(
+                (session: SessionConnection) => session.id === sessionId,
+              );
+              if (!session) {
+                $scope.sendToast("Cannot find session information for session");
+                return;
+              }
+
+              session.status = status;
+              if ($scope.currentSession.id !== session.id) {
+                $scope.selectSlot(session.id);
+              }
             });
         };
 

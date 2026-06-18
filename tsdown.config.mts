@@ -20,10 +20,10 @@ export default defineConfig({
   unbundle: false,
   // Minify, but preserve identifier names. The Firebot plugin loader relies on
   // the exported plugin object's function names (e.g. `onLoad`) staying intact.
-  // minify: {
-  //   mangle: false,
-  //   compress: true,
-  // },
+  minify: {
+    mangle: false,
+    compress: true,
+  },
   // Firebot provides the types library at runtime; never bundle it.
   deps: {
     neverBundle: ["@crowbartools/firebot-types"],

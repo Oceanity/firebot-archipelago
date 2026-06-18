@@ -1,10 +1,11 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
 import { archipelago } from "../main";
+import { SessionSelectMode } from "../types";
 import optionsTemplate from "./trigger-death-link.html";
 
 type EffectModel = {
-  selectMode?: string;
+  selectMode: SessionSelectMode;
   cause?: string;
   session?: string;
   selectedSession?: string;
@@ -64,6 +65,25 @@ export const TriggerDeathLinkEffectType: EffectType<EffectModel> = {
       errors.push("Enter the name of a session");
     }
     return errors;
+  },
+  getDefaultLabel: (effect) => {
+    let target = "First Archipelago Session";
+    switch (effect.selectMode) {
+      case "associated":
+        target = "Associated Archipelago Session";
+        break;
+      case "list":
+        target = "Selected Archipelago Session";
+        break;
+      case "custom":
+        target = `Archipelago Session ${effect.session ?? "Undefined"}`;
+        break;
+    }
+    const cause =
+      effect.cause !== undefined && !!effect.cause.length
+        ? `, Cause: '${effect.cause}'`
+        : "";
+    return `Triggering on ${target}${cause}`;
   },
   onTriggerEvent: async ({ effect, trigger }) => {
     const SOURCE = "Firebot";

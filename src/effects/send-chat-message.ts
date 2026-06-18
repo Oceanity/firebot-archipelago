@@ -1,11 +1,12 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
 import { archipelago } from "../main";
+import { SessionSelectMode } from "../types";
 import optionsTemplate from "./send-chat-message.html";
 
 type EffectModel = {
-  selectMode?: string;
-  message?: string;
+  selectMode: SessionSelectMode;
+  message: string;
   session?: string;
   selectedSession?: string;
 };
@@ -62,10 +63,25 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
     if (effect.selectMode === "custom" && !effect.session) {
       errors.push("Enter the name of a session");
     }
-    if (!effect.message?.length) {
+    if (!effect.message.length) {
       errors.push("Please insert a message to send");
     }
     return errors;
+  },
+  getDefaultLabel: (effect) => {
+    let target = "First Archipelago Session";
+    switch (effect.selectMode) {
+      case "associated":
+        target = "Associated Archipelago Session";
+        break;
+      case "list":
+        target = "Selected Archipelago Session";
+        break;
+      case "custom":
+        target = `Archipelago Session ${effect.session ?? "Undefined"}`;
+        break;
+    }
+    return `Sending to ${target}: '${effect.message}'`;
   },
   onTriggerEvent: async ({ effect, trigger }) => {
     try {

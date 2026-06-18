@@ -2,7 +2,7 @@ import firebot, { FrontendListener } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
 import { getHintData } from "./helpers";
 import { archipelago } from "./main";
-import { ServiceResponse, SessionConnection } from "./types";
+import { ServiceResponse, SessionConnection, SessionStatus } from "./types";
 
 export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
   {
@@ -27,15 +27,27 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
         password as string | undefined,
       );
 
-      firebot.logger.info(JSON.stringify(response));
-
       if (!response.success) {
         return response; // Pass up errors
       }
 
-      firebot.logger.info(JSON.stringify(response.data.connection));
-
       return { success: true, data: response.data.connection };
+    },
+  },
+  {
+    eventName: "reconnect",
+    useAsync: true,
+    handler: async (...args: Array<unknown>): Promise<SessionStatus | null> => {
+      const [sessionId] = args;
+
+      if (typeof sessionId !== "string") {
+        firebot.logger.warn(
+          "Invalid 'sessionId' provided to frontend Disconnect method",
+        );
+        return null;
+      }
+
+      return (await archipelago.findSession(sessionId)?.reconnect()) ?? null;
     },
   },
   {

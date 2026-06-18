@@ -21,6 +21,7 @@ import { MessageService } from "./message-service";
 
 export class ArchipelagoSession {
   readonly #client: Client;
+  readonly #connectionOptions: ConnectionOptions;
   #id: string;
   #url: string | URL;
   #name: string;
@@ -31,6 +32,10 @@ export class ArchipelagoSession {
 
   constructor(url: string, name: string, password?: string, id?: string) {
     this.#client = new Client();
+    this.#connectionOptions = {
+      ...(this.password !== undefined ? { password: this.password } : {}),
+      tags: ARCHIPELAGO_PLUGIN_CLIENT_TAGS,
+    };
     this.#id = id ?? uuid();
     this.#url = url;
     this.#name = name;
@@ -108,16 +113,11 @@ export class ArchipelagoSession {
         this.#client.package.importPackage(json);
       }
 
-      const settings: ConnectionOptions = {
-        ...(this.password !== undefined ? { password: this.password } : {}),
-        tags: ARCHIPELAGO_PLUGIN_CLIENT_TAGS,
-      };
-
       const response = await this.#client.login(
         this.#url,
         this.#name,
         undefined,
-        settings,
+        this.#connectionOptions,
       );
 
       firebot.logger.info("Got session info");
@@ -153,6 +153,25 @@ export class ArchipelagoSession {
         errors: [(error as Error).message ?? errorMessage],
       };
     }
+  }
+
+  async reconnect(): Promise<SessionStatus> {
+    try {
+      this.#status = SessionStatus.Connecting;
+
+      await this.#client.login(
+        this.#url,
+        this.#name,
+        undefined,
+        this.#connectionOptions,
+      );
+
+      this.#status = SessionStatus.Connected;
+    } catch (error) {
+      this.#status = SessionStatus.CouldNotConnect;
+    }
+
+    return this.#status;
   }
 
   async disconnect(): Promise<boolean> {
