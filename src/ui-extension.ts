@@ -1,11 +1,6 @@
 import { UIExtension } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
-import {
-  ServiceResponse,
-  SessionConnection,
-  SessionStatus,
-  StoredSession,
-} from "./types";
+import { ServiceResponse, SessionConnection, SessionStatus } from "./types";
 import template from "./ui-extension.html";
 
 export const ArchipelagoUIExtension: UIExtension = {
@@ -83,10 +78,31 @@ export const ArchipelagoUIExtension: UIExtension = {
           });
 
         backendCommunicator.on(
+          "oceanity:archipelago:session-status-updated",
+          ({
+            sessionId,
+            status,
+          }: {
+            sessionId: string;
+            status: SessionStatus;
+          }) => {
+            const session = $scope.sessions.find(
+              (session: SessionConnection) => session.id === sessionId,
+            );
+
+            if (!session) {
+              return;
+            }
+
+            session.status = status;
+          },
+        );
+
+        backendCommunicator.on(
           "oceanity:archipelago:session-closed",
           (sessionId: string) => {
             const sessionIndex = $scope.sessions.findIndex(
-              (session: StoredSession) => session.id === sessionId,
+              (session: SessionConnection) => session.id === sessionId,
             );
 
             if (sessionIndex === -1) {
@@ -98,7 +114,7 @@ export const ArchipelagoUIExtension: UIExtension = {
 
             if ($scope.currentSession.id === sessionId) {
               const sessionIds = $scope.sessions.map(
-                (session: StoredSession) => session.id,
+                (session: SessionConnection) => session.id,
               );
 
               if (!!sessionIds.length) {

@@ -36,9 +36,13 @@ export type StateLogMessage = {
   nodes?: Array<MessageNode>;
 };
 
+export type WidgetLogMessage = {
+  type: MessageNode["type"];
+  html: string;
+};
+
 export enum SessionStatus {
   Uninitialized = "uninitialized",
-  Initialized = "initialized",
   Connecting = "connecting",
   Connected = "connected",
   CouldNotConnect = "could-not-connect",

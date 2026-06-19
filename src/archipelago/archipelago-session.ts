@@ -43,6 +43,8 @@ export class ArchipelagoSession {
     this.#messages = new MessageService(this);
     this.#status = SessionStatus.Uninitialized;
     this.#isLoadedFromFile = id !== undefined;
+
+    this.#client.socket.on("disconnected", this.#onDisconnected);
   }
 
   //#region Public Getters
@@ -90,12 +92,8 @@ export class ArchipelagoSession {
   }
   //#endregion
 
-  async init() {
-    this.#status = SessionStatus.Initialized;
-  }
-
   async connect(): Promise<ServiceResponse<ArchipelagoSession>> {
-    this.#status = SessionStatus.Connecting;
+    this.#updateStatus(SessionStatus.Connecting);
 
     firebot.logger.info(
       `Connecting to Archipelago at '${this.#url}' as '${this.#name}'...`,
@@ -131,14 +129,14 @@ export class ArchipelagoSession {
         JSON.stringify(this.#client.package.exportPackage()),
       );
 
-      this.#status = SessionStatus.Connected;
+      this.#updateStatus(SessionStatus.Connected);
 
       return { success: true, data: this };
     } catch (error) {
       const errorMessage = `Could not connect to '${this.#url}' as '${this.#name}'`;
       firebot.logger.error(errorMessage, error);
 
-      this.#status = SessionStatus.CouldNotConnect;
+      this.#updateStatus(SessionStatus.CouldNotConnect);
 
       // If session was loaded from a file, return with status CouldNotConnect
       if (this.#isLoadedFromFile) {
@@ -157,7 +155,7 @@ export class ArchipelagoSession {
 
   async reconnect(): Promise<SessionStatus> {
     try {
-      this.#status = SessionStatus.Connecting;
+      this.#updateStatus(SessionStatus.Connecting);
 
       await this.#client.login(
         this.#url,
@@ -166,9 +164,9 @@ export class ArchipelagoSession {
         this.#connectionOptions,
       );
 
-      this.#status = SessionStatus.Connected;
+      this.#updateStatus(SessionStatus.Connected);
     } catch (error) {
-      this.#status = SessionStatus.CouldNotConnect;
+      this.#updateStatus(SessionStatus.CouldNotConnect);
     }
 
     return this.#status;
@@ -187,7 +185,7 @@ export class ArchipelagoSession {
       await unhookArchipelagoEvents(this.#id, this.#client);
 
       this.#client.socket.disconnect();
-      this.#status = SessionStatus.Disconnected;
+      this.#updateStatus(SessionStatus.Disconnected);
 
       // If Firebot is closing these will throw as the global firebot is deconstructed
       firebot?.frontendCommunicator?.fireEventAsync(
@@ -273,4 +271,20 @@ export class ArchipelagoSession {
       });
     });
   }
+
+  #updateStatus = (status: SessionStatus) => {
+    this.#status = status;
+
+    firebot.frontendCommunicator.fireEventAsync(
+      "oceanity:archipelago:session-status-updated",
+      {
+        sessionId: this.#id,
+        status: this.#status,
+      },
+    );
+  };
+
+  #onDisconnected = () => {
+    this.#updateStatus(SessionStatus.Disconnected);
+  };
 }
