@@ -14,7 +14,7 @@
   "author": "Oceanity",
   "license": "GPL-3.0",
   "devDependencies": {
-    "@crowbartools/firebot-types": "^5.67.0-alpha23",
+    "@crowbartools/firebot-types": "^5.67.0-alpha25",
     "@lucide/vue": "^1.21.0",
     "@oceanity/firebot-helpers": "^1.1.8",
     "@types/jest": "^30.0.0",

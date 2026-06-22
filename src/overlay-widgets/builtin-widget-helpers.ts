@@ -1,4 +1,4 @@
-import { OverlayWidgetType } from "@crowbartools/firebot-types";
+import firebot, { OverlayWidgetType } from "@crowbartools/firebot-types";
 
 export function loadComponentExtension(
   componentFileName: string,
@@ -10,7 +10,7 @@ export function loadComponentExtension(
     const bundleSource = readFileSync(bundlePath, "utf8");
     return { bundleSource };
   } catch (ex) {
-    logger.error(
+    firebot.logger.error(
       `Could not read ${componentFileName} widget bundle at '${bundlePath}'.`,
       ex,
     );

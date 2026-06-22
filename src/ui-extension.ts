@@ -117,9 +117,7 @@ export const ArchipelagoUIExtension: UIExtension = {
                 (session: SessionConnection) => session.id,
               );
 
-              if (!!sessionIds.length) {
-                $scope.selectSlot(sessionIds.shift());
-              }
+              $scope.selectSlot(sessionIds.shift());
             }
           },
         );

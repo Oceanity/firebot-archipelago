@@ -89,6 +89,13 @@
     margin: 0;
   }
 
+  .archipelago-ui-extension {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
 
   .chat-window-column {
     display: flex;
@@ -103,6 +110,14 @@
     flex: 1;
     flex-direction: column;
     min-height: 0;
+  }
+
+  .archipelago-centered-text-container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .archipelago-connection-panel {
@@ -142,7 +157,7 @@
     white-space: pre-wrap;
   }
 </style>
-<div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+<div class="archipelago-ui-extension">
   <div class="chat-window-column m-6">
     <div class="archipelago-connection-panel p-6">
       <input type="text" class="form-control ng-animate-disabled"
@@ -170,14 +185,18 @@
       </ul>
     </div>
 
+    <!-- No Session View -->
+    <div class="archipelago-centered-text-container" ng-if="!currentSession">
+      <h3>No Sessions connected</h3>
+      <p><strong>Use the form at the top to connect to an Archipelago Session</strong></p>
+    </div>
+
     <!-- Disconnected View -->
-    <div class="archipelago-container"
-      ng-if="['connecting', 'disconnected', 'could-not-connect'].includes(currentSession.status)">
-      <div style="display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center;">
-        <h2>Disconnected</h2>
-        <button ng-disabled="ui.isConnecting" class="btn btn-primary"
-          ng-click="reconnect(currentSession.id)">Connect</button>
-      </div>
+    <div class="archipelago-centered-text-container"
+      ng-if="!!currentSession && ['connecting', 'disconnected', 'could-not-connect'].includes(currentSession.status)">
+      <h3>Disconnected</h3>
+      <button ng-disabled="ui.isConnecting" class="btn btn-primary"
+        ng-click="reconnect(currentSession.id)">Connect</button>
     </div>
 
     <!-- Connected View -->
