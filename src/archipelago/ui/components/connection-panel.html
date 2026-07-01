@@ -1,0 +1,22 @@
+<style>
+  .archipelago-connection-panel {
+    display: flex;
+    gap: 1.5rem;
+  }
+</style>
+<div class="archipelago-connection-panel p-6">
+  <input type="text" class="form-control" placeholder="Server Hostname (eg. archipelago.gg:12345)"
+    ng-model="$ctrl.hostname" ng-disabled="$ctrl.connecting" ng-keydown="$ctrl.handleKeydown($event)"
+    style="flex: 1 0 40%" />
+
+  <input type="text" class="form-control" placeholder="Slot Name" ng-model="$ctrl.slot" ng-disabled="$ctrl.connecting"
+    ng-keydown="$ctrl.handleKeydown($event)" />
+
+  <input type="password" class="form-control" placeholder="Password (optional)" ng-model="$ctrl.password"
+    ng-disabled="$ctrl.connecting" ng-keydown="$ctrl.handleKeydown($event)" />
+
+  <button class="btn btn-primary" ng-disabled="$ctrl.connecting" ng-click="$ctrl.connect()">
+    <i class="fas fa-plus-circle mr-2"></i>
+    {{ $ctrl.connecting ? "Connecting" : "Connect" }}
+  </button>
+</div>

@@ -1,0 +1,16 @@
+<style>
+  .archipelago-hints-container {
+    flex-basis: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+</style>
+<div class="archipelago-hints-container" tooltip-placement="top"
+  uib-tooltip="Hint Points: {{$ctrl.hintData.hintPointProgress || '0'}} / {{$ctrl.hintData.hintCost || '0'}}">
+  <span style="font-size: 16px; font-weight:600; letter-spacing: 0.075rem;">Hints: {{
+    $ctrl.hintData.hints || '0' }}</span>
+  <uib-progressbar type="warning" class="progress-striped active" max="$ctrl.hintData.hintCost || 1"
+    value="$ctrl.hintData.hintPointProgress || 0" style="margin: 0; width: 100%; height:10px;" />
+</div>
