@@ -1,12 +1,11 @@
 <style>
-  .archipelago-session-tabs .nav-tabs {
-    overflow: hidden auto;
-    flex-wrap: nowrap;
+  archipelago-session-tabs .nav-tabs {
+    display: flex;
+    margin: 0;
   }
 
   .archipelago-session-tab {
-    display: flex;
-    flex-wrap: nowrap;
+    display: flex !important;
     align-items: center;
     gap: 10px;
   }
@@ -18,10 +17,10 @@
     color: #66666655
   }
 </style>
-<div class="archipelago-session-tabs fb-tab-wrapper">
+<div class="fb-tab-wrapper">
   <ul class="nav nav-tabs fb-tabs">
     <li ng-repeat="session in $ctrl.sessionTable track by $index" role="presentation"
-      ng-class="{'active' : $ctrl.selected === session.id}" ng-click="$ctrl.selectSlot(session.id)">
+      ng-class="{'active' : $ctrl.selected === session.id}" ng-click="$ctrl.changeSession(session.id)">
       <a href class="archipelago-session-tab"><span>{{ session.handle }}</span><button class="close"
           ng-click="$ctrl.disconnect(session.id)"><i class="fal fa-times"></i></button></a>
     </li>

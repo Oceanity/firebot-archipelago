@@ -5,7 +5,10 @@ import {
   MessageNode,
   SocketEvents,
 } from "archipelago.js";
-import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
+import {
+  ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE,
+  ARCHIPELAGO_PLUGIN_ID,
+} from "./constants";
 import {
   getDeathLinkMetadata,
   getHintData,
@@ -32,6 +35,7 @@ const getSocketEventDefinitions = (
       firebot.logger.info(JSON.stringify(packet));
 
       firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, FirebotEvents.Connected, {
+        [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: packet,
         ...getSessionMetadata(sessionId, client),
         ...getPlayerMetadata(client),
       });
@@ -41,6 +45,15 @@ const getSocketEventDefinitions = (
     event: "disconnected",
     handler: () => {
       firebot.logger.info(`Disconnected session with Id '${sessionId}'`);
+
+      firebot.events.trigger(
+        ARCHIPELAGO_PLUGIN_ID,
+        FirebotEvents.Disconnected,
+        {
+          [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: {},
+          ...getSessionMetadata(sessionId, client),
+        },
+      );
     },
   },
   {
@@ -63,6 +76,7 @@ const getSocketEventDefinitions = (
           ARCHIPELAGO_PLUGIN_ID,
           FirebotEvents.HintsUpdated,
           {
+            [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: packet,
             ...getSessionMetadata(sessionId, client),
             ...getPlayerMetadata(client),
           },
@@ -98,6 +112,7 @@ const getSocketEventDefinitions = (
           ARCHIPELAGO_PLUGIN_ID,
           FirebotEvents.ReceivedItems,
           {
+            [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: item,
             ...getSessionMetadata(sessionId, client),
             ...getItemMetadata(client, item),
             ...getPlayerMetadata(client, item.player, "apSender"),
@@ -125,6 +140,7 @@ export const hookArchipelagoEvents = async (
 
   client.deathLink.on("deathReceived", (source, time, cause) => {
     firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, FirebotEvents.DeathLink, {
+      [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: { source, time, cause },
       ...getSessionMetadata(sessionId, client),
       ...getPlayerMetadata(client),
       ...getDeathLinkMetadata({ source, time, cause }),
@@ -133,12 +149,13 @@ export const hookArchipelagoEvents = async (
 
   client.messages.on(
     "countdown",
-    (text: string, value: number, _nodes: Array<MessageNode>) => {
+    (text: string, value: number, nodes: Array<MessageNode>) => {
       if (text.startsWith("[Server]: Starting")) {
         return;
       }
 
       firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, FirebotEvents.Countdown, {
+        [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: { text, value, nodes },
         ...getSessionMetadata(sessionId, client),
         ...getPlayerMetadata(client),
         apCountdown: `${value}`,

@@ -23,6 +23,8 @@ export const ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME = "ap-sessions.json";
 export const ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME =
   "ap-datapackage-cache.json";
 
+export const ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE = "apEventData";
+
 export const ARCHIPELAGO_EVENT_SOURCE: EventSource = {
   id: ARCHIPELAGO_PLUGIN_ID,
   name: "Archipelago",

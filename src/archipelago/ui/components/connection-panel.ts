@@ -4,14 +4,11 @@ import template from "./connection-panel.html";
 export const ArchipelagoConnectionPanel: AngularJsComponent = {
   name: "archipelagoConnectionPanel",
 
-  bindings: {
-    connecting: "<",
-    onConnect: "&",
-  },
+  bindings: {},
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any, ngToast: any) => {
+  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
     $scope.$ctrl.hostname = "";
     $scope.$ctrl.slot = "";
     $scope.$ctrl.password = "";
@@ -21,10 +18,10 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
       const { hostname, slot, password } = $scope.$ctrl;
 
       if (!hostname) {
-        //$scope.sendToast("Hostname is required.", "danger");
+        apToast.send("Hostname is required.", "danger");
         return false;
       } else if (!slot) {
-        //$scope.sendToast("Slot name is required.", "danger");
+        apToast.send("Slot name is required.", "danger");
         return false;
       }
 
@@ -40,14 +37,25 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
       $scope.$ctrl.connecting = false;
 
       if (!response.success) {
-        // $scope.sendToast(response.errors?.join(", "), "danger", true, 10000);
+        apToast.send(response.errors?.join(", "), "danger", true, 10000);
         return;
       }
 
-      // $scope.sendToast(
-      //   `Successfully connected to '${response.data.handle}'`,
-      //   "success",
-      // );
+      $scope.$ctrl.clear();
+
+      apToast.send(
+        `Successfully connected to '${response.data.handle}'`,
+        "success",
+      );
+    };
+
+    $scope.$ctrl.handleKeydown = async ($event: KeyboardEvent) => {
+      const keyCode = $event.which || $event.keyCode;
+
+      // Enter Key
+      if (keyCode === 13) {
+        await $scope.$ctrl.connect();
+      }
     };
 
     $scope.$ctrl.clear = () => {

@@ -12,7 +12,7 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any) => {
+  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
     $scope.$ctrl.sessionTable = [];
 
     $scope.$ctrl.fetchSessionTable = async () => {
@@ -21,11 +21,11 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
       );
 
       if ($scope.$ctrl.sessionTable.length) {
-        await $scope.$ctrl.selectSlot($scope.$ctrl.sessionTable[0].id);
+        await $scope.$ctrl.changeSession($scope.$ctrl.sessionTable[0].id);
       }
     };
 
-    $scope.$ctrl.selectSlot = async (sessionId: string) => {
+    $scope.$ctrl.changeSession = async (sessionId: string) => {
       if (sessionId === $scope.$ctrl.selected) {
         return;
       }
@@ -60,6 +60,8 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
           id: newSession.id,
           handle: newSession.handle,
         });
+
+        $scope.$ctrl.changeSession(newSession.id);
       },
     );
 
@@ -81,7 +83,7 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
             (session: SessionConnection) => session.id,
           );
 
-          $scope.$ctrl.selectSlot(sessionIds.shift());
+          $scope.$ctrl.changeSession(sessionIds.shift());
         }
       },
     );

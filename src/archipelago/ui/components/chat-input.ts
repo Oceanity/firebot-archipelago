@@ -7,9 +7,6 @@ export const ArchipelagoChatInput: AngularJsComponent = {
   bindings: {
     sessionId: "<",
     onMessageSent: "&",
-    onSend: "&",
-    onPrevMessage: "&",
-    onNextMessage: "&",
   },
 
   template,
@@ -23,7 +20,7 @@ export const ArchipelagoChatInput: AngularJsComponent = {
         return false;
       }
 
-      await backendCommunicator.fireEventAsync(
+      const success = await backendCommunicator.fireEventAsync(
         "oceanity:archipelago:send-message",
         $scope.$ctrl.sessionId,
         $scope.$ctrl.message,
@@ -32,14 +29,14 @@ export const ArchipelagoChatInput: AngularJsComponent = {
       $scope.$ctrl.clear();
 
       // Toggle forceGlued to move to bottom of box
-      // $scope.$evalAsync(() => {
-      //   $scope.ui.forceGlued = true;
-      //   $scope.ui.forceGlued = false;
-      // });
+      $scope.$ctrl.$evalAsync(() => {
+        $scope.$ctrl.forceGlued = true;
+        $scope.$ctrl.forceGlued = false;
+      });
 
-      // if (success) {
-      //   $scope.$ctrl.clear();
-      // }
+      if (success) {
+        $scope.$ctrl.clear();
+      }
     };
 
     $scope.$ctrl.handleKeydown = async ($event: KeyboardEvent) => {
@@ -65,6 +62,44 @@ export const ArchipelagoChatInput: AngularJsComponent = {
           break;
         }
       }
+    };
+
+    $scope.$ctrl.onPrevMessage = async () => {
+      backendCommunicator
+        .fireEventAsync(
+          "oceanity:archipelago:get-chat-history",
+          $scope.$ctrl.sessionId,
+          $scope.chatHistoryIndex !== undefined
+            ? $scope.chatHistoryIndex - 1
+            : undefined,
+        )
+        .then((data: [string, number]) => {
+          const [message, entry] = data;
+          if (entry === -1) {
+            return;
+          }
+          $scope.form.chatText = message;
+          $scope.chatHistoryIndex = entry;
+        });
+    };
+
+    $scope.$ctrl.onNextMessage = async () => {
+      backendCommunicator
+        .fireEventAsync(
+          "oceanity:archipelago:get-chat-history",
+          $scope.$ctrl.sessionId,
+          $scope.chatHistoryIndex !== undefined
+            ? $scope.chatHistoryIndex + 1
+            : undefined,
+        )
+        .then((data: [string, number]) => {
+          const [message, entry] = data;
+          if (entry === -1) {
+            return;
+          }
+          $scope.form.chatText = message;
+          $scope.chatHistoryIndex = entry;
+        });
     };
 
     $scope.$ctrl.clear = () => {

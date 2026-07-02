@@ -1,5 +1,6 @@
 import { AllChatCommandDefinitions } from "../chat-command-definitions";
 import {
+  ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE,
   ARCHIPELAGO_PLUGIN_ID,
   ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY,
   ARCHIPELAGO_PLUGIN_MAX_MESSAGES,
@@ -160,6 +161,7 @@ export class MessageService {
 
     // Send to Firebot Events
     firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, FirebotEvents.Message, {
+      [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: { text, nodes },
       ...getSessionMetadata(this.#session.id, this.#session.client),
       ...getMessageMetadata(logMessage),
     });
@@ -244,6 +246,6 @@ export class MessageService {
             return "";
         }
       })
-      .join(" ");
+      .join("");
   };
 }

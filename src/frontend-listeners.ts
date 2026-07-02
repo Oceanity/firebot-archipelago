@@ -79,6 +79,22 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
       archipelago.sessionTable,
   },
   {
+    eventName: "get-session-status",
+    useAsync: true,
+    handler: async (...args: Array<unknown>): Promise<SessionStatus | null> => {
+      const [sessionId] = args;
+
+      if (typeof sessionId !== "string") {
+        firebot.logger.warn(
+          "Invalid 'sessionId' provided to frontend Get Session Status method",
+        );
+        return null;
+      }
+
+      return archipelago.findSession(sessionId)?.status ?? null;
+    },
+  },
+  {
     eventName: "send-message",
     useAsync: true,
     handler: async (...args: Array<unknown>): Promise<boolean> => {

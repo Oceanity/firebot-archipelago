@@ -6,14 +6,13 @@ export const ArchipelagoChatFeed: AngularJsComponent = {
 
   bindings: {
     sessionId: "<",
-    glued: "<",
-    forceGlued: "<",
   },
 
   template,
 
   controller: ($scope: any, backendCommunicator: any) => {
-    $scope.$ctrl.focused = false;
+    $scope.$ctrl.glued = true;
+    $scope.$ctrl.forceGlued = false;
     $scope.$ctrl.messages = [];
 
     $scope.$ctrl.fetchMessageLog = async () => {
@@ -42,8 +41,6 @@ export const ArchipelagoChatFeed: AngularJsComponent = {
         await $scope.$ctrl.fetchMessageLog();
       }
     };
-
-    $scope.$ctrl.fetchMessageLog();
 
     backendCommunicator.on(
       "oceanity:archipelago:got-html-log-message",

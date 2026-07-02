@@ -67,6 +67,24 @@ export const AllArchipelagoVariables: Array<ReplaceVariable> = [
     "The current value of the server's countdown",
     [FirebotEvents.Countdown],
   ),
+
+  // All Event Data Variable
+  buildArchipelagoVariable(
+    "apEventData",
+    "The raw JSON event data included with the associated event",
+    [
+      FirebotEvents.Connected,
+      FirebotEvents.Countdown,
+      FirebotEvents.DeathLink,
+      FirebotEvents.Disconnected,
+      FirebotEvents.HintsUpdated,
+      FirebotEvents.InitialItems,
+      FirebotEvents.Message,
+      FirebotEvents.ReceivedItems,
+      FirebotEvents.SentItems,
+      FirebotEvents.SlotData,
+    ],
+  ),
 ];
 
 function buildArchipelagoVariable(

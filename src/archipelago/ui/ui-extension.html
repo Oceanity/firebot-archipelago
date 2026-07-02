@@ -1,8 +1,4 @@
 <style>
-  p {
-    margin: 0;
-  }
-
   .archipelago-ui-extension {
     display: flex;
     flex-direction: column;
@@ -38,23 +34,24 @@
   <div class="chat-window-column m-6">
     <archipelago-connection-panel></archipelago-connection-panel>
     <archipelago-session-tabs selected="sessionId"
-      on-session-changed="selectSlot(sessionId)"></archipelago-session-tabs>
+      on-session-changed="changeSession(sessionId)"></archipelago-session-tabs>
 
     <!-- No Session View -->
-    <div class="archipelago-centered-text-container" ng-if="!currentSession">
+    <div class="archipelago-centered-text-container" ng-if="!sessionId || !sessionStatus">
       <h3>No Sessions connected</h3>
       <p><strong>Use the form at the top to connect to an Archipelago Session</strong></p>
     </div>
 
     <!-- Disconnected View -->
     <div class="archipelago-centered-text-container"
-      ng-if="!!currentSession && ['connecting', 'disconnected', 'could-not-connect'].includes(currentSession.status)">
+      ng-if="!!sessionStatus && ['connecting', 'disconnected', 'could-not-connect'].includes(sessionStatus)">
       <h3>Disconnected</h3>
-      <button ng-disabled="ui.isConnecting" class="btn btn-primary" ng-click="reconnect(sessionId)">Reconnect</button>
+      <button ng-disabled="sessionStatus === 'connecting'" class="btn btn-primary"
+        ng-click="reconnect(sessionId)">Reconnect</button>
     </div>
 
     <!-- Connected View -->
-    <div class="archipelago-container" ng-if="currentSession.status === 'connected'">
+    <div class="archipelago-container" ng-if="sessionStatus === 'connected'">
       <archipelago-chat-feed session-id="sessionId" glued="ui.scrollGlued"
         force-glued="ui.forceGlued"></archipelago-chat-feed>
 

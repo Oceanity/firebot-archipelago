@@ -34,20 +34,16 @@ export const ArchipelagoHintDisplay: AngularJsComponent = {
       }
     };
 
-    $scope.$ctrl.loadHintData();
-
     backendCommunicator.on(
       "oceanity:archipelago:hints-updated",
       (data: Record<string, any>) => {
         const { sessionId, ...hintData } = data;
 
-        if (sessionId !== $scope.$ctrl.sessionId) {
-          return;
+        if (sessionId === $scope.$ctrl.sessionId) {
+          $scope.$ctrl.hintData = hintData;
+
+          $scope.$applyAsync();
         }
-
-        $scope.$ctrl.hintData = hintData;
-
-        $scope.$applyAsync();
       },
     );
   },
