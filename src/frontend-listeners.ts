@@ -75,7 +75,7 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
   {
     eventName: "get-session-table",
     useAsync: true,
-    handler: async (): Promise<Record<string, string>> =>
+    handler: async (): Promise<Array<{ id: string; handle: string }>> =>
       archipelago.sessionTable,
   },
   {

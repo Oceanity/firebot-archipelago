@@ -16,7 +16,6 @@ export const ArchipelagoHintDisplay: AngularJsComponent = {
     $scope.$ctrl.password = "";
 
     $scope.$ctrl.loadHintData = async () => {
-      $scope.$ctrl.debug = "in";
       if (!$scope.$ctrl.sessionId) {
         return;
       }

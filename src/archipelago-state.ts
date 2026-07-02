@@ -13,12 +13,11 @@ export class ArchipelagoState {
 
   constructor() {}
 
-  get sessionTable(): Record<string, string> {
-    const output: Record<string, string> = {};
-    this.#sessions.forEach((session) => {
-      output[session.id] = session.handle;
-    });
-    return output;
+  get sessionTable(): Array<{ id: string; handle: string }> {
+    return this.#sessions.map((session) => ({
+      id: session.id,
+      handle: session.handle,
+    }));
   }
 
   get sessionConnections(): Array<SessionConnection> {
@@ -164,6 +163,7 @@ export class ArchipelagoState {
       )
     ).reduce((prev: boolean = true, cur) => prev && cur);
   }
+
   async #saveSessionsToStorage(): Promise<boolean> {
     try {
       const stored: Array<StoredSession> = this.#sessions.map((session) => ({

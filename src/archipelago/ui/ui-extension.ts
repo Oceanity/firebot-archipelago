@@ -1,9 +1,11 @@
 import { UIExtension } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../../constants";
 import { SessionConnection, SessionStatus } from "../../types";
+import { ArchipelagoChatFeed } from "./components/chat-feed";
 import { ArchipelagoChatInput } from "./components/chat-input";
 import { ArchipelagoConnectionPanel } from "./components/connection-panel";
 import { ArchipelagoHintDisplay } from "./components/hint-display";
+import { ArchipelagoSessionTabs } from "./components/session-tabs";
 import template from "./ui-extension.html";
 
 export const ArchipelagoUIExtension: UIExtension = {
@@ -29,9 +31,11 @@ export const ArchipelagoUIExtension: UIExtension = {
           isConnecting: false,
         };
         $scope.sessionData = {};
-        $scope.messages = {};
+        $scope.sessionId = undefined;
 
-        $scope.selectSlot = async (sessionId: string) => {
+        $scope.selectSlot = async (sessionId?: string) => {
+          $scope.sessionId = sessionId;
+
           if (!sessionId) {
             $scope.currentSession = undefined;
             return;
@@ -40,14 +44,6 @@ export const ArchipelagoUIExtension: UIExtension = {
           $scope.currentSession = $scope.sessions.find(
             (session: SessionConnection) => session.id === sessionId,
           );
-          if (!$scope.messages[sessionId]) {
-            const messageLog = await backendCommunicator.fireEventAsync(
-              "oceanity:archipelago:get-html-message-log",
-              sessionId,
-            );
-
-            $scope.messages[sessionId] = messageLog;
-          }
 
           $scope.form.chatText = "";
           $scope.chatHistoryIndex = undefined;
@@ -96,116 +92,66 @@ export const ArchipelagoUIExtension: UIExtension = {
           },
         );
 
-        backendCommunicator.on(
-          "oceanity:archipelago:session-closed",
-          (sessionId: string) => {
-            const sessionIndex = $scope.sessions.findIndex(
-              (session: SessionConnection) => session.id === sessionId,
-            );
+        // $scope.connect = async (
+        //   hostname: string,
+        //   slot: string,
+        //   password?: string,
+        // ): Promise<boolean> => {
+        //   if (!hostname) {
+        //     $scope.sendToast("Hostname is required.", "danger");
+        //     return false;
+        //   } else if (!slot) {
+        //     $scope.sendToast("Slot name is required.", "danger");
+        //     return false;
+        //   }
 
-            if (sessionIndex === -1) {
-              return;
-            }
+        //   $scope.ui.isConnecting = true;
 
-            $scope.sessions.splice(sessionIndex, 1);
-            $scope.sessionData[sessionId] = undefined;
+        //   const response = await backendCommunicator.fireEventAsync(
+        //     "oceanity:archipelago:connect",
+        //     hostname,
+        //     slot,
+        //     password,
+        //   );
 
-            if ($scope.currentSession.id === sessionId) {
-              const sessionIds = $scope.sessions.map(
-                (session: SessionConnection) => session.id,
-              );
+        //   $scope.ui.isConnecting = false;
 
-              $scope.selectSlot(sessionIds.shift());
-            }
-          },
-        );
+        //   if (!response.success) {
+        //     $scope.sendToast(
+        //       response.errors?.join(", "),
+        //       "danger",
+        //       true,
+        //       10000,
+        //     );
+        //     return false;
+        //   }
 
-        backendCommunicator.on(
-          "oceanity:archipelago:got-html-log-message",
-          (data: { sessionId: string; html: string }) => {
-            $scope.messages[data.sessionId]?.push(data.html);
-          },
-        );
+        //   if (!$scope.sessions) {
+        //     $scope.sessions = {};
+        //   }
 
-        backendCommunicator.on(
-          "oceanity:archipelago:chat-cleared",
-          (sessionId: string) => {
-            $scope.messages[sessionId] = [];
-          },
-        );
+        //   const { id, handle, name, status } = response.data;
 
-        $scope.connect = async (
-          hostname: string,
-          slot: string,
-          password?: string,
-        ): Promise<boolean> => {
-          if (!hostname) {
-            $scope.sendToast("Hostname is required.", "danger");
-            return false;
-          } else if (!slot) {
-            $scope.sendToast("Slot name is required.", "danger");
-            return false;
-          }
+        //   $scope.sessions.push({
+        //     id,
+        //     name,
+        //     handle,
+        //     status,
+        //     ...(password ? { password } : {}),
+        //   });
+        //   $scope.selectSlot(id);
 
-          $scope.ui.isConnecting = true;
+        //   $scope.sendToast(
+        //     `Successfully connected to '${response.data.handle}'`,
+        //     "success",
+        //   );
 
-          const response = await backendCommunicator.fireEventAsync(
-            "oceanity:archipelago:connect",
-            hostname,
-            slot,
-            password,
-          );
-
-          $scope.ui.isConnecting = false;
-
-          if (!response.success) {
-            $scope.sendToast(
-              response.errors?.join(", "),
-              "danger",
-              true,
-              10000,
-            );
-            return false;
-          }
-
-          if (!$scope.messages) {
-            $scope.messages = {};
-          }
-
-          if (!$scope.sessions) {
-            $scope.sessions = {};
-          }
-
-          const { id, handle, name, status } = response.data;
-
-          $scope.messages[handle] = [];
-          $scope.sessions.push({
-            id,
-            name,
-            handle,
-            status,
-            ...(password ? { password } : {}),
-          });
-          $scope.selectSlot(id);
-
-          $scope.sendToast(
-            `Successfully connected to '${response.data.handle}'`,
-            "success",
-          );
-
-          return true;
-        };
+        //   return true;
+        // };
 
         $scope.reconnect = (sessionId: string) => {
           backendCommunicator.fireEventAsync(
             "oceanity:archipelago:reconnect",
-            sessionId,
-          );
-        };
-
-        $scope.disconnect = (sessionId: string) => {
-          backendCommunicator.fireEventAsync(
-            "oceanity:archipelago:disconnect",
             sessionId,
           );
         };
@@ -285,9 +231,11 @@ export const ArchipelagoUIExtension: UIExtension = {
   providers: {
     factories: [],
     components: [
+      ArchipelagoChatFeed,
       ArchipelagoChatInput,
       ArchipelagoConnectionPanel,
       ArchipelagoHintDisplay,
+      ArchipelagoSessionTabs,
     ],
     directives: [],
     filters: [],

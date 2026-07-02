@@ -1,90 +1,4 @@
 <style>
-  .red {
-    color: #ff0000;
-  }
-
-  .green {
-    color: #00ff7f;
-  }
-
-  .blue {
-    color: #6495ed;
-  }
-
-  .yellow {
-    color: #fafad2;
-  }
-
-  .magenta {
-    color: #ee00ee;
-  }
-
-  .cyan {
-    color: #00eeee;
-  }
-
-  .slateblue {
-    color: #6d8be8;
-  }
-
-  .plum {
-    color: #af99ef;
-  }
-
-  .salmon {
-    color: #fa8072;
-  }
-
-  .orange {
-    color: #ff7700;
-  }
-
-  .player {
-    color: #fafad2;
-  }
-
-  .player.self {
-    color: #ee00ee;
-  }
-
-  .item {
-    color: #00eeee;
-  }
-
-  .item.progression {
-    color: #af99ef;
-  }
-
-  .item.useful {
-    color: #6d8be8;
-  }
-
-  .item.trap {
-    color: #fa8072;
-  }
-
-  .location {
-    color: #00ff7f;
-  }
-
-  .deathlink {
-    color: #fa8072;
-  }
-
-  .item-entry.received {
-    color: #00ff7f;
-  }
-
-  .location-entry.checked {
-    color: #6d8be8;
-    text-decoration: line-through;
-    font-style: italic;
-  }
-
-  .arg {
-    color: #6d8be8;
-  }
-
   p {
     margin: 0;
   }
@@ -119,54 +33,12 @@
     align-items: center;
     justify-content: center;
   }
-
-  .archipelago-chat-wrapper {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-    font-size: 16px;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.65);
-    cursor: default;
-  }
-
-  .archipelago-chat-feed {
-    display: flex;
-    flex-direction: column;
-    margin-top: auto;
-    overflow: hidden auto;
-  }
-
-  .archipelago-chat-feed::-webkit-scrollbar {
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.75);
-  }
-
-  .archipelago-message {
-    line-height: 2.5rem;
-  }
-
-  .archipelago-message span {
-    white-space: pre-wrap;
-  }
 </style>
 <div class="archipelago-ui-extension">
   <div class="chat-window-column m-6">
-    <archipelago-connection-panel connecting="ui.isConnecting"
-      on-connect="connect(hostname, slot, password)"></archipelago-connection-panel>
-
-    <div class="fb-tab-wrapper">
-      <ul class="nav nav-tabs fb-tabs">
-        <li ng-repeat="session in sessions track by $index" role="presentation"
-          ng-class="{'active' : currentSession.id === session.id}" ng-click="selectSlot(session.id)">
-          <a href style="display: flex; align-items: center; gap: 10px;"><span>{{ session.handle }}</span><button
-              class="close" ng-click="disconnect(session.id)"><i class="fal fa-times"
-                style="display: flex; align-items: center; font-size: 14px; color: #66666655"></i></button></a>
-        </li>
-      </ul>
-    </div>
+    <archipelago-connection-panel></archipelago-connection-panel>
+    <archipelago-session-tabs selected="sessionId"
+      on-session-changed="selectSlot(sessionId)"></archipelago-session-tabs>
 
     <!-- No Session View -->
     <div class="archipelago-centered-text-container" ng-if="!currentSession">
@@ -178,25 +50,17 @@
     <div class="archipelago-centered-text-container"
       ng-if="!!currentSession && ['connecting', 'disconnected', 'could-not-connect'].includes(currentSession.status)">
       <h3>Disconnected</h3>
-      <button ng-disabled="ui.isConnecting" class="btn btn-primary"
-        ng-click="reconnect(currentSession.id)">Reconnect</button>
+      <button ng-disabled="ui.isConnecting" class="btn btn-primary" ng-click="reconnect(sessionId)">Reconnect</button>
     </div>
 
     <!-- Connected View -->
     <div class="archipelago-container" ng-if="currentSession.status === 'connected'">
-      <div class="archipelago-chat-wrapper" tab-index="-1" ng-click="ui.scrollGlued = false"
-        ng-blur="ui.scrollGlued = true">
-        <div class="archipelago-chat-feed" scroll-glue="ui.scrollGlued" force-glue="ui.forceGlued">
-          <div ng-repeat="message in messages[currentSession.id] track by $index">
-            <hr style="margin: 0; border-color: rgba(93, 93, 93, 0.2);" />
-            <div class="p-3 archipelago-message" ng-bind-html="message"></div>
-          </div>
-        </div>
-      </div>
+      <archipelago-chat-feed session-id="sessionId" glued="ui.scrollGlued"
+        force-glued="ui.forceGlued"></archipelago-chat-feed>
 
       <div class="p-6" style="display: flex; gap: 1.5rem">
-        <archipelago-hint-display session-id="currentSession.id"></archipelago-hint-display>
-        <archipelago-chat-input session-id="currentSession.id" style="flex: 1"></archipelago-chat-input>
+        <archipelago-hint-display session-id="sessionId"></archipelago-hint-display>
+        <archipelago-chat-input session-id="sessionId"></archipelago-chat-input>
       </div>
     </div>
 

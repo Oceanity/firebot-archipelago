@@ -131,6 +131,11 @@ export class ArchipelagoSession {
 
       this.#updateStatus(SessionStatus.Connected);
 
+      firebot.frontendCommunicator.fireEventAsync(
+        "oceanity:archipelago:session-opened",
+        this.connection,
+      );
+
       return { success: true, data: this };
     } catch (error) {
       const errorMessage = `Could not connect to '${this.#url}' as '${this.#name}'`;

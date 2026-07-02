@@ -11,34 +11,49 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any) => {
+  controller: ($scope: any, backendCommunicator: any, ngToast: any) => {
     $scope.$ctrl.hostname = "";
     $scope.$ctrl.slot = "";
     $scope.$ctrl.password = "";
+    $scope.$ctrl.connecting = false;
 
     $scope.$ctrl.connect = async () => {
-      const success = await $scope.$ctrl.onConnect({
-        hostname: $scope.$ctrl.hostname,
-        slot: $scope.$ctrl.slot,
-        password: $scope.$ctrl.password,
-      });
+      const { hostname, slot, password } = $scope.$ctrl;
 
-      if (success) {
-        $scope.$ctrl.clear();
+      if (!hostname) {
+        //$scope.sendToast("Hostname is required.", "danger");
+        return false;
+      } else if (!slot) {
+        //$scope.sendToast("Slot name is required.", "danger");
+        return false;
       }
-    };
 
-    $scope.$ctrl.handleKeydown = ($event: KeyboardEvent) => {
-      if (($event.which || $event.keyCode) === 13) {
-        $scope.$ctrl.connect();
+      $scope.$ctrl.connecting = true;
+
+      const response = await backendCommunicator.fireEventAsync(
+        "oceanity:archipelago:connect",
+        hostname,
+        slot,
+        password,
+      );
+
+      $scope.$ctrl.connecting = false;
+
+      if (!response.success) {
+        // $scope.sendToast(response.errors?.join(", "), "danger", true, 10000);
+        return;
       }
+
+      // $scope.sendToast(
+      //   `Successfully connected to '${response.data.handle}'`,
+      //   "success",
+      // );
     };
 
     $scope.$ctrl.clear = () => {
       $scope.$ctrl.hostname = "";
       $scope.$ctrl.slot = "";
       $scope.$ctrl.password = "";
-      $scope.$ctrl.test = "start";
     };
   },
 };

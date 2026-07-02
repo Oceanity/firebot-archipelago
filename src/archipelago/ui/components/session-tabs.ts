@@ -1,0 +1,89 @@
+import { AngularJsComponent } from "@crowbartools/firebot-types";
+import { SessionConnection } from "../../../types";
+import template from "./session-tabs.html";
+
+export const ArchipelagoSessionTabs: AngularJsComponent = {
+  name: "archipelagoSessionTabs",
+
+  bindings: {
+    selected: "<",
+    onSessionChanged: "&",
+  },
+
+  template,
+
+  controller: ($scope: any, backendCommunicator: any) => {
+    $scope.$ctrl.sessionTable = [];
+
+    $scope.$ctrl.fetchSessionTable = async () => {
+      $scope.$ctrl.sessionTable = await backendCommunicator.fireEventAsync(
+        "oceanity:archipelago:get-session-table",
+      );
+
+      if ($scope.$ctrl.sessionTable.length) {
+        await $scope.$ctrl.selectSlot($scope.$ctrl.sessionTable[0].id);
+      }
+    };
+
+    $scope.$ctrl.selectSlot = async (sessionId: string) => {
+      if (sessionId === $scope.$ctrl.selected) {
+        return;
+      }
+
+      $scope.$ctrl.onSessionChanged({
+        sessionId,
+      });
+    };
+
+    $scope.$ctrl.disconnect = async (sessionId: string) => {
+      await backendCommunicator.fireEventAsync(
+        "oceanity:archipelago:disconnect",
+        sessionId,
+      );
+    };
+
+    $scope.$ctrl.fetchSessionTable();
+
+    backendCommunicator.on(
+      "oceanity:archipelago:session-opened",
+      (newSession: SessionConnection) => {
+        const existingSession = $scope.$ctrl.sessionTable.find(
+          (session: { id: string; handle: string }) =>
+            session.id === newSession.id,
+        );
+
+        if (!!existingSession) {
+          return;
+        }
+
+        $scope.$ctrl.sessionTable.push({
+          id: newSession.id,
+          handle: newSession.handle,
+        });
+      },
+    );
+
+    backendCommunicator.on(
+      "oceanity:archipelago:session-closed",
+      (sessionId: string) => {
+        const sessionIndex = $scope.$ctrl.sessionTable.findIndex(
+          (session: { id: string; handle: string }) => session.id === sessionId,
+        );
+
+        if (sessionIndex === -1) {
+          return;
+        }
+
+        $scope.$ctrl.sessionTable.splice(sessionIndex, 1);
+
+        if ($scope.$ctrl.selected === sessionId) {
+          const sessionIds = $scope.$ctrl.sessionTable.map(
+            (session: SessionConnection) => session.id,
+          );
+
+          $scope.$ctrl.selectSlot(sessionIds.shift());
+        }
+      },
+    );
+  },
+};
