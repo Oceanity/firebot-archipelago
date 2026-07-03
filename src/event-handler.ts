@@ -16,6 +16,7 @@ import {
   getPlayerMetadata,
   getSessionMetadata,
 } from "./helpers";
+import { archipelago } from "./main";
 import { FirebotEvents } from "./types";
 
 type SocketEventDefinition = {
@@ -51,7 +52,6 @@ const getSocketEventDefinitions = (
         FirebotEvents.Disconnected,
         {
           [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: {},
-          ...getSessionMetadata(sessionId, client),
         },
       );
     },
@@ -107,18 +107,18 @@ const getSocketEventDefinitions = (
   {
     event: "receivedItems",
     handler: (packet) => {
+      const event = !archipelago.findSession(sessionId)?.isReady
+        ? FirebotEvents.InitialItems
+        : FirebotEvents.ReceivedItems;
+
       packet.items.forEach((item) => {
-        firebot.events.trigger(
-          ARCHIPELAGO_PLUGIN_ID,
-          FirebotEvents.ReceivedItems,
-          {
-            [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: item,
-            ...getSessionMetadata(sessionId, client),
-            ...getItemMetadata(client, item),
-            ...getPlayerMetadata(client, item.player, "apSender"),
-            ...getPlayerMetadata(client, undefined, "apReceiver"),
-          },
-        );
+        firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, event, {
+          [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: item,
+          ...getSessionMetadata(sessionId, client),
+          ...getItemMetadata(client, item),
+          ...getPlayerMetadata(client, item.player, "apSender"),
+          ...getPlayerMetadata(client, undefined, "apReceiver"),
+        });
       });
     },
   },

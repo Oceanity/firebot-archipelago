@@ -6,7 +6,10 @@ import { ArchipelagoChatInput } from "./components/chat-input";
 import { ArchipelagoConnectionPanel } from "./components/connection-panel";
 import { ArchipelagoHintDisplay } from "./components/hint-display";
 import { ArchipelagoSessionTabs } from "./components/session-tabs";
-import { ArchipelagoToastService } from "./factories/toast-service";
+import {
+  ArchipelagoToastService,
+  ArchipelagoToastServiceFactory,
+} from "./factories/toast-service";
 import template from "./ui-extension.html";
 
 export const ArchipelagoUIExtension: UIExtension = {
@@ -20,8 +23,12 @@ export const ArchipelagoUIExtension: UIExtension = {
       disableScroll: true,
       type: "angularjs",
       template: template,
-      //@ts-expect-error ts(7006)
-      controller: ($scope, backendCommunicator, apToast) => {
+
+      controller: (
+        $scope: any,
+        backendCommunicator: any,
+        apToast: ArchipelagoToastService,
+      ) => {
         $scope.sessionId = undefined;
         $scope.sessionStatus = null;
 
@@ -90,7 +97,7 @@ export const ArchipelagoUIExtension: UIExtension = {
     },
   ],
   providers: {
-    factories: [ArchipelagoToastService],
+    factories: [ArchipelagoToastServiceFactory],
     components: [
       ArchipelagoChatFeed,
       ArchipelagoChatInput,

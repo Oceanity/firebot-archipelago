@@ -103,15 +103,13 @@ export class MessageService {
     );
   }
 
-  public getChatHistoryEntry(entry?: number): [message: string, index: number] {
+  public getChatHistoryEntry(entry: number): [message: string, index: number] {
     if (!this.#chatHistory.length) {
       return ["", -1];
     }
 
-    if (entry === undefined) {
+    if (entry === -1) {
       entry = this.#chatHistory.length - 1;
-    } else if (entry < 0) {
-      entry = 0;
     } else if (entry >= this.#chatHistory.length) {
       return ["", this.#chatHistory.length];
     }
@@ -143,6 +141,11 @@ export class MessageService {
   }
 
   #onMessage = (text: string, nodes: Array<MessageNode>) => {
+    // First message happens after session is ready
+    if (!this.#session.isReady) {
+      this.#session.setIsReady(true);
+    }
+
     const logMessage: StateLogMessage = {
       text,
       html: this.#getMessageHtml(nodes),

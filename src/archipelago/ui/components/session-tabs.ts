@@ -12,7 +12,7 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
+  controller: ($scope: any, backendCommunicator: any) => {
     $scope.$ctrl.sessionTable = [];
 
     $scope.$ctrl.fetchSessionTable = async () => {

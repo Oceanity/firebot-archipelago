@@ -1,4 +1,5 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
+import { ArchipelagoToastService } from "../factories/toast-service";
 import template from "./connection-panel.html";
 
 export const ArchipelagoConnectionPanel: AngularJsComponent = {
@@ -8,7 +9,11 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
+  controller: (
+    $scope: any,
+    backendCommunicator: any,
+    apToast: ArchipelagoToastService,
+  ) => {
     $scope.$ctrl.hostname = "";
     $scope.$ctrl.slot = "";
     $scope.$ctrl.password = "";
@@ -37,7 +42,7 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
       $scope.$ctrl.connecting = false;
 
       if (!response.success) {
-        apToast.send(response.errors?.join(", "), "danger", true, 10000);
+        apToast.send(response.errors?.join(", "), "danger", 10000);
         return;
       }
 

@@ -29,6 +29,7 @@ export class ArchipelagoSession {
   #messages: MessageService;
   #status: SessionStatus;
   #isLoadedFromFile: boolean;
+  #isReady: boolean = false;
 
   constructor(url: string, name: string, password?: string, id?: string) {
     this.#client = new Client();
@@ -78,6 +79,10 @@ export class ArchipelagoSession {
 
   get handle() {
     return `${this.name}@${this.url.protocol}//${this.url.hostname}:${this.url.port}`;
+  }
+
+  get isReady() {
+    return this.#isReady;
   }
 
   get connection(): SessionConnection {
@@ -275,6 +280,10 @@ export class ArchipelagoSession {
         firebot.logger.info(JSON.stringify(player));
       });
     });
+  }
+
+  setIsReady(ready: boolean) {
+    this.#isReady = ready;
   }
 
   #updateStatus = (status: SessionStatus) => {
