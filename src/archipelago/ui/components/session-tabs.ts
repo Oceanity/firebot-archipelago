@@ -1,5 +1,5 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
-import { SessionConnection } from "../../../types";
+import { SessionConnection, SessionTableEntry } from "../../../types";
 import template from "./session-tabs.html";
 
 export const ArchipelagoSessionTabs: AngularJsComponent = {
@@ -30,8 +30,13 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
         return;
       }
 
+      const handle = $scope.$ctrl.sessionTable.find(
+        (session: SessionTableEntry) => session.id === sessionId,
+      )?.handle;
+
       $scope.$ctrl.onSessionChanged({
         sessionId,
+        handle,
       });
     };
 
@@ -40,6 +45,24 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
         "oceanity:archipelago:disconnect",
         sessionId,
       );
+
+      const removedIndex = $scope.$ctrl.sessionTable.findIndex(
+        (session: SessionTableEntry) => session.id === sessionId,
+      );
+
+      if (removedIndex === -1) {
+        return;
+      }
+
+      $scope.$ctrl.sessionTable.splice(removedIndex, 1);
+
+      if ($scope.$ctrl.selected === sessionId) {
+        const sessionIds = $scope.$ctrl.sessionTable.map(
+          (session: SessionConnection) => session.id,
+        );
+
+        $scope.$ctrl.changeSession(sessionIds.shift());
+      }
     };
 
     $scope.$ctrl.fetchSessionTable();
@@ -48,8 +71,7 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
       "oceanity:archipelago:session-opened",
       (newSession: SessionConnection) => {
         const existingSession = $scope.$ctrl.sessionTable.find(
-          (session: { id: string; handle: string }) =>
-            session.id === newSession.id,
+          (session: SessionTableEntry) => session.id === newSession.id,
         );
 
         if (!!existingSession) {
@@ -62,29 +84,6 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
         });
 
         $scope.$ctrl.changeSession(newSession.id);
-      },
-    );
-
-    backendCommunicator.on(
-      "oceanity:archipelago:session-closed",
-      (sessionId: string) => {
-        const sessionIndex = $scope.$ctrl.sessionTable.findIndex(
-          (session: { id: string; handle: string }) => session.id === sessionId,
-        );
-
-        if (sessionIndex === -1) {
-          return;
-        }
-
-        $scope.$ctrl.sessionTable.splice(sessionIndex, 1);
-
-        if ($scope.$ctrl.selected === sessionId) {
-          const sessionIds = $scope.$ctrl.sessionTable.map(
-            (session: SessionConnection) => session.id,
-          );
-
-          $scope.$ctrl.changeSession(sessionIds.shift());
-        }
       },
     );
   },

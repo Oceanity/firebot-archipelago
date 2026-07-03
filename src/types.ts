@@ -18,7 +18,11 @@ export type State = {
   sessions: Record<string, ArchipelagoSession>;
 };
 
-// Object containing a leaner State Session for purpose of passing to frontend
+export type SessionTableEntry = {
+  id: string;
+  handle: string;
+};
+
 export type SessionConnection = {
   id: string;
   name: string;

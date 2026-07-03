@@ -5,6 +5,7 @@ import {
   ServiceResponse,
   SessionConnection,
   SessionStatus,
+  SessionTableEntry,
   StoredSession,
 } from "./types";
 
@@ -13,7 +14,7 @@ export class ArchipelagoState {
 
   constructor() {}
 
-  get sessionTable(): Array<{ id: string; handle: string }> {
+  get sessionTable(): Array<SessionTableEntry> {
     return this.#sessions.map((session) => ({
       id: session.id,
       handle: session.handle,

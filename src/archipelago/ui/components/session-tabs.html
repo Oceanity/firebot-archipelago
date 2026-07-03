@@ -18,8 +18,8 @@
   }
 </style>
 <div class="fb-tab-wrapper">
-  <ul class="nav nav-tabs fb-tabs">
-    <li ng-repeat="session in $ctrl.sessionTable track by $index" role="presentation"
+  <ul class="nav nav-tabs fb-tabs session-tabs">
+    <li ng-repeat="session in $ctrl.sessionTable track by session.id" role="presentation"
       ng-class="{'active' : $ctrl.selected === session.id}" ng-click="$ctrl.changeSession(session.id)">
       <a href class="archipelago-session-tab"><span>{{ session.handle }}</span><button class="close"
           ng-click="$ctrl.disconnect(session.id)"><i class="fal fa-times"></i></button></a>

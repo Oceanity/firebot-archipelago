@@ -1,25 +1,42 @@
 import { AngularJsFactory, NgToast } from "@crowbartools/firebot-types";
 
-type ArchipelagoToastClassName = "info" | "success" | "warning" | "danger";
+type ToastMethod = (content: string, timeout?: number) => void;
+
 export type ArchipelagoToastService = {
-  send: (
-    content: string,
-    className?: ArchipelagoToastClassName,
-    timeout?: number,
-  ) => void;
+  info: ToastMethod;
+  debug: ToastMethod;
+  warn: ToastMethod;
+  error: ToastMethod;
 };
 
 export const ArchipelagoToastServiceFactory: AngularJsFactory = {
   name: "apToast",
   function: (ngToast: NgToast) => ({
-    send(
-      content: string,
-      className: ArchipelagoToastClassName = "warning",
-      timeout: number = 5000,
-    ) {
+    debug(content: string, timeout: number = 5000) {
       ngToast.create({
         content,
-        className,
+        className: "info",
+        timeout,
+      });
+    },
+    info(content: string, timeout: number = 5000) {
+      ngToast.create({
+        content,
+        className: "success",
+        timeout,
+      });
+    },
+    warn(content: string, timeout: number = 5000) {
+      ngToast.create({
+        content,
+        className: "warning",
+        timeout,
+      });
+    },
+    error(content: string, timeout: number = 5000) {
+      ngToast.create({
+        content,
+        className: "error",
         timeout,
       });
     },

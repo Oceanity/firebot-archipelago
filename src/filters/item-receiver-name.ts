@@ -9,5 +9,7 @@ export const ItemReceiverNameEventFilter: EventFilter =
     description:
       "Filter by the slot name (not the alias) of the player that received the item",
     eventMetaKey: `apReceiverName`,
-    events: [getArchipelagoFilterEvent(FirebotEvents.ReceivedItems)],
+    events: [FirebotEvents.ReceivedItems].map((event) =>
+      getArchipelagoFilterEvent(event),
+    ),
   });

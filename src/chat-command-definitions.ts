@@ -30,6 +30,13 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
     },
   },
 
+  "/id": {
+    description: "Returns the Id of the Archipelago Session in Firebot",
+    callback: (session) => {
+      session.messages.sendLog(session.id, "info");
+    },
+  },
+
   "/disconnect": {
     description: "Disconnect from a MultiWorld Server.",
     callback: (session) => {
@@ -73,7 +80,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
         optional: true,
       },
     },
-    description: "List all item names for the currently running game.",
+    description: "List item names for the currently running game.",
     callback: async (session, ...search) => {
       const items = session.getItemsAndFoundCount(search?.join(" "));
 
@@ -107,7 +114,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
   },
 
   "/locations": {
-    description: "List all location names for the currently running game.",
+    description: "List location names for the currently running game.",
     args: {
       search: {
         optional: true,

@@ -1,6 +1,6 @@
 import { UIExtension } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../../constants";
-import { SessionConnection, SessionStatus } from "../../types";
+import { SessionStatus } from "../../types";
 import { ArchipelagoChatFeed } from "./components/chat-feed";
 import { ArchipelagoChatInput } from "./components/chat-input";
 import { ArchipelagoConnectionPanel } from "./components/connection-panel";
@@ -29,37 +29,9 @@ export const ArchipelagoUIExtension: UIExtension = {
         backendCommunicator: any,
         apToast: ArchipelagoToastService,
       ) => {
-        $scope.sessionId = undefined;
+        $scope.sessionId = null;
+        $scope.sessionHandle = null;
         $scope.sessionStatus = null;
-
-        $scope.changeSession = async (sessionId?: string) => {
-          $scope.sessionId = sessionId;
-
-          $scope.sessionStatus = await backendCommunicator.fireEventAsync(
-            "oceanity:archipelago:get-session-status",
-            sessionId,
-          );
-
-          if (!sessionId) {
-            $scope.currentSession = undefined;
-            return;
-          }
-
-          $scope.currentSession = $scope.sessions.find(
-            (session: SessionConnection) => session.id === sessionId,
-          );
-        };
-
-        // Load current data
-        backendCommunicator
-          .fireEventAsync("oceanity:archipelago:get-session-connections")
-          .then((table: Array<SessionConnection>) => {
-            $scope.sessions = table;
-
-            if ($scope.sessions.length) {
-              $scope.changeSession($scope.sessions[0].id);
-            }
-          });
 
         backendCommunicator.on(
           "oceanity:archipelago:session-status-updated",
@@ -70,22 +42,33 @@ export const ArchipelagoUIExtension: UIExtension = {
             sessionId: string;
             status: SessionStatus;
           }) => {
-            const session = $scope.sessions.find(
-              (session: SessionConnection) => session.id === sessionId,
-            );
-
-            if (!session) {
+            if (sessionId !== $scope.sessionId) {
               return;
             }
 
-            session.status = status;
+            $scope.sessionStatus = status;
 
             if (status === "could-not-connect") {
-              apToast.send(`Unable to connect to session '${session.handle}'`);
+              apToast.warn(
+                `Unable to connect to session '${$scope.sessionHandle}'`,
+              );
               return;
             }
           },
         );
+
+        $scope.onSessionChanged = async (
+          sessionId?: string,
+          handle?: string,
+        ) => {
+          $scope.sessionId = sessionId ?? null;
+          $scope.sessionHandle = handle ?? null;
+
+          $scope.sessionStatus = await backendCommunicator.fireEventAsync(
+            "oceanity:archipelago:get-session-status",
+            sessionId,
+          );
+        };
 
         $scope.reconnect = (sessionId: string) => {
           backendCommunicator.fireEventAsync(

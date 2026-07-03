@@ -23,10 +23,10 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
       const { hostname, slot, password } = $scope.$ctrl;
 
       if (!hostname) {
-        apToast.send("Hostname is required.", "danger");
+        apToast.error("Hostname is required.");
         return false;
       } else if (!slot) {
-        apToast.send("Slot name is required.", "danger");
+        apToast.error("Slot name is required.");
         return false;
       }
 
@@ -42,16 +42,13 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
       $scope.$ctrl.connecting = false;
 
       if (!response.success) {
-        apToast.send(response.errors?.join(", "), "danger", 10000);
+        apToast.error(response.errors?.join(", "), 10000);
         return;
       }
 
       $scope.$ctrl.clear();
 
-      apToast.send(
-        `Successfully connected to '${response.data.handle}'`,
-        "success",
-      );
+      apToast.info(`Successfully connected to '${response.data.handle}'`);
     };
 
     $scope.$ctrl.handleKeydown = async ($event: KeyboardEvent) => {

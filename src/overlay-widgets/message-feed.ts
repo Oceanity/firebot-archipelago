@@ -1,5 +1,6 @@
 import { FontOptions, OverlayWidgetType } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
+import { loadComponentExtension } from "./builtin-widget-helpers";
 
 export type MessageFeedSettings = {
   fontOptions?: FontOptions;
@@ -13,7 +14,7 @@ export type MessageFeedState = {
 function generateSampleMessageFeed(): MessageFeedState {
   return {
     messages: [
-      "<span>Oceanity (Oshi - MMR) (Team #1) viewing Majora's Mask Recompiled has joined. Client(0.6.3), ['Firebot', 'DeathLink', 'TextOnly']</span>",
+      "<span>Oceanity (OshiMMR) (Team #1) viewing Majora's Mask Recompiled has joined. Client(0.6.3), ['Firebot', 'DeathLink', 'TextOnly']</span>",
     ],
   };
 }
