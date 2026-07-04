@@ -16,7 +16,7 @@ export const ArchipelagoUIExtension: UIExtension = {
   id: ARCHIPELAGO_PLUGIN_ID,
   pages: [
     {
-      id: `${ARCHIPELAGO_PLUGIN_ID}-main`,
+      id: `${ARCHIPELAGO_PLUGIN_ID}:main`,
       name: "Archipelago",
       icon: "fa-island-tropical",
       fullPage: true,

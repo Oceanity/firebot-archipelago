@@ -16,13 +16,15 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
     $scope.$ctrl.sessionTable = [];
 
     $scope.$ctrl.fetchSessionTable = async () => {
-      $scope.$ctrl.sessionTable = await backendCommunicator.fireEventAsync(
-        "oceanity:archipelago:get-session-table",
-      );
+      backendCommunicator
+        .fireEventAsync("oceanity:archipelago:get-session-table")
+        .then(async (sessionTable: Array<SessionTableEntry>) => {
+          $scope.$ctrl.sessionTable = sessionTable;
 
-      if ($scope.$ctrl.sessionTable.length) {
-        await $scope.$ctrl.changeSession($scope.$ctrl.sessionTable[0].id);
-      }
+          if ($scope.$ctrl.sessionTable.length) {
+            await $scope.$ctrl.changeSession($scope.$ctrl.sessionTable[0].id);
+          }
+        });
     };
 
     $scope.$ctrl.changeSession = async (sessionId: string) => {
@@ -41,28 +43,27 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
     };
 
     $scope.$ctrl.disconnect = async (sessionId: string) => {
-      await backendCommunicator.fireEventAsync(
-        "oceanity:archipelago:disconnect",
-        sessionId,
-      );
+      backendCommunicator
+        .fireEventAsync("oceanity:archipelago:disconnect", sessionId)
+        .then(() => {
+          const removedIndex = $scope.$ctrl.sessionTable.findIndex(
+            (session: SessionTableEntry) => session.id === sessionId,
+          );
 
-      const removedIndex = $scope.$ctrl.sessionTable.findIndex(
-        (session: SessionTableEntry) => session.id === sessionId,
-      );
+          if (removedIndex === -1) {
+            return;
+          }
 
-      if (removedIndex === -1) {
-        return;
-      }
+          $scope.$ctrl.sessionTable.splice(removedIndex, 1);
 
-      $scope.$ctrl.sessionTable.splice(removedIndex, 1);
+          if ($scope.$ctrl.selected === sessionId) {
+            const sessionIds = $scope.$ctrl.sessionTable.map(
+              (session: SessionConnection) => session.id,
+            );
 
-      if ($scope.$ctrl.selected === sessionId) {
-        const sessionIds = $scope.$ctrl.sessionTable.map(
-          (session: SessionConnection) => session.id,
-        );
-
-        $scope.$ctrl.changeSession(sessionIds.shift());
-      }
+            $scope.$ctrl.changeSession(sessionIds.shift());
+          }
+        });
     };
 
     $scope.$ctrl.fetchSessionTable();

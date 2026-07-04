@@ -20,10 +20,14 @@ export const ArchipelagoChatFeed: AngularJsComponent = {
         return;
       }
 
-      $scope.$ctrl.messages = await backendCommunicator.fireEventAsync(
-        "oceanity:archipelago:get-html-message-log",
-        $scope.$ctrl.sessionId,
-      );
+      backendCommunicator
+        .fireEventAsync(
+          "oceanity:archipelago:get-html-message-log",
+          $scope.$ctrl.sessionId,
+        )
+        .then((messages: Array<string>) => {
+          $scope.$ctrl.messages = messages;
+        });
     };
 
     $scope.$ctrl.handleKeydown = ($event: KeyboardEvent) => {

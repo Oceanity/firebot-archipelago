@@ -15,6 +15,7 @@ import { ArchipelagoSession } from "./archipelago-session";
 export class MessageService {
   readonly #session: ArchipelagoSession;
 
+  #historyIndex: number = -1;
   #chatHistory: Array<string> = [];
   #messages: Array<StateLogMessage> = [];
 
@@ -80,10 +81,11 @@ export class MessageService {
       return;
     }
 
-    this.chatHistory.push(message);
+    this.#chatHistory.push(message);
     while (this.chatHistory.length > ARCHIPELAGO_PLUGIN_MAX_CHAT_HISTORY) {
-      this.chatHistory.shift();
+      this.#chatHistory.shift();
     }
+    this.#historyIndex = -1;
 
     if (message.startsWith("/")) {
       const args = message.split(" ").filter((p) => !!p.trim().length);
@@ -101,20 +103,6 @@ export class MessageService {
       "oceanity:archipelago:chat-cleared",
       this.#session.id,
     );
-  }
-
-  public getChatHistoryEntry(entry: number): [message: string, index: number] {
-    if (!this.#chatHistory.length) {
-      return ["", -1];
-    }
-
-    if (entry === -1) {
-      entry = this.#chatHistory.length - 1;
-    } else if (entry >= this.#chatHistory.length) {
-      return ["", this.#chatHistory.length];
-    }
-
-    return [this.#chatHistory[entry], entry];
   }
 
   public push(message: StateLogMessage | string) {
@@ -138,6 +126,32 @@ export class MessageService {
         html: formattedMessage.html,
       },
     );
+  }
+
+  public getPreviousHistoryEntry(): string {
+    switch (this.#historyIndex) {
+      case -1:
+        if (this.#chatHistory.length) {
+          this.#historyIndex = this.#chatHistory.length - 1;
+          return this.#chatHistory[this.#historyIndex];
+        }
+        return "";
+      case 0:
+        return this.#chatHistory[0];
+      default:
+        return this.#chatHistory[--this.#historyIndex];
+    }
+  }
+
+  public getNextHistoryEntry(): string {
+    if (
+      this.#historyIndex === -1 ||
+      this.#historyIndex >= this.#chatHistory.length - 1
+    ) {
+      return "";
+    }
+
+    return this.#chatHistory[++this.#historyIndex];
   }
 
   #onMessage = (text: string, nodes: Array<MessageNode>) => {

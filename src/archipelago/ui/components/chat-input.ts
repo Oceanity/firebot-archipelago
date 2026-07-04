@@ -11,9 +11,8 @@ export const ArchipelagoChatInput: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any) => {
+  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
     $scope.$ctrl.message = "";
-    $scope.$ctrl.messageHistoryIndex = -1;
 
     $scope.$ctrl.sendMessage = async () => {
       if (!$scope.$ctrl.message) {
@@ -29,7 +28,7 @@ export const ArchipelagoChatInput: AngularJsComponent = {
       $scope.$ctrl.clear();
 
       // Toggle forceGlued to move to bottom of box
-      $scope.$ctrl.$evalAsync(() => {
+      $scope.$evalAsync(() => {
         $scope.$ctrl.forceGlued = true;
         $scope.$ctrl.forceGlued = false;
       });
@@ -51,54 +50,38 @@ export const ArchipelagoChatInput: AngularJsComponent = {
         // Up Arrow
         case 38: {
           $event.preventDefault();
-          await $scope.$ctrl.onPrevMessage();
+          await $scope.$ctrl.onPreviousChatHistory();
           break;
         }
 
         // Down Arrow
         case 40: {
           $event.preventDefault();
-          await $scope.$ctrl.onNextMessage();
+          await $scope.$ctrl.onNextChatHistory();
           break;
         }
       }
     };
 
-    $scope.$ctrl.onPrevMessage = async () => {
+    $scope.$ctrl.onPreviousChatHistory = async () => {
       backendCommunicator
         .fireEventAsync(
-          "oceanity:archipelago:get-chat-history",
+          "oceanity:archipelago:get-previous-chat-history",
           $scope.$ctrl.sessionId,
-          $scope.chatHistoryIndex !== undefined
-            ? $scope.chatHistoryIndex - 1
-            : undefined,
         )
-        .then((data: [string, number]) => {
-          const [message, entry] = data;
-          if (entry === -1) {
-            return;
-          }
-          $scope.form.chatText = message;
-          $scope.chatHistoryIndex = entry;
+        .then((message: string) => {
+          $scope.$ctrl.message = message;
         });
     };
 
-    $scope.$ctrl.onNextMessage = async () => {
+    $scope.$ctrl.onNextChatHistory = async () => {
       backendCommunicator
         .fireEventAsync(
-          "oceanity:archipelago:get-chat-history",
+          "oceanity:archipelago:get-next-chat-history",
           $scope.$ctrl.sessionId,
-          $scope.chatHistoryIndex !== undefined
-            ? $scope.chatHistoryIndex + 1
-            : undefined,
         )
-        .then((data: [string, number]) => {
-          const [message, entry] = data;
-          if (entry === -1) {
-            return;
-          }
-          $scope.form.chatText = message;
-          $scope.chatHistoryIndex = entry;
+        .then((message: string) => {
+          $scope.$ctrl.message = message;
         });
     };
 

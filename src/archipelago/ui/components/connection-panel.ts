@@ -1,4 +1,5 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
+import { ServiceResponse, SessionConnection } from "../../../types";
 import { ArchipelagoToastService } from "../factories/toast-service";
 import template from "./connection-panel.html";
 
@@ -32,23 +33,25 @@ export const ArchipelagoConnectionPanel: AngularJsComponent = {
 
       $scope.$ctrl.connecting = true;
 
-      const response = await backendCommunicator.fireEventAsync(
-        "oceanity:archipelago:connect",
-        hostname,
-        slot,
-        password,
-      );
+      backendCommunicator
+        .fireEventAsync(
+          "oceanity:archipelago:connect",
+          hostname,
+          slot,
+          password,
+        )
+        .then((response: ServiceResponse<SessionConnection>) => {
+          $scope.$ctrl.connecting = false;
 
-      $scope.$ctrl.connecting = false;
+          if (!response.success) {
+            apToast.error(response.errors?.join(", "), 10000);
+            return;
+          }
 
-      if (!response.success) {
-        apToast.error(response.errors?.join(", "), 10000);
-        return;
-      }
+          $scope.$ctrl.clear();
 
-      $scope.$ctrl.clear();
-
-      apToast.info(`Successfully connected to '${response.data.handle}'`);
+          apToast.info(`Successfully connected to '${response.data.handle}'`);
+        });
     };
 
     $scope.$ctrl.handleKeydown = async ($event: KeyboardEvent) => {

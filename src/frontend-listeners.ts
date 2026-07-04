@@ -113,6 +113,44 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
     },
   },
   {
+    eventName: "get-previous-chat-history",
+    useAsync: true,
+    handler: async (...args: Array<unknown>): Promise<string> => {
+      const [sessionId] = args;
+
+      if (typeof sessionId !== "string") {
+        firebot.logger.warn(
+          "Invalid 'sessionId' provided to frontend Send Message method",
+        );
+        return "";
+      }
+
+      return (
+        archipelago
+          .findSession(sessionId)
+          ?.messages.getPreviousHistoryEntry() ?? ""
+      );
+    },
+  },
+  {
+    eventName: "get-next-chat-history",
+    useAsync: true,
+    handler: async (...args: Array<unknown>): Promise<string> => {
+      const [sessionId] = args;
+
+      if (typeof sessionId !== "string") {
+        firebot.logger.warn(
+          "Invalid 'sessionId' provided to frontend Send Message method",
+        );
+        return "";
+      }
+
+      return (
+        archipelago.findSession(sessionId)?.messages.getNextHistoryEntry() ?? ""
+      );
+    },
+  },
+  {
     eventName: "get-hint-point-data",
     useAsync: true,
     handler: async (
@@ -151,28 +189,6 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
       }
 
       return archipelago.findSession(sessionId)?.messages.htmlLog ?? [];
-    },
-  },
-  {
-    eventName: "get-chat-history",
-    useAsync: true,
-    handler: async (...args: Array<unknown>): Promise<[string, number]> => {
-      const [sessionId, entry] = args;
-
-      firebot.logger.info(`${entry}`);
-
-      if (typeof sessionId !== "string") {
-        firebot.logger.warn(
-          "Invalid 'sessionId' provided to frontend Get Chat History",
-        );
-        return ["", -1];
-      }
-
-      return (
-        archipelago
-          .findSession(sessionId)
-          ?.messages.getChatHistoryEntry(entry as number) ?? ["", -1]
-      );
     },
   },
 ].map((listener) => {

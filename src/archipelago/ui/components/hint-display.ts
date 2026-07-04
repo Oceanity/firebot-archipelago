@@ -1,4 +1,5 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
+import { HintData } from "../../../types";
 import template from "./hint-display.html";
 
 export const ArchipelagoHintDisplay: AngularJsComponent = {
@@ -20,12 +21,15 @@ export const ArchipelagoHintDisplay: AngularJsComponent = {
         return;
       }
 
-      $scope.$ctrl.hintData = await backendCommunicator.fireEventAsync(
-        "oceanity:archipelago:get-hint-point-data",
-        $scope.$ctrl.sessionId,
-      );
-
-      $scope.$applyAsync();
+      backendCommunicator
+        .fireEventAsync(
+          "oceanity:archipelago:get-hint-point-data",
+          $scope.$ctrl.sessionId,
+        )
+        .then((hintData: HintData) => {
+          $scope.$ctrl.hintData = hintData;
+          $scope.$applyAsync();
+        });
     };
 
     $scope.$ctrl.$onChanges = async (changes: any) => {
