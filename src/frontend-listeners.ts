@@ -208,8 +208,6 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
 
         const hints = await archipelago.findSession(sessionId)?.getHints();
 
-        firebot.logger.info(JSON.stringify(hints));
-
         return hints ?? [];
       } catch (error) {
         return [];
@@ -221,14 +219,14 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
     useAsync: true,
     handler: async (...args: Array<unknown>): Promise<boolean> => {
       try {
-        const [sessionId, player, locationId, status] = parseArgs<
-          [string, number, number, keyof typeof hintStatuses]
-        >(args, "Set Hint Status", isString, isNumber, isNumber, isHintStatus);
+        const [sessionId, hintId, status] = parseArgs<
+          [string, string, keyof typeof hintStatuses]
+        >(args, "Set Hint Status", isString, isString, isHintStatus);
 
         return (
           (await archipelago
             .findSession(sessionId)
-            ?.setHintStatus(player, locationId, status)) ?? false
+            ?.setHintStatus(hintId, status)) ?? false
         );
       } catch (error) {
         return false;

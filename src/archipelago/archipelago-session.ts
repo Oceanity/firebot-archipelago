@@ -1,5 +1,5 @@
 import firebot from "@crowbartools/firebot-types";
-import { Client, ConnectionOptions, DataPackage } from "archipelago.js";
+import { Client, ConnectionOptions, DataPackage, Hint } from "archipelago.js";
 import { v4 as uuid } from "uuid";
 import {
   ARCHIPELAGO_PLUGIN_CLIENT_TAGS,
@@ -29,6 +29,7 @@ export class ArchipelagoSession {
   #name: string;
   #password?: string;
   #messages: MessageService;
+  #hints: { id: string; hint: Hint }[];
   #status: SessionStatus;
   #isLoadedFromFile: boolean;
   #isReady: boolean = false;
@@ -44,6 +45,7 @@ export class ArchipelagoSession {
     this.#name = name;
     this.#password = password;
     this.#messages = new MessageService(this);
+    this.#hints = [];
     this.#status = SessionStatus.Uninitialized;
     this.#isLoadedFromFile = id !== undefined;
 
@@ -286,81 +288,58 @@ export class ArchipelagoSession {
   async getHints(): Promise<StoredHint[]> {
     const parsed: StoredHint[] = [];
 
-    for (const players of this.#client.players.teams) {
-      for (const player of players) {
-        // Apparently fetching hints for Archipelago just kinda breaks this so skip it
-        if (player.slot === 0) {
-          continue;
-        }
-
-        const hints = await player.fetchHints();
-        for (const hint of hints) {
-          // If already added from another player, skip
-          if (
-            parsed.some(
-              (parsedHint) =>
-                hint.item.sender.slot === parsedHint.slot &&
-                parsedHint.locationId === hint.item.locationId,
-            )
-          ) {
-            continue;
-          }
-
-          parsed.push({
-            slot: hint.item.sender.slot,
-            sender: hint.item.sender.alias,
-            senderIsPlayer:
-              hint.item.sender.slot === this.#client.players.self.slot,
-            receiver: hint.item.receiver.alias,
-            receiverIsPlayer:
-              hint.item.receiver.slot === this.#client.players.self.slot,
-            itemName: hint.item.name,
-            classification: getClassificationString(hint.item.flags),
-            locationId: hint.item.locationId,
-            locationName: hint.item.locationName,
-            entrance: hint.entrance,
-            status: hintStatuses[hint.status],
-          });
-        }
+    const hints = await this.#client.players.self.fetchHints();
+    for (const hint of hints) {
+      const existing = this.#hints.find(
+        (stored) =>
+          hint.item.sender === stored.hint.item.sender &&
+          hint.item.locationId === stored.hint.item.locationId,
+      );
+      if (existing) {
+        existing.hint = hint;
+        continue;
       }
+
+      const id = uuid();
+
+      this.#hints.push({
+        id,
+        hint,
+      });
+
+      parsed.push({
+        id,
+        sender: hint.item.sender.alias,
+        senderIsPlayer:
+          hint.item.sender.slot === this.#client.players.self.slot,
+        receiver: hint.item.receiver.alias,
+        receiverIsPlayer:
+          hint.item.receiver.slot === this.#client.players.self.slot,
+        item: hint.item.name,
+        location: hint.item.locationName,
+        classification: getClassificationString(hint.item.flags),
+        entrance: hint.entrance,
+        status: hintStatuses[hint.status],
+      });
     }
 
     return parsed;
   }
 
   async setHintStatus(
-    player: number,
-    locationId: number,
+    hintId: string,
     status: keyof typeof hintStatuses,
   ): Promise<boolean> {
-    try {
-      const hints = await this.#client.players.findPlayer(player)?.fetchHints();
+    const stored = this.#hints.find((storedHint) => storedHint.id === hintId);
 
-      if (!hints || !hints.length) {
-        throw new Error(`Could not fetch hints for Player ${player}`);
-      }
-
-      for (const hint of hints) {
-        if (hint.item.locationId !== locationId) {
-          continue;
-        }
-
-        firebot.logger.info(
-          `Updating hint for ${hint.item.receiver.alias}'s ${hint.item.name} found at ${hint.item.sender.alias}'s ${hint.item.locationName} to ${hintStatuses[status]}`,
-        );
-
-        hint.updateStatus(status);
-        return true;
-      }
-
-      throw new Error(
-        `Could not find hint for Location ${locationId} for Player ${player}`,
-      );
-    } catch (error: any) {
-      firebot.logger.warn(`Hi hi: ${(error as Error).message}`);
+    if (!stored) {
+      firebot.logger.warn(`Could not fetch hint with Id ${hintId}`);
+      return false;
     }
 
-    return false;
+    stored.hint.updateStatus(status);
+
+    return true;
   }
 
   setIsReady(ready: boolean) {

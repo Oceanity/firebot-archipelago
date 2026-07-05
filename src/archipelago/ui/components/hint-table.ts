@@ -106,8 +106,7 @@ export const ArchipelagoHintTable: AngularJsComponent = {
                     .fireEventAsync(
                       "oceanity:archipelago:set-hint-status",
                       $scope.$ctrl.sessionId,
-                      hint.slot,
-                      hint.locationId,
+                      hint.id,
                       value,
                     )
                     .then((success: boolean) => {

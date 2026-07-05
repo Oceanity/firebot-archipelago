@@ -44,17 +44,16 @@ export type SessionConnection = {
 export type StoredSession = Omit<SessionConnection, "handle" | "status">;
 
 export type StoredHint = {
-  slot: number;
-  receiver: string;
-  itemName: string;
-  classification: string;
+  id: string;
   sender: string;
-  locationId: number;
-  locationName: string;
+  senderIsPlayer: boolean;
+  receiver: string;
+  receiverIsPlayer: boolean;
+  item: string;
+  location: string;
+  classification: string;
   entrance: string;
   status: string;
-  senderIsPlayer: boolean;
-  receiverIsPlayer: boolean;
 };
 
 export const hintStatuses = Object.freeze({

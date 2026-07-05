@@ -58,9 +58,9 @@
 <ul class="hint-row" ng-repeat="hint in $ctrl.hints | orderBy:$ctrl.sortField:$ctrl.sortReverse"
   context-menu="$ctrl.getMenuItems(hint)" context-menu-class="angular-context-menu">
   <li class="player" ng-class="{ self: hint.receiverIsPlayer }">{{hint.receiver}}</li>
-  <li ng-class="$ctrl.getItemClasses(hint)">{{hint.itemName}}</li>
+  <li ng-class="$ctrl.getItemClasses(hint)">{{hint.item}}</li>
   <li class="player" ng-class="{ self: hint.senderIsPlayer }">{{hint.sender}}</li>
-  <li class="location">{{hint.locationName}}</li>
+  <li class="location">{{hint.location}}</li>
   <li>{{hint.entrance}}</li>
   <li ng-class="$ctrl.getStatusClasses(hint)">{{hint.status}}</li>
 </ul>
