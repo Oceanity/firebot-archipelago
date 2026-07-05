@@ -1,16 +1,12 @@
 import firebot from "@crowbartools/firebot-types";
-import {
-  Client,
-  itemClassifications,
-  NetworkItem,
-  RoomStateManager,
-} from "archipelago.js";
+import { Client, NetworkItem, RoomStateManager } from "archipelago.js";
 import Fuse from "fuse.js";
 import {
   APCommandOptions,
   HintData,
   SessionSelectMode,
   StateLogMessage,
+  itemClassifications,
 } from "./types";
 
 export function getHandleFromClient(client: Client) {
@@ -136,13 +132,7 @@ export function getItemMetadata(
     return {};
   }
 
-  const classification =
-    Object.keys(itemClassifications).find(
-      (key) =>
-        !!itemData.flags &&
-        itemClassifications[key as keyof typeof itemClassifications] ===
-          itemData.flags,
-    ) ?? "filler";
+  const classification = getClassificationString(itemData.flags);
 
   return {
     [`${prefix}Id`]: itemData.item,
@@ -208,3 +198,6 @@ export const getSessionLabelString = (
 
   return target.replace("{session}", session ?? "Undefined");
 };
+
+export const getClassificationString = (flags: number) =>
+  itemClassifications[flags as keyof typeof itemClassifications] ?? "Filler";

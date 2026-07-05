@@ -11,7 +11,7 @@ export const ArchipelagoChatInput: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
+  controller: ($scope: any, backendCommunicator: any) => {
     $scope.$ctrl.message = "";
 
     $scope.$ctrl.sendMessage = async () => {

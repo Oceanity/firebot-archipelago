@@ -1,13 +1,13 @@
 import firebot from "@crowbartools/firebot-types";
-import { ArchipelagoSession } from "./archipelago/archipelago-session";
-import { ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME } from "./constants";
+import { ARCHIPELAGO_PLUGIN_STORED_SESSIONS_FILENAME } from "../constants";
 import {
   ServiceResponse,
   SessionConnection,
   SessionStatus,
   SessionTableEntry,
   StoredSession,
-} from "./types";
+} from "../types";
+import { ArchipelagoSession } from "./archipelago-session";
 
 export class ArchipelagoState {
   #sessions: Array<ArchipelagoSession> = [];

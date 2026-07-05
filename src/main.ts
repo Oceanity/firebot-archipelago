@@ -1,6 +1,5 @@
 import firebot, { Plugin } from "@crowbartools/firebot-types";
-import { ArchipelagoState } from "./archipelago-state";
-import { AllArchipelagoVariables } from "./archipelago-variables";
+import { ArchipelagoState } from "./archipelago/archipelago-state";
 import { ArchipelagoUIExtension } from "./archipelago/ui/ui-extension";
 import {
   ARCHIPELAGO_PLUGIN_AUTHOR,
@@ -14,6 +13,7 @@ import {
 import { AllArchipelagoEffectTypes } from "./effects";
 import { AllArchipelagoFilterEvents } from "./filters";
 import { AllArchipelagoFrontendListeners } from "./frontend-listeners";
+import { AllArchipelagoVariables } from "./replace-variables";
 
 export let archipelago: ArchipelagoState;
 

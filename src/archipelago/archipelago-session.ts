@@ -10,12 +10,14 @@ import {
   hookArchipelagoEvents,
   unhookArchipelagoEvents,
 } from "../event-handler";
-import { searchTuples } from "../helpers";
+import { getClassificationString, searchTuples } from "../helpers";
 import {
   FirebotEvents,
+  hintStatuses,
   ServiceResponse,
   SessionConnection,
   SessionStatus,
+  StoredHint,
 } from "../types";
 import { MessageService } from "./message-service";
 
@@ -195,7 +197,6 @@ export class ArchipelagoSession {
       await unhookArchipelagoEvents(this.#id, this.#client);
 
       this.#client.socket.disconnect();
-      this.#updateStatus(SessionStatus.Disconnected);
 
       // If Firebot is closing these will throw as the global firebot is deconstructed
       firebot?.frontendCommunicator?.fireEventAsync(
@@ -280,6 +281,86 @@ export class ArchipelagoSession {
         firebot.logger.info(JSON.stringify(player));
       });
     });
+  }
+
+  async getHints(): Promise<StoredHint[]> {
+    const parsed: StoredHint[] = [];
+
+    for (const players of this.#client.players.teams) {
+      for (const player of players) {
+        // Apparently fetching hints for Archipelago just kinda breaks this so skip it
+        if (player.slot === 0) {
+          continue;
+        }
+
+        const hints = await player.fetchHints();
+        for (const hint of hints) {
+          // If already added from another player, skip
+          if (
+            parsed.some(
+              (parsedHint) =>
+                hint.item.sender.slot === parsedHint.slot &&
+                parsedHint.locationId === hint.item.locationId,
+            )
+          ) {
+            continue;
+          }
+
+          parsed.push({
+            slot: hint.item.sender.slot,
+            sender: hint.item.sender.alias,
+            senderIsPlayer:
+              hint.item.sender.slot === this.#client.players.self.slot,
+            receiver: hint.item.receiver.alias,
+            receiverIsPlayer:
+              hint.item.receiver.slot === this.#client.players.self.slot,
+            itemName: hint.item.name,
+            classification: getClassificationString(hint.item.flags),
+            locationId: hint.item.locationId,
+            locationName: hint.item.locationName,
+            entrance: hint.entrance,
+            status: hintStatuses[hint.status],
+          });
+        }
+      }
+    }
+
+    return parsed;
+  }
+
+  async setHintStatus(
+    player: number,
+    locationId: number,
+    status: keyof typeof hintStatuses,
+  ): Promise<boolean> {
+    try {
+      const hints = await this.#client.players.findPlayer(player)?.fetchHints();
+
+      if (!hints || !hints.length) {
+        throw new Error(`Could not fetch hints for Player ${player}`);
+      }
+
+      for (const hint of hints) {
+        if (hint.item.locationId !== locationId) {
+          continue;
+        }
+
+        firebot.logger.info(
+          `Updating hint for ${hint.item.receiver.alias}'s ${hint.item.name} found at ${hint.item.sender.alias}'s ${hint.item.locationName} to ${hintStatuses[status]}`,
+        );
+
+        hint.updateStatus(status);
+        return true;
+      }
+
+      throw new Error(
+        `Could not find hint for Location ${locationId} for Player ${player}`,
+      );
+    } catch (error: any) {
+      firebot.logger.warn(`Hi hi: ${(error as Error).message}`);
+    }
+
+    return false;
   }
 
   setIsReady(ready: boolean) {

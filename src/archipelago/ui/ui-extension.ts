@@ -1,10 +1,12 @@
 import { UIExtension } from "@crowbartools/firebot-types";
+import { Hint } from "archipelago.js";
 import { ARCHIPELAGO_PLUGIN_ID } from "../../constants";
 import { SessionStatus } from "../../types";
 import { ArchipelagoChatFeed } from "./components/chat-feed";
 import { ArchipelagoChatInput } from "./components/chat-input";
 import { ArchipelagoConnectionPanel } from "./components/connection-panel";
 import { ArchipelagoHintDisplay } from "./components/hint-display";
+import { ArchipelagoHintTable } from "./components/hint-table";
 import { ArchipelagoSessionTabs } from "./components/session-tabs";
 import {
   ArchipelagoToastService,
@@ -33,6 +35,15 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.sessionHandle = null;
         $scope.sessionStatus = null;
 
+        $scope.fetchHints = async () => {
+          backendCommunicator
+            .fireEventAsync("oceanity:archipelago:get-hints", $scope.sessionId)
+            .then((hints: Hint[]) => {
+              $scope.hints = hints;
+              $scope.$applyAsync();
+            });
+        };
+
         backendCommunicator.on(
           "oceanity:archipelago:session-status-updated",
           ({
@@ -48,11 +59,19 @@ export const ArchipelagoUIExtension: UIExtension = {
 
             $scope.sessionStatus = status;
 
-            if (status === "could-not-connect") {
-              apToast.warn(
-                `Unable to connect to session '${$scope.sessionHandle}'`,
-              );
-              return;
+            switch (status) {
+              case SessionStatus.Connected:
+                return apToast.info(
+                  `Connected to session '${$scope.sessionHandle}'!`,
+                );
+              case SessionStatus.Disconnected:
+                return apToast.warn(
+                  `Disconnected from session '${$scope.sessionHandle}'`,
+                );
+              case SessionStatus.CouldNotConnect:
+                return apToast.warn(
+                  `Unable to connect to session '${$scope.sessionHandle}'`,
+                );
             }
           },
         );
@@ -64,10 +83,16 @@ export const ArchipelagoUIExtension: UIExtension = {
           $scope.sessionId = sessionId ?? null;
           $scope.sessionHandle = handle ?? null;
 
-          $scope.sessionStatus = await backendCommunicator.fireEventAsync(
-            "oceanity:archipelago:get-session-status",
-            sessionId,
-          );
+          backendCommunicator
+            .fireEventAsync(
+              "oceanity:archipelago:get-session-status",
+              sessionId,
+            )
+            .then((sessionStatus: SessionStatus) => {
+              $scope.sessionStatus = sessionStatus;
+            });
+
+          await $scope.fetchHints();
         };
 
         $scope.reconnect = (sessionId: string) => {
@@ -86,6 +111,7 @@ export const ArchipelagoUIExtension: UIExtension = {
       ArchipelagoChatInput,
       ArchipelagoConnectionPanel,
       ArchipelagoHintDisplay,
+      ArchipelagoHintTable,
       ArchipelagoSessionTabs,
     ],
     directives: [],

@@ -1,6 +1,4 @@
 <eos-container header="Session" pad-bottom="true">
-  <p>{{ triggerMeta }}</p>
-
   <firebot-radios model="effect.selectMode" options="selectModes" />
 
   <div ng-if="effect.selectMode === 'list' && sessions"

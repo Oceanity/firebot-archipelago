@@ -1,6 +1,15 @@
 import { MessageNode } from "archipelago.js";
 import { ArchipelagoSession } from "./archipelago/archipelago-session";
 
+export type ContextMenuEntry = {
+  html?: string;
+  text?: string;
+  children?: Array<ContextMenuEntry>;
+  click?: () => void;
+  hasTopDivider?: boolean;
+  enabled?: () => boolean;
+};
+
 export enum FirebotEvents {
   Connected = "connected",
   Countdown = "countdown",
@@ -33,6 +42,44 @@ export type SessionConnection = {
 };
 
 export type StoredSession = Omit<SessionConnection, "handle" | "status">;
+
+export type StoredHint = {
+  slot: number;
+  receiver: string;
+  itemName: string;
+  classification: string;
+  sender: string;
+  locationId: number;
+  locationName: string;
+  entrance: string;
+  status: string;
+  senderIsPlayer: boolean;
+  receiverIsPlayer: boolean;
+};
+
+export const hintStatuses = Object.freeze({
+  /** The receiving player has not set a status. */
+  [0]: "Unspecified",
+  /** The receiving player has specified this item is unnecessary. */
+  [10]: "No Priority",
+  /** The receiving player has specified this item is detrimental. */
+  [20]: "Avoid",
+  /** The receiving player has specified this item is required/important. */
+  [30]: "Priority",
+  /** The receiving player has received this item. */
+  [40]: "Found",
+});
+
+export const itemClassifications = Object.freeze({
+  /** If set, indicates the item may unlock logical advancement. */
+  [1]: "Progression",
+  /** If set, indicates the item is classified as useful to have. */
+  [2]: "Useful",
+  /** If set, indicates the item can inconvenience a player. */
+  [4]: "Trap",
+  /** A shorthand with no flags set, also known as 'filler' or 'junk' items. */
+  [0]: "Filler",
+});
 
 export type StateLogMessage = {
   text: string;

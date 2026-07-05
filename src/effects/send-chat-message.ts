@@ -1,7 +1,7 @@
 import firebot, { EffectType } from "@crowbartools/firebot-types";
 import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
 import { archipelago } from "../main";
-import { SessionSelectMode } from "../types";
+import { SessionSelectMode, SessionTableEntry } from "../types";
 import optionsTemplate from "./send-chat-message.html";
 
 type EffectModel = {
@@ -31,8 +31,11 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
         backendCommunicator.fireEventAsync(
           "oceanity:archipelago:get-session-table",
         ),
-      ).then((data: Record<string, string>) => {
-        $scope.sessions = data;
+      ).then((entries: Array<SessionTableEntry>) => {
+        $scope.sessions = {};
+        entries.forEach((entry) => {
+          $scope.sessions[entry.id] = entry.handle;
+        });
       });
     };
 
@@ -41,7 +44,7 @@ export const SendChatMessageEffectType: EffectType<EffectModel> = {
     $scope.selectModes = {
       first: "First available session",
       list: "Select from list",
-      custom: "Manually enter a name",
+      custom: "Manually enter Session Id",
     };
 
     if ($scope.isArchipelagoEvent) {
