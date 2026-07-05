@@ -261,17 +261,24 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
     },
   },
   {
-    eventName: "get-html-message-log",
+    eventName: "get-message-log",
     useAsync: true,
-    handler: async (...args: Array<unknown>): Promise<Array<string>> => {
+    handler: async (
+      ...args: Array<unknown>
+    ): Promise<Array<{ html: string; text: string }>> => {
       try {
         const [sessionId] = parseArgs<[string]>(
           args,
-          "Get HTML Message Log",
+          "Get Message Log",
           isString,
         );
 
-        return archipelago.findSession(sessionId)?.messages.htmlLog ?? [];
+        return (
+          archipelago.findSession(sessionId)?.messages.log.map((entry) => ({
+            html: entry.html,
+            text: entry.text,
+          })) ?? []
+        );
       } catch (error) {
         return [];
       }

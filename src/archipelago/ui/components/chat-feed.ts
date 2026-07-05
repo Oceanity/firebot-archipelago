@@ -1,4 +1,5 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
+import { ContextMenuEntry } from "../../../types";
 import template from "./chat-feed.html";
 
 export const ArchipelagoChatFeed: AngularJsComponent = {
@@ -22,10 +23,10 @@ export const ArchipelagoChatFeed: AngularJsComponent = {
 
       backendCommunicator
         .fireEventAsync(
-          "oceanity:archipelago:get-html-message-log",
+          "oceanity:archipelago:get-message-log",
           $scope.$ctrl.sessionId,
         )
-        .then((messages: Array<string>) => {
+        .then((messages: Array<{ html: string; text: string }>) => {
           $scope.$ctrl.messages = messages;
         });
     };
@@ -40,6 +41,19 @@ export const ArchipelagoChatFeed: AngularJsComponent = {
       $scope.$ctrl.messages = [];
     };
 
+    $scope.$ctrl.getMenuItems = (message: { html: string; text: string }) => {
+      const items: ContextMenuEntry[] = [
+        {
+          html: "<a href><i class='far fa-clone' style='margin-right: 10px'></i> Copy Text</a>",
+          click: () => {
+            navigator.clipboard.writeText(message.text);
+          },
+        },
+      ];
+
+      return items;
+    };
+
     $scope.$ctrl.$onChanges = async (changes: any) => {
       if (changes.sessionId) {
         await $scope.$ctrl.fetchMessageLog();
@@ -47,10 +61,21 @@ export const ArchipelagoChatFeed: AngularJsComponent = {
     };
 
     backendCommunicator.on(
-      "oceanity:archipelago:got-html-log-message",
-      ({ sessionId, html }: { sessionId: string; html: string }) => {
+      "oceanity:archipelago:got-log-message",
+      ({
+        sessionId,
+        html,
+        text,
+      }: {
+        sessionId: string;
+        html: string;
+        text: string;
+      }) => {
         if ($scope.$ctrl.sessionId === sessionId) {
-          $scope.$ctrl.messages.push(html);
+          $scope.$ctrl.messages.push({
+            html,
+            text,
+          });
         }
       },
     );

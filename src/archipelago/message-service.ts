@@ -66,8 +66,8 @@ export class MessageService {
 
     const html = `<span class="log ${color}">${message}</span>`;
     firebot.frontendCommunicator.fireEventAsync(
-      "oceanity:archipelago:got-html-log-message",
-      { sessionId: this.#session.id, html },
+      "oceanity:archipelago:got-log-message",
+      { sessionId: this.#session.id, html, text: message },
     );
 
     this.#messages.push({
@@ -120,9 +120,10 @@ export class MessageService {
     }
 
     firebot.frontendCommunicator.fireEventAsync(
-      "oceanity:archipelago:got-html-log-message",
+      "oceanity:archipelago:Got-log-message",
       {
         sessionId: this.#session.id,
+        text: formattedMessage.text,
         html: formattedMessage.html,
       },
     );
@@ -169,9 +170,10 @@ export class MessageService {
     this.#messages.push(logMessage);
 
     firebot.frontendCommunicator.fireEventAsync(
-      "oceanity:archipelago:got-html-log-message",
+      "oceanity:archipelago:got-log-message",
       {
         sessionId: this.#session.id,
+        text: logMessage.text,
         html: logMessage.html,
       },
     );
@@ -193,7 +195,6 @@ export class MessageService {
 
   /** Handle chat commands defined in {@link AllChatCommandDefinitions} */
   #handleChatCommand = (command: string, ...args: Array<string>) => {
-    firebot.logger.info(`User ran command: ${command}`);
     if (!AllChatCommandDefinitions.hasOwnProperty(command)) {
       this.sendLog(
         "Unrecognized command, use /help to see all available commands",

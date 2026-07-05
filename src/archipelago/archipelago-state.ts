@@ -129,10 +129,6 @@ export class ArchipelagoState {
     sessionId: string,
     deleteFromStore: boolean = false,
   ): Promise<boolean> {
-    firebot.logger.info(
-      `Closing session with Id '${sessionId}', delete from store: ${deleteFromStore}`,
-    );
-
     const session = this.findSession(sessionId);
     if (!session) {
       firebot.logger.warn(

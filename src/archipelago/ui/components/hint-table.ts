@@ -91,7 +91,16 @@ export const ArchipelagoHintTable: AngularJsComponent = {
     $scope.$ctrl.getMenuItems = (hint: StoredHint) => {
       const items: Array<ContextMenuEntry> = [
         {
+          html: "<a href><i class='far fa-clone' style='margin-right: 10px'></i> Copy Hint Message</a>",
+          click: () => {
+            navigator.clipboard.writeText(
+              `[Hint]: ${hint.receiver}'s ${hint.item} is at ${hint.location} in ${hint.sender}'s World. (${hint.status.toLowerCase()})`,
+            );
+          },
+        },
+        {
           text: "Set priority...",
+          hasTopDivider: true,
           enabled: () => hint.receiverIsPlayer && hint.status !== "Found",
           children: $scope.$ctrl.hintStatuses.map(
             ([value, status]: [

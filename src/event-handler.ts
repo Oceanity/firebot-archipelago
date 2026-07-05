@@ -33,8 +33,6 @@ const getSocketEventDefinitions = (
   {
     event: "connected",
     handler: (packet: ConnectedPacket) => {
-      firebot.logger.info(JSON.stringify(packet));
-
       firebot.events.trigger(ARCHIPELAGO_PLUGIN_ID, FirebotEvents.Connected, {
         [ARCHIPELAGO_PLUGIN_EVENT_DATA_VARIABLE]: packet,
         ...getSessionMetadata(sessionId, client),
@@ -45,8 +43,6 @@ const getSocketEventDefinitions = (
   {
     event: "disconnected",
     handler: () => {
-      firebot.logger.info(`Disconnected session with Id '${sessionId}'`);
-
       firebot.events.trigger(
         ARCHIPELAGO_PLUGIN_ID,
         FirebotEvents.Disconnected,

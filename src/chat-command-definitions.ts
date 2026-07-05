@@ -150,45 +150,45 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
   },
 
   // For some reason no players are getting fetched on this, unsure why
-  // "/players": {
-  //   description:
-  //     "Get a list of all players connected to session and what game they are playing",
-  //   callback: async (session) => {
-  //     session.getPlayers();
-  //     const teams = session.client.players.teams;
+  "/players": {
+    description:
+      "Get a list of all players connected to session and what game they are playing",
+    callback: async (session) => {
+      const teams = await session.getPlayers();
 
-  //     if (!teams.length) {
-  //       session.messages.sendLog(
-  //         `No players found for current session`,
-  //         "warning",
-  //       );
+      if (!teams.length) {
+        session.messages.sendLog(
+          `No players found for current session`,
+          "warning",
+        );
 
-  //       return;
-  //     }
+        return;
+      }
 
-  //     session.messages.push({
-  //       text: teams
-  //         .map(
-  //           (players, teamIndex) =>
-  //             `Team ${teamIndex + 1}\n${players
-  //               .map((player) => `> ${player.alias} - ${player.game}`)
-  //               .join("\n")}`,
-  //         )
-  //         .join("\n"),
-  //       html: teams
-  //         .map(
-  //           (players, teamIndex) =>
-  //             `<p>Team #${teamIndex + 1}</p><ul class="team team-${teamIndex + 1}">
-  //         ${players
-  //           .map((player, playerIndex) => {
-  //             `<li class="player player-${teamIndex}-${playerIndex}">${player.alias} - ${player.game}</li>`;
-  //           })
-  //           .join("")}
-  //         </ul>`,
-  //         )
-  //         .join(""),
-  //       nodes: [],
-  //     });
-  //   },
-  // },
+      session.messages.push({
+        text: teams
+          .map(
+            (players, teamIndex) =>
+              `Team ${teamIndex + 1}\n${players
+                .map((player) => `> ${player.alias} - ${player.game}`)
+                .join("\n")}`,
+          )
+          .join("\n"),
+        html: teams
+          .map(
+            (players, teamIndex) =>
+              `<p>Team #${teamIndex + 1}</p><ul class="team team-${teamIndex + 1}">
+                ${players
+                  .map(
+                    (player, playerIndex) =>
+                      `<li class="player-${teamIndex}-${playerIndex}"><span class="player${player.isSessionPlayer ? " self" : ""}">${player.alias}</span> - <span class="green">${player.game}</span></li>`,
+                  )
+                  .join("")}
+                </ul>`,
+          )
+          .join(""),
+        nodes: [],
+      });
+    },
+  },
 };

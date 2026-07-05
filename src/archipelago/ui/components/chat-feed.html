@@ -43,6 +43,7 @@
 </style>
 <div class="archipelago-chat-feed" tab-index="-1" scroll-glue="$ctrl.glued" force-glue="$ctrl.forceGlued"
   ng-click="$ctrl.glued = false" ng-blur="$ctrl.glued = true">
-  <div ng-repeat="message in $ctrl.messages track by $index" class="p-3 archipelago-message" ng-bind-html="message">
+  <div ng-repeat="message in $ctrl.messages track by $index" class="p-3 archipelago-message" ng-bind-html="message.html"
+    context-menu="$ctrl.getMenuItems(message)" context-menu-class="angular-context-menu">
   </div>
 </div>

@@ -18,6 +18,7 @@ import {
   SessionConnection,
   SessionStatus,
   StoredHint,
+  StoredPlayer,
 } from "../types";
 import { MessageService } from "./message-service";
 
@@ -104,10 +105,6 @@ export class ArchipelagoSession {
   async connect(): Promise<ServiceResponse<ArchipelagoSession>> {
     this.#updateStatus(SessionStatus.Connecting);
 
-    firebot.logger.info(
-      `Connecting to Archipelago at '${this.#url}' as '${this.#name}'...`,
-    );
-
     try {
       hookArchipelagoEvents(this.id, this.#client);
 
@@ -126,9 +123,6 @@ export class ArchipelagoSession {
         undefined,
         this.#connectionOptions,
       );
-
-      firebot.logger.info("Got session info");
-      firebot.logger.info(JSON.stringify(response));
 
       // Saturate connection with better information
       this.#url = new URL(this.#client.socket.url);
@@ -190,10 +184,6 @@ export class ArchipelagoSession {
     if (!this.#client) {
       return true;
     }
-
-    firebot.logger.info(
-      `Disconnecting from AP Session with Id '${this.#id}'...`,
-    );
 
     try {
       await unhookArchipelagoEvents(this.#id, this.#client);
@@ -276,13 +266,25 @@ export class ArchipelagoSession {
     ]);
   }
 
-  getPlayers() {
-    this.#client.players.teams.forEach((players) => {
-      firebot.logger.info(JSON.stringify(players));
-      players.forEach((player) => {
-        firebot.logger.info(JSON.stringify(player));
-      });
-    });
+  async getPlayers(): Promise<StoredPlayer[][]> {
+    const teams: Array<StoredPlayer[]> = [];
+    for (const players of this.#client.players.teams) {
+      const team: StoredPlayer[] = [];
+      for (const player of players) {
+        if (player.slot === 0) {
+          continue;
+        }
+
+        team.push({
+          alias: player.alias,
+          game: player.game,
+          isSessionPlayer: this.#client.players.self.slot === player.slot,
+        });
+      }
+      teams.push(team);
+    }
+
+    return teams;
   }
 
   async getHints(): Promise<StoredHint[]> {

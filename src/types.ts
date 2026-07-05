@@ -56,6 +56,12 @@ export type StoredHint = {
   status: string;
 };
 
+export type StoredPlayer = {
+  alias: string;
+  game: string;
+  isSessionPlayer: boolean;
+};
+
 export const hintStatuses = Object.freeze({
   /** The receiving player has not set a status. */
   [0]: "Unspecified",
