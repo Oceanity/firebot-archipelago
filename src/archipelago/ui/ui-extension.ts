@@ -7,6 +7,7 @@ import { ArchipelagoChatInput } from "./components/chat-input";
 import { ArchipelagoConnectionPanel } from "./components/connection-panel";
 import { ArchipelagoHintDisplay } from "./components/hint-display";
 import { ArchipelagoHintTable } from "./components/hint-table";
+import { ArchipelagoPageSelector } from "./components/page-selector";
 import { ArchipelagoSessionTabs } from "./components/session-tabs";
 import {
   ArchipelagoToastService,
@@ -34,6 +35,7 @@ export const ArchipelagoUIExtension: UIExtension = {
         $scope.sessionId = null;
         $scope.sessionHandle = null;
         $scope.sessionStatus = null;
+        $scope.selectedPage = "Archipelago";
 
         $scope.fetchHints = async () => {
           backendCommunicator
@@ -95,6 +97,10 @@ export const ArchipelagoUIExtension: UIExtension = {
           await $scope.fetchHints();
         };
 
+        $scope.onPageChanged = async (page: string) => {
+          $scope.selectedPage = page;
+        };
+
         $scope.reconnect = (sessionId: string) => {
           backendCommunicator.fireEventAsync(
             "oceanity:archipelago:reconnect",
@@ -112,6 +118,7 @@ export const ArchipelagoUIExtension: UIExtension = {
       ArchipelagoConnectionPanel,
       ArchipelagoHintDisplay,
       ArchipelagoHintTable,
+      ArchipelagoPageSelector,
       ArchipelagoSessionTabs,
     ],
     directives: [],

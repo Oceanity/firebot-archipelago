@@ -228,25 +228,24 @@ export class ArchipelagoState {
           (!session.password || typeof session.password === "string"),
       );
 
-      return (
-        await Promise.all(
-          valid.map(async (session) => {
-            const response = await this.createSession(
-              session.url,
-              session.name,
-              session.password,
-              session.id,
-            );
+      var loaded: ArchipelagoSession[] = [];
+      for (const session of valid) {
+        const response = await this.createSession(
+          session.url,
+          session.name,
+          session.password,
+          session.id,
+        );
 
-            if (!response.success) {
-              firebot.logger.warn(response.errors.join(", "));
-              return null;
-            }
+        if (!response.success) {
+          firebot.logger.warn(response.errors.join(", "));
+          continue;
+        }
 
-            return response.data;
-          }),
-        )
-      ).filter((s): s is ArchipelagoSession => s !== null);
+        loaded.push(response.data);
+      }
+
+      return loaded;
     } catch (error) {
       firebot.logger.error("Error loading sessions from local storage", error);
       const fallback: Array<ArchipelagoSession> = [];

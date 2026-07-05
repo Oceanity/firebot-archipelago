@@ -204,13 +204,13 @@ export const AllArchipelagoFrontendListeners: Array<FrontendListener> = [
     useAsync: true,
     handler: async (...args: Array<unknown>): Promise<StoredHint[]> => {
       try {
-        const [sessionId] = parseArgs<[string]>(
-          args,
-          "Get Next Chat History",
-          isString,
-        );
+        const [sessionId] = parseArgs<[string]>(args, "Get Hints", isString);
 
-        return (await archipelago.findSession(sessionId)?.getHints()) ?? [];
+        const hints = await archipelago.findSession(sessionId)?.getHints();
+
+        firebot.logger.info(JSON.stringify(hints));
+
+        return hints ?? [];
       } catch (error) {
         return [];
       }

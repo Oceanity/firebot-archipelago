@@ -34,7 +34,6 @@
   .item.useful,
   .status.priority,
   .location-entry.checked,
-  .entrance,
   .arg {
     color: #6d8be8;
   }
@@ -53,6 +52,10 @@
 
   .orange {
     color: #ff7700;
+  }
+
+  .entrance {
+    color: #9ccaff;
   }
 
   .clickable {
@@ -117,9 +120,11 @@
 
     <!-- Connected View -->
     <div class="archipelago-container" ng-show="sessionStatus === 'connected'">
-      <!--<archipelago-chat-feed session-id="sessionId" glued="ui.scrollGlued"
-        force-glued="ui.forceGlued"></archipelago-chat-feed>-->
-      <archipelago-hint-table session-id="sessionId"></archipelago-hint-table>
+      <archipelago-page-selector selected="selectedPage"
+        on-page-changed="onPageChanged(page)"></archipelago-page-selector>
+      <archipelago-chat-feed ng-show="selectedPage === 'Archipelago'" session-id="sessionId" glued="ui.scrollGlued"
+        force-glued="ui.forceGlued"></archipelago-chat-feed>
+      <archipelago-hint-table ng-show="selectedPage === 'Hints'" session-id="sessionId"></archipelago-hint-table>
 
       <div class="p-6" style="display: flex; gap: 1.5rem">
         <archipelago-hint-display session-id="sessionId"></archipelago-hint-display>

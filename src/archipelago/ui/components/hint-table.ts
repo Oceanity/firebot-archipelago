@@ -1,5 +1,10 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
-import { ContextMenuEntry, StoredHint } from "../../../types";
+import {
+  ContextMenuEntry,
+  hintStatuses,
+  SessionStatus,
+  StoredHint,
+} from "../../../types";
 import template from "./hint-table.html";
 
 export const ArchipelagoHintTable: AngularJsComponent = {
@@ -35,10 +40,27 @@ export const ArchipelagoHintTable: AngularJsComponent = {
           $scope.$ctrl.sessionId,
         )
         .then((hints: StoredHint[]) => {
+          if (!hints.length) {
+            return;
+          }
+
           $scope.$ctrl.hints = hints;
           $scope.$applyAsync();
         });
     };
+
+    backendCommunicator.on(
+      "oceanity:archipelago:session-status-updated",
+      ({ sessionId, status }: { sessionId: string; status: SessionStatus }) => {
+        if (sessionId !== $scope.$ctrl.sessionId) {
+          return;
+        }
+
+        if (status === SessionStatus.Connected) {
+          $scope.$ctrl.loadHints();
+        }
+      },
+    );
 
     $scope.$ctrl.$onChanges = async (changes: any) => {
       if (changes.sessionId) {
@@ -70,9 +92,12 @@ export const ArchipelagoHintTable: AngularJsComponent = {
       const items: Array<ContextMenuEntry> = [
         {
           text: "Set priority...",
-          enabled: () => hint.receiverIsPlayer,
+          enabled: () => hint.receiverIsPlayer && hint.status !== "Found",
           children: $scope.$ctrl.hintStatuses.map(
-            ([value, status]: [number, string]) => {
+            ([value, status]: [
+              number,
+              (typeof hintStatuses)[keyof typeof hintStatuses],
+            ]) => {
               const isSelected = status === hint.status;
               return {
                 html: `<a href><i class="${isSelected ? "fas fa-check" : ""}" style="margin-right: ${isSelected ? "10" : "27"}px;"></i> ${status}</a>`,
