@@ -7,7 +7,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
   "/help": {
     description: "Returns the help listing.",
     callback: async (session) => {
-      session.messages.push({
+      session.messages.pushMessage({
         text: Object.entries(AllChatCommandDefinitions)
           .map(
             ([command, definition]) =>
@@ -93,7 +93,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
         return;
       }
 
-      session.messages.push({
+      session.messages.pushMessage({
         text: items
           .map(([name, count]) =>
             count > 0 ? `${name}${count > 1 ? ` (x${count})` : ""} ✓` : name,
@@ -132,7 +132,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
         return;
       }
 
-      session.messages.push({
+      session.messages.pushMessage({
         text: locations
           .map(([name, checked]) => `${name}${checked ? " ✓" : ""}`)
           .join("\n"),
@@ -165,7 +165,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
         return;
       }
 
-      session.messages.push({
+      session.messages.pushMessage({
         text: teams
           .map(
             (players, teamIndex) =>

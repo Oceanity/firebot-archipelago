@@ -105,7 +105,7 @@ export class MessageService {
     );
   }
 
-  public push(message: StateLogMessage | string) {
+  public pushMessage(message: StateLogMessage | string) {
     const formattedMessage: StateLogMessage =
       typeof message === "string"
         ? {
@@ -120,7 +120,7 @@ export class MessageService {
     }
 
     firebot.frontendCommunicator.fireEventAsync(
-      "oceanity:archipelago:Got-log-message",
+      "oceanity:archipelago:got-log-message",
       {
         sessionId: this.#session.id,
         text: formattedMessage.text,
