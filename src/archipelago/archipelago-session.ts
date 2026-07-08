@@ -8,12 +8,14 @@ import {
 } from "../constants";
 import {
   hookArchipelagoEvents,
+  SocketEventDefinition,
   unhookArchipelagoEvents,
 } from "../event-handler";
-import { getClassificationString, searchTuples } from "../helpers";
+import { searchTuples } from "../helpers";
 import {
   FirebotEvents,
   hintStatuses,
+  itemClassifications,
   ServiceResponse,
   SessionConnection,
   SessionStatus,
@@ -21,6 +23,8 @@ import {
   StoredPlayer,
 } from "../types";
 import { MessageService } from "./message-service";
+
+let socketEvents: SocketEventDefinition[];
 
 export class ArchipelagoSession {
   readonly #client: Client;
@@ -106,7 +110,7 @@ export class ArchipelagoSession {
     this.#updateStatus(SessionStatus.Connecting);
 
     try {
-      hookArchipelagoEvents(this.id, this.#client);
+      socketEvents = hookArchipelagoEvents(this.id, this.#client);
 
       const cachedData = await firebot.storage.readTextFile(
         ARCHIPELAGO_PLUGIN_DATAPACKAGE_CACHE_FILENAME,
@@ -186,7 +190,7 @@ export class ArchipelagoSession {
     }
 
     try {
-      await unhookArchipelagoEvents(this.#id, this.#client);
+      await unhookArchipelagoEvents(this.#client, socketEvents);
 
       this.#client.socket.disconnect();
 
@@ -250,10 +254,7 @@ export class ArchipelagoSession {
       return [];
     }
 
-    const locations = searchTuples(
-      Object.entries(locationTable).sort(([a], [b]) => a.localeCompare(b)),
-      search,
-    );
+    const locations = searchTuples(Object.entries(locationTable), search);
 
     if (!locations.length) {
       return [];
@@ -319,7 +320,10 @@ export class ArchipelagoSession {
           hint.item.receiver.slot === this.#client.players.self.slot,
         item: hint.item.name,
         location: hint.item.locationName,
-        classification: getClassificationString(hint.item.flags),
+        classification:
+          itemClassifications[
+            hint.item.flags as keyof typeof itemClassifications
+          ],
         entrance: hint.entrance,
         status: hintStatuses[hint.status],
       });
@@ -346,6 +350,17 @@ export class ArchipelagoSession {
 
   setIsReady(ready: boolean) {
     this.#isReady = ready;
+  }
+
+  isSessionTeam(team: number) {
+    return team === this.#client.players.self.team;
+  }
+
+  isSessionPlayer(team: number, slot: number) {
+    return (
+      this.#client.players.self.team === team &&
+      this.#client.players.self.slot === slot
+    );
   }
 
   #updateStatus = (status: SessionStatus) => {

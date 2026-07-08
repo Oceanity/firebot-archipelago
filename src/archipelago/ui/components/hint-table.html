@@ -61,6 +61,6 @@
   <li ng-class="$ctrl.getItemClasses(hint)">{{hint.item}}</li>
   <li class="player" ng-class="{ self: hint.senderIsPlayer }">{{hint.sender}}</li>
   <li class="location">{{hint.location}}</li>
-  <li class="entrance">{{hint.entrance}}</li>
+  <li class="entrance" ng-class="{ randomized: hint.entrance !== 'Vanilla' }">{{hint.entrance}}</li>
   <li ng-class="$ctrl.getStatusClasses(hint)">{{hint.status}}</li>
 </ul>

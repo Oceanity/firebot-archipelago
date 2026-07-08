@@ -86,6 +86,18 @@ export const itemClassifications = Object.freeze({
   [0]: "Filler",
 });
 
+export type ReadHint = {
+  receiving_player: number;
+  finding_player: number;
+  location: number;
+  item: number;
+  found: boolean;
+  entrance: string;
+  item_flags: keyof typeof itemClassifications;
+  status: keyof typeof hintStatuses;
+  class: "Hint";
+};
+
 export type StateLogMessage = {
   text: string;
   html: string;

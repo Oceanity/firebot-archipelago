@@ -16,13 +16,13 @@ export const ArchipelagoHintTable: AngularJsComponent = {
 
   template,
 
-  controller: ($scope: any, backendCommunicator: any, apToast: any) => {
+  controller: ($scope: any, backendCommunicator: any) => {
     $scope.$ctrl.hints = [];
     $scope.$ctrl.fields = [
       { id: "receiver", label: "Receiver" },
-      { id: "itemName", label: "Item" },
+      { id: "item", label: "Item" },
       { id: "sender", label: "Finder" },
-      { id: "locationName", label: "Location" },
+      { id: "location", label: "Location" },
       { id: "entrance", label: "Entrance" },
       { id: "status", label: "Status" },
     ];
@@ -40,10 +40,6 @@ export const ArchipelagoHintTable: AngularJsComponent = {
           $scope.$ctrl.sessionId,
         )
         .then((hints: StoredHint[]) => {
-          if (!hints.length) {
-            return;
-          }
-
           $scope.$ctrl.hints = hints;
           $scope.$applyAsync();
         });
@@ -59,6 +55,24 @@ export const ArchipelagoHintTable: AngularJsComponent = {
         if (status === SessionStatus.Connected) {
           $scope.$ctrl.loadHints();
         }
+      },
+    );
+
+    backendCommunicator.on(
+      "oceanity:archipelago:hints-table-updated",
+      async ({
+        sessionId,
+        hints,
+      }: {
+        sessionId: string;
+        hints: StoredHint[];
+      }) => {
+        if (sessionId !== $scope.$ctrl.sessionId) {
+          return;
+        }
+
+        $scope.$ctrl.hints = hints;
+        $scope.$applyAsync();
       },
     );
 

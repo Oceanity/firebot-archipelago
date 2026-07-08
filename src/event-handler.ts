@@ -3,6 +3,8 @@ import {
   Client,
   ConnectedPacket,
   MessageNode,
+  ServerPacket,
+  SetReplyPacket,
   SocketEvents,
 } from "archipelago.js";
 import {
@@ -19,7 +21,7 @@ import {
 import { archipelago } from "./main";
 import { FirebotEvents } from "./types";
 
-type SocketEventDefinition = {
+export type SocketEventDefinition = {
   [K in keyof SocketEvents]: {
     event: K;
     handler: (...args: SocketEvents[K]) => void;
@@ -30,6 +32,12 @@ const getSocketEventDefinitions = (
   sessionId: string,
   client: Client,
 ): Array<SocketEventDefinition> => [
+  {
+    event: "receivedPacket",
+    handler: (packet: ServerPacket) => {
+      firebot.logger.info(packet.cmd);
+    },
+  },
   {
     event: "connected",
     handler: (packet: ConnectedPacket) => {
@@ -118,13 +126,44 @@ const getSocketEventDefinitions = (
       });
     },
   },
+  {
+    event: "setReply",
+    handler: (packet: SetReplyPacket) => {
+      firebot.logger.info(JSON.stringify(packet));
+
+      const session = archipelago.findSession(sessionId);
+
+      if (!session) {
+        firebot.logger.warn(`Could not find Session with Id '${sessionId}'`);
+        return;
+      }
+
+      // Check Hint Update
+      const matches = packet.key.match(/_read_hints_(\d+)_(\d+)/);
+      if (matches) {
+        const [_, team, player] = matches;
+        firebot.logger.info(
+          `Got hint updates for Team: ${team}, Slot: ${player}. Is Session Player: ${session.isSessionPlayer(parseInt(team), parseInt(player))}`,
+        );
+        if (session.isSessionTeam(parseInt(team))) {
+          session.getHints().then((hints) => {
+            firebot.frontendCommunicator.fireEventAsync(
+              "oceanity:archipelago:hints-table-updated",
+              { sessionId, hints },
+            );
+          });
+        }
+      }
+    },
+  },
 ];
 
-export const hookArchipelagoEvents = async (
+export const hookArchipelagoEvents = (
   sessionId: string,
   client: Client,
-) => {
-  for (const socketEvent of getSocketEventDefinitions(sessionId, client)) {
+): SocketEventDefinition[] => {
+  const socketEvents = getSocketEventDefinitions(sessionId, client);
+  for (const socketEvent of socketEvents) {
     firebot.logger.debug(
       `Attaching listeners for socket '${socketEvent.event}' event`,
     );
@@ -174,13 +213,15 @@ export const hookArchipelagoEvents = async (
   //     });
   //   });
   // });
+
+  return socketEvents;
 };
 
 export const unhookArchipelagoEvents = async (
-  sessionId: string,
   client: Client,
+  socketEvents: SocketEventDefinition[],
 ) => {
-  for (const socketEvent of getSocketEventDefinitions(sessionId, client)) {
+  for (const socketEvent of socketEvents) {
     firebot.logger.debug(
       `Unhooking listeners for socket '${socketEvent.event}' event`,
     );
