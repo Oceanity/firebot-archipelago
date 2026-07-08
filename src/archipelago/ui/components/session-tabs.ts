@@ -1,5 +1,9 @@
 import { AngularJsComponent } from "@crowbartools/firebot-types";
-import { SessionConnection, SessionTableEntry } from "../../../types";
+import {
+  ContextMenuEntry,
+  SessionConnection,
+  SessionTableEntry,
+} from "../../../types";
 import template from "./session-tabs.html";
 
 export const ArchipelagoSessionTabs: AngularJsComponent = {
@@ -64,6 +68,26 @@ export const ArchipelagoSessionTabs: AngularJsComponent = {
             $scope.$ctrl.changeSession(sessionIds.shift());
           }
         });
+    };
+
+    $scope.$ctrl.getMenuItems = (session: SessionTableEntry) => {
+      const items: Array<ContextMenuEntry> = [
+        {
+          html: "<a href><i class='far fa-clone' style='margin-right: 10px'></i> Copy Session Id</a>",
+          click: () => {
+            navigator.clipboard.writeText(session.id);
+          },
+        },
+        {
+          html: "<a href style='color: #fb7373;'><i class='far fa-trash-alt' style='margin-right: 10px'></i> Disconnect</a>",
+          hasTopDivider: true,
+          click: () => {
+            $scope.$ctrl.disconnect(session.id);
+          },
+        },
+      ];
+
+      return items;
     };
 
     $scope.$ctrl.fetchSessionTable();
