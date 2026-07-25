@@ -3,7 +3,7 @@
   "displayName": "Archipelago",
   "pluginOutputName": "oceanityArchipelago",
   "version": "0.7.0",
-  "description": "Adds Archipelago Randomizer features to Firebot",
+  "description": "Adds a fully-functional Archipelago Text Client to Firebot with support for multiple sessions and allows hooking Effects to various Archipelago Events.",
   "main": "",
   "scripts": {
     "build": "tsdown",
@@ -24,8 +24,8 @@
     "fuse.js": "^7.5.0",
     "jest": "^30.4.2",
     "motion-v": "^2.3.0",
-    "ts-jest": "^29.4.11",
-    "tsdown": "^0.22.9",
+    "ts-jest": "^29.4.12",
+    "tsdown": "^0.22.14",
     "typescript": "^5.9.3",
     "uuid": "^14.0.1"
   },

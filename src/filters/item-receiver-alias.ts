@@ -3,7 +3,8 @@ import { getArchipelagoFilterEvent } from "../archipelago/helpers";
 import { FirebotEvents } from "../types";
 
 export const ItemReceiverAliasEventFilter: EventFilter =
-  firebot.eventFilterFactory.createTextFilter({
+  //@ts-expect-error(2339)
+  firebot.factories.eventFilters.createTextFilter({
     id: "item-receiver-alias",
     name: "Item Receiver Alias",
     description:

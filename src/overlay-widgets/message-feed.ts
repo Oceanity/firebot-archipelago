@@ -4,7 +4,6 @@ import {
   OverlayWidgetType,
   WidgetOverlayEvent,
 } from "@crowbartools/firebot-types";
-import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
 
 export type Settings = {
   fontOptions?: FontOptions;
@@ -26,93 +25,97 @@ function generateSampleMessageFeed(): State {
   };
 }
 
-export const archipelagoMessageFeed: OverlayWidgetType<Settings, State> = {
-  id: `${ARCHIPELAGO_PLUGIN_ID}:message-feed-widget`,
-  name: "Archipelago Message Feed",
-  description: "Displays the messages received from the Archipelago server.",
-  icon: "fa fa-island-tropical",
-  settingsSchema: [
-    {
-      name: "fontOptions",
-      title: "Font",
-      type: "font-options",
-      default: {
-        family: "Inter",
-        weight: 600,
-        size: 20,
-        italic: false,
-        color: "#FFFFFF",
+export const ArchipelagoMessageFeedOverlay: OverlayWidgetType<Settings, State> =
+  {
+    id: `message-feed-widget`,
+    name: "Archipelago Message Feed",
+    description: "Displays the messages received from the Archipelago server.",
+    icon: "fa fa-island-tropical",
+    settingsSchema: [
+      {
+        name: "fontOptions",
+        title: "Font",
+        type: "font-options",
+        default: {
+          family: "Inter",
+          weight: 600,
+          size: 20,
+          italic: false,
+          color: "#FFFFFF",
+        },
+        allowAlpha: true,
       },
-      allowAlpha: true,
-    },
-    {
-      name: "backgroundColor",
-      title: "Background Color",
-      type: "hexcolor",
-      default: "#0d141c",
-      allowAlpha: true,
-    },
-  ],
-  initialAspectRatio: { width: 4, height: 3 },
-  initialState: { messages: [] },
-  supportsLivePreview: true,
-  livePreviewState: generateSampleMessageFeed,
-  overlayExtension: {
-    eventHandler: (
-      event: WidgetOverlayEvent,
-      utils: IOverlayWidgetEventUtils,
-    ) => {
-      const { fontOptions, backgroundColor } = event.data.widgetConfig
-        .settings as Settings;
-
-      const { messages } = event.data.widgetConfig.state as State;
-
-      const generateInfoSpan = (className: string, data?: string): string => {
-        return `<span class="aimp-info-${className}">${data ?? "&nbsp;"}</span>`;
-      };
-
-      const generateWidgetHtml = (
-        config: (typeof event)["data"]["widgetConfig"],
+      {
+        name: "backgroundColor",
+        title: "Background Color",
+        type: "hexcolor",
+        default: "#0d141c",
+        allowAlpha: true,
+      },
+    ],
+    initialAspectRatio: { width: 4, height: 3 },
+    initialState: { messages: [] },
+    supportsLivePreview: true,
+    livePreviewState: generateSampleMessageFeed,
+    overlayExtension: {
+      eventHandler: (
+        event: WidgetOverlayEvent,
+        utils: IOverlayWidgetEventUtils,
       ) => {
-        const containerStyles = {
-          "justify-content": "space-between",
-          "font-family": fontOptions?.family
-            ? `'${fontOptions?.family}'`
-            : "Inter, sans-serif",
-          "font-size": fontOptions?.size ? `${fontOptions.size}px` : "48px",
-          "font-weight": fontOptions?.weight?.toString() || "400",
-          "font-style": fontOptions?.italic ? "italic" : "normal",
-          color: fontOptions?.color || "#FFFFFF",
-          background: backgroundColor,
+        const { fontOptions, backgroundColor } = event.data.widgetConfig
+          .settings as Settings;
+
+        const { messages } = event.data.widgetConfig.state as State;
+
+        const generateInfoSpan = (className: string, data?: string): string => {
+          return `<span class="aimp-info-${className}">${data ?? "&nbsp;"}</span>`;
         };
 
-        return `<ul class="oceanity-archipelago-message-log-${config.id}" style="${utils.stylesToString(containerStyles)}">
+        const generateWidgetHtml = (
+          config: (typeof event)["data"]["widgetConfig"],
+        ) => {
+          const containerStyles = {
+            "justify-content": "space-between",
+            "font-family": fontOptions?.family
+              ? `'${fontOptions?.family}'`
+              : "Inter, sans-serif",
+            "font-size": fontOptions?.size ? `${fontOptions.size}px` : "48px",
+            "font-weight": fontOptions?.weight?.toString() || "400",
+            "font-style": fontOptions?.italic ? "italic" : "normal",
+            color: fontOptions?.color || "#FFFFFF",
+            background: backgroundColor,
+          };
+
+          return `<ul class="oceanity-archipelago-message-log-${config.id}" style="${utils.stylesToString(containerStyles)}">
                   ${messages.map((message) => {
                     return `<li data-id="${message.id}">${message.html}</li>`;
                   })}
                 </ul>`;
-      };
+        };
 
-      switch (event.name) {
-        case "show":
-          utils.initializeWidget(generateWidgetHtml(event.data.widgetConfig), {
-            overflow: "hidden",
-          });
-          break;
+        switch (event.name) {
+          case "show":
+            utils.initializeWidget(
+              generateWidgetHtml(event.data.widgetConfig),
+              {
+                overflow: "hidden",
+              },
+            );
+            break;
 
-        case "settings-update":
-          utils.updateWidgetContent(
-            generateWidgetHtml(event.data.widgetConfig),
-          );
-          break;
+          case "settings-update":
+            utils.updateWidgetContent(
+              generateWidgetHtml(event.data.widgetConfig),
+            );
+            break;
 
-        case "state-update":
-          break;
+          case "state-update":
+            break;
 
-        case "remove":
-          utils.removeWidget();
-          break;
-      }
+          case "remove":
+            utils.removeWidget();
+            break;
+        }
+      },
     },
-  },
-};
+  };
