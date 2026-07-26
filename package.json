@@ -3,7 +3,7 @@
   "displayName": "Archipelago",
   "pluginOutputName": "oceanityArchipelago",
   "version": "0.7.0",
-  "description": "Adds a fully-functional Archipelago Text Client to Firebot with support for multiple sessions and allows hooking Effects to various Archipelago Events.",
+  "description": "Adds a fully-functional Archipelago Text Client to Firebot that supports multiple connected sessions and new Archipelago Effects, Events and Overlays.",
   "main": "",
   "scripts": {
     "build": "tsdown",
