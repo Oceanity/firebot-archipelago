@@ -8,6 +8,7 @@ import {
 
 import firebot from "@crowbartools/firebot-types";
 import { itemClassifications, MessageNode } from "archipelago.js";
+import { v4 as uuid } from "uuid";
 import { getMessageMetadata, getSessionMetadata } from "../helpers";
 import { FirebotEvents, SessionStatus, StateLogMessage } from "../types";
 import { ArchipelagoSession } from "./archipelago-session";
@@ -71,6 +72,7 @@ export class MessageService {
     );
 
     this.#messages.push({
+      id: uuid(),
       text: message,
       html,
     });
@@ -109,6 +111,7 @@ export class MessageService {
     const formattedMessage: StateLogMessage =
       typeof message === "string"
         ? {
+            id: uuid(),
             text: message,
             html: `<span class="text">${message}</span>`,
           }
@@ -162,6 +165,7 @@ export class MessageService {
     }
 
     const logMessage: StateLogMessage = {
+      id: uuid(),
       text,
       html: this.#getMessageHtml(nodes),
       nodes,

@@ -99,6 +99,7 @@ export type ReadHint = {
 };
 
 export type StateLogMessage = {
+  id: string;
   text: string;
   html: string;
   nodes?: Array<MessageNode>;

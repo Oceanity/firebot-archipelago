@@ -68,7 +68,7 @@ export const ArchipelagoMessageFeedOverlay: OverlayWidgetType<Settings, State> =
         const { messages } = event.data.widgetConfig.state as State;
 
         const generateInfoSpan = (className: string, data?: string): string => {
-          return `<span class="aimp-info-${className}">${data ?? "&nbsp;"}</span>`;
+          return `<span class="archipelago-message-${className}">${data ?? "&nbsp;"}</span>`;
         };
 
         const generateWidgetHtml = (

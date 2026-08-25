@@ -34,8 +34,8 @@ const getSocketEventDefinitions = (
 ): Array<SocketEventDefinition> => [
   {
     event: "receivedPacket",
-    handler: (packet: ServerPacket) => {
-      firebot.logger.info(packet.cmd);
+    handler: (_packet: ServerPacket) => {
+      //firebot.logger.info(packet.cmd);
     },
   },
   {
@@ -129,8 +129,6 @@ const getSocketEventDefinitions = (
   {
     event: "setReply",
     handler: (packet: SetReplyPacket) => {
-      firebot.logger.info(JSON.stringify(packet));
-
       const session = archipelago.findSession(sessionId);
 
       if (!session) {
@@ -142,9 +140,6 @@ const getSocketEventDefinitions = (
       const matches = packet.key.match(/_read_hints_(\d+)_(\d+)/);
       if (matches) {
         const [_, team, player] = matches;
-        firebot.logger.info(
-          `Got hint updates for Team: ${team}, Slot: ${player}. Is Session Player: ${session.isSessionPlayer(parseInt(team), parseInt(player))}`,
-        );
         if (session.isSessionTeam(parseInt(team))) {
           session.getHints().then((hints) => {
             firebot.frontendCommunicator.fireEventAsync(

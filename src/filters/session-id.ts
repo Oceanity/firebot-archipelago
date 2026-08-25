@@ -3,7 +3,6 @@ import { getArchipelagoFilterEvent } from "../archipelago/helpers";
 import { FirebotEvents } from "../types";
 
 export const SessionIdEventFilter: EventFilter =
-  //@ts-expect-error(2339)
   firebot.factories.eventFilters.createTextFilter({
     id: "session-id",
     name: "Archipelago Session Id",

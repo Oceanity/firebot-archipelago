@@ -1,4 +1,5 @@
 import { clientStatuses } from "archipelago.js";
+import { v4 as uuid } from "uuid";
 import { argsString } from "./helpers";
 import { archipelago } from "./main";
 import { ChatCommandDefinition } from "./types";
@@ -8,6 +9,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
     description: "Returns the help listing.",
     callback: async (session) => {
       session.messages.pushMessage({
+        id: uuid(),
         text: Object.entries(AllChatCommandDefinitions)
           .map(
             ([command, definition]) =>
@@ -94,6 +96,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
       }
 
       session.messages.pushMessage({
+        id: uuid(),
         text: items
           .map(([name, count]) =>
             count > 0 ? `${name}${count > 1 ? ` (x${count})` : ""} ✓` : name,
@@ -133,6 +136,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
       }
 
       session.messages.pushMessage({
+        id: uuid(),
         text: locations
           .map(([name, checked]) => `${name}${checked ? " ✓" : ""}`)
           .join("\n"),
@@ -166,6 +170,7 @@ export const AllChatCommandDefinitions: ChatCommandDefinition = {
       }
 
       session.messages.pushMessage({
+        id: uuid(),
         text: teams
           .map(
             (players, teamIndex) =>

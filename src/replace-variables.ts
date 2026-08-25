@@ -3,7 +3,6 @@ import { ARCHIPELAGO_PLUGIN_ID } from "./constants";
 import { FirebotEvents } from "./types";
 
 export const AllArchipelagoVariables: Array<ReplaceVariable> = [
-  //@ts-expect-error(2339)
   firebot.factories.variables.createEventDataVariable({
     handle: "apSessionId",
     description:
@@ -93,7 +92,6 @@ function buildArchipelagoVariable(
   description: string,
   events: Array<FirebotEvents>,
 ): ReplaceVariable {
-  //@ts-expect-error(2339)
   return firebot.factories.variables.createEventDataVariable({
     handle: eventProperty,
     description,
@@ -110,7 +108,6 @@ function buildArchipelagoVariables(
 ): Array<ReplaceVariable> {
   return definitions.map(([name, description]) => {
     const eventProperty = `${prefix}${name}`;
-    //@ts-expect-error(2339)
     return firebot.factories.variables.createEventDataVariable({
       handle: eventProperty,
       description,
