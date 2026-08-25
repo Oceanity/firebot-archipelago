@@ -1,13 +1,15 @@
-import { createTextFilter } from "@oceanity/firebot-helpers/firebot";
+import firebot, { EventFilter } from "@crowbartools/firebot-types";
 import { getArchipelagoFilterEvent } from "../archipelago/helpers";
-import { ARCHIPELAGO_CLIENT_ID } from "../constants";
-import { FirebotEvents } from "../enums";
+import { FirebotEvents } from "../types";
 
-export const ItemReceiverAliasEventFilter = createTextFilter({
-  id: `${ARCHIPELAGO_CLIENT_ID}:item-receiver-alias`,
-  name: "Item Receiver Alias",
-  description:
-    "Filter by the alias (or slot name if none set) of the player that received the item",
-  eventMetaKey: `apReceiverAlias`,
-  events: [getArchipelagoFilterEvent(FirebotEvents.ReceivedItems)],
-});
+export const ItemReceiverAliasEventFilter: EventFilter =
+  firebot.factories.eventFilters.createTextFilter({
+    id: "item-receiver-alias",
+    name: "Item Receiver Alias",
+    description:
+      "Filter by the alias (or slot name if none set) of the player that received the item",
+    eventMetaKey: `apReceiverAlias`,
+    events: [FirebotEvents.ReceivedItems].map((event) =>
+      getArchipelagoFilterEvent(event),
+    ),
+  });

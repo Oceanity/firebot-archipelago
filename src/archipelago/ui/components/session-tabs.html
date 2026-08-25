@@ -1,0 +1,29 @@
+<style>
+  archipelago-session-tabs .nav-tabs {
+    display: flex;
+    margin: 0;
+  }
+
+  .archipelago-session-tab {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .archipelago-session-tab .fal.fa-times {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #6665
+  }
+</style>
+<div class="fb-tab-wrapper">
+  <ul class="nav nav-tabs fb-tabs session-tabs">
+    <li ng-repeat="session in $ctrl.sessionTable track by session.id" role="presentation"
+      ng-class="{'active' : $ctrl.selected === session.id}" ng-click="$ctrl.changeSession(session.id)"
+      context-menu="$ctrl.getMenuItems(session)" context-menu-class="angular-context-menu">
+      <a href class="archipelago-session-tab"><span>{{ session.handle }}</span><button class="close"
+          ng-click="$ctrl.disconnect(session.id)"><i class="fal fa-times"></i></button></a>
+    </li>
+  </ul>
+</div>

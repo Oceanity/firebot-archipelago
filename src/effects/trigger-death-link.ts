@@ -1,18 +1,17 @@
-import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
-import { client } from "../main";
+import firebot, { EffectType } from "@crowbartools/firebot-types";
+import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
+import { archipelago } from "../main";
+import { SessionSelectMode, SessionTableEntry } from "../types";
+import optionsTemplate from "./trigger-death-link.html";
 
-type Props = {
-  selectMode?: string;
+type EffectModel = {
+  selectMode: SessionSelectMode;
   cause?: string;
   session?: string;
   selectedSession?: string;
 };
 
-export const TriggerDeathLinkEffectType: Effects.EffectType<
-  Props,
-  unknown,
-  void
-> = {
+export const TriggerDeathLinkEffectType: EffectType<EffectModel> = {
   definition: {
     id: "trigger-death-link",
     name: "Trigger Archipelago DeathLink",
@@ -22,57 +21,43 @@ export const TriggerDeathLinkEffectType: Effects.EffectType<
     categories: ["integrations"],
     outputs: [],
   },
-  optionsTemplate: `
-    <eos-container header="Session" pad-bottom="true">
-      <firebot-radios
-        model="effect.selectMode"
-        options="selectModes" />
+  optionsTemplate,
+  optionsController: ($scope, backendCommunicator: any, $q: any) => {
+    $scope.isArchipelagoEvent =
+      $scope.trigger === "event" &&
+      $scope.triggerMeta?.triggerId?.startsWith(ARCHIPELAGO_PLUGIN_ID);
 
-      <div ng-if="effect.selectMode === 'list'" style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 20px;">
-        <firebot-select
-          selected="effect.selectedSession"
-          options="sessions" />
-        <button class="btn btn-link" ng-click="getSessionNames()">Refresh Sessions</button>
-      </div>
-
-      <div ng-if="effect.selectMode === 'custom'" style="margin-bottom: 20px;">
-        <firebot-input
-          model="effect.session"
-          placeholder-text="Enter session name, slot name or hostname (will use first match)"
-          menu-position="under" />
-      </div>
-    </eos-container>
-
-    <eos-container header="Text">
-      <firebot-input
-        model="effect.cause"
-        use-text-area="true"
-        placeholder-text="DeathLink cause (optional)"
-        rows="3"
-        cols="40" />
-    </eos-container>
-  `,
-  optionsController: ($scope, backendCommunicator: any) => {
-    $scope.getSessionNames = (): void => {
-      backendCommunicator
-        .fireEventAsync("archipelago:getSessionTable")
-        .then((data: Record<string, string>) => {
-          $scope.sessions = data;
+    $scope.getSessionNames = async (): Promise<void> => {
+      $q.when(
+        backendCommunicator.fireEventAsync(
+          "oceanity:archipelago:get-session-table",
+        ),
+      ).then((entries: Array<SessionTableEntry>) => {
+        $scope.sessions = {};
+        entries.forEach((entry) => {
+          $scope.sessions[entry.id] = entry.handle;
         });
+      });
     };
-
-    //@ts-expect-error ts(2349)
-    $scope.getSessionNames();
 
     $scope.selectModes = {
       first: "First available session",
       list: "Select from list",
-      custom: "Manually enter a name",
+      custom: "Manually enter Session Id",
     };
 
-    if (!$scope.effect.selectMode) {
-      $scope.effect.selectMode = "first";
+    if ($scope.isArchipelagoEvent) {
+      $scope.selectModes = {
+        associated: "Associated Archipelago Session",
+        ...$scope.selectModes,
+      };
     }
+
+    if (!$scope.effect.selectMode) {
+      $scope.effect.selectMode = $scope.selectModes[0];
+    }
+
+    $scope.getSessionNames();
   },
   optionsValidator: (effect) => {
     const errors: Array<string> = [];
@@ -84,23 +69,73 @@ export const TriggerDeathLinkEffectType: Effects.EffectType<
     }
     return errors;
   },
-  onTriggerEvent: async ({ effect }) => {
+  getDefaultLabel: (effect) => {
+    let target = "First Archipelago Session";
     switch (effect.selectMode) {
-      case "first": {
-        return client.findSession()?.triggerDeathLink(effect.cause ?? "");
+      case "associated":
+        target = "Associated Archipelago Session";
+        break;
+      case "list":
+        target = "Selected Archipelago Session";
+        break;
+      case "custom":
+        target = `Archipelago Session ${effect.session ?? "Undefined"}`;
+        break;
+    }
+    const cause =
+      effect.cause !== undefined && !!effect.cause.length
+        ? `, Cause: '${effect.cause}'`
+        : "";
+    return `Triggering on ${target}${cause}`;
+  },
+  onTriggerEvent: async ({ effect, trigger }) => {
+    const SOURCE = "Firebot";
+
+    try {
+      switch (effect.selectMode) {
+        case "associated": {
+          const sessionId = trigger.metadata.eventData?.apSessionId;
+          if (!sessionId) {
+            throw new Error("Trigger metadata has no associated 'apSessionId'");
+          }
+
+          await archipelago
+            .findSession(`${sessionId}`)
+            ?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
+
+          break;
+        }
+
+        case "first": {
+          await archipelago
+            .getFirstSession()
+            ?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
+
+          break;
+        }
+
+        case "list": {
+          if (!effect.selectedSession) {
+            throw new Error("No session specified to send DeathLink Event to");
+          }
+
+          await archipelago
+            .findSession(effect.selectedSession)
+            ?.client.deathLink.sendDeathLink(SOURCE, effect.cause);
+
+          break;
+        }
+
+        case "custom": {
+          // TODO: Implement search for session
+          throw new Error("not implemented");
+        }
       }
 
-      case "list": {
-        return client.sessions
-          .get(effect.selectedSession)
-          ?.triggerDeathLink(effect.cause ?? "");
-      }
-
-      case "custom": {
-        return client
-          .findSession(effect.session)
-          ?.triggerDeathLink(effect.cause ?? "");
-      }
+      return { success: true };
+    } catch (error) {
+      firebot.logger.error("Error sending DeathLink Event", error);
+      return { success: false };
     }
   },
 };

@@ -1,9 +1,9 @@
 import Fuse from "fuse.js";
-import { ARCHIPELAGO_CLIENT_ID } from "../constants";
+import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
 import { APCommandOptions } from "../types";
 
 export const getArchipelagoFilterEvent = (eventId: string) => ({
-  eventSourceId: ARCHIPELAGO_CLIENT_ID,
+  eventSourceId: ARCHIPELAGO_PLUGIN_ID,
   eventId,
 });
 
@@ -16,7 +16,7 @@ export const isValidConnectionString = (connectionString: string) => {
 };
 
 export const urlFromConnectionString = (
-  connectionString: string
+  connectionString: string,
 ): URL | null => {
   const split = connectionString.split(":");
 
@@ -39,7 +39,7 @@ export const urlFromConnectionString = (
 
 export const searchTuples = <T>(
   tuples: Array<[string, T]>,
-  search?: string
+  search?: string,
 ): Array<[string, T]> => {
   if (!search || !search.trim().length) {
     return tuples;
@@ -47,13 +47,13 @@ export const searchTuples = <T>(
 
   const fuse = new Fuse(
     tuples.map(([name]) => name),
-    { threshold: 0.25 }
+    { threshold: 0.25 },
   );
 
   const matches = fuse.search(search);
 
   return tuples.filter(([name]) =>
-    matches.some((match) => match.item === name)
+    matches.some((match) => match.item === name),
   );
 };
 
@@ -65,7 +65,7 @@ export function argsString(args?: APCommandOptions["args"]) {
   return Object.entries(args)
     .map(
       ([name, definition]) =>
-        `[${name}${definition.optional ? " (optional)" : ""}]`
+        `[${name}${definition.optional ? " (optional)" : ""}]`,
     )
     .join(" ");
 }

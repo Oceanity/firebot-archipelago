@@ -1,0 +1,66 @@
+<style>
+  archipelago-hint-table {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-height: 100%;
+    overflow: hidden auto;
+    font-size: 16px;
+    color: #fff;
+    background: #0019;
+  }
+
+  archipelago-hint-table .hint-header,
+  archipelago-hint-table .hint-row {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    grid-template-columns: 16.666% 16.666% 16.666% 20% 15% 15%;
+    border-bottom: 2px solid #000a;
+    align-items: center;
+    text-align: center;
+    background: #0002;
+  }
+
+  archipelago-hint-table .hint-header {
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(8px);
+    background: #0004;
+  }
+
+  archipelago-hint-table .hint-header {
+    user-select: none;
+  }
+
+  archipelago-hint-table .hint-header li {
+    padding: 10px 5px;
+    font-weight: 800;
+  }
+
+  archipelago-hint-table .hint-row li {
+    padding: 8px 5px;
+  }
+
+  archipelago-hint-table .hint-row:nth-child(even) {
+    background: #0006;
+  }
+</style>
+
+<ul class="hint-header">
+  <li ng-repeat="field in $ctrl.fields" ng-click="$ctrl.setSort(field.id)">
+    <span>{{ field.label }}</span>
+    <i ng-if="$ctrl.sortField === field.id" ng-class="$ctrl.getFieldClasses()"></i>
+  </li>
+</ul>
+
+<ul class="hint-row" ng-repeat="hint in $ctrl.hints | orderBy:$ctrl.sortField:$ctrl.sortReverse"
+  context-menu="$ctrl.getMenuItems(hint)" context-menu-class="angular-context-menu">
+  <li class="player" ng-class="{ self: hint.receiverIsPlayer }">{{hint.receiver}}</li>
+  <li ng-class="$ctrl.getItemClasses(hint)">{{hint.item}}</li>
+  <li class="player" ng-class="{ self: hint.senderIsPlayer }">{{hint.sender}}</li>
+  <li class="location">{{hint.location}}</li>
+  <li class="entrance" ng-class="{ randomized: hint.entrance !== 'Vanilla' }">{{hint.entrance}}</li>
+  <li ng-class="$ctrl.getStatusClasses(hint)">{{hint.status}}</li>
+</ul>

@@ -1,0 +1,10 @@
+<style>
+  archipelago-chat-input {
+    display: flex;
+    flex: 1;
+    gap: 1.5rem;
+  }
+</style>
+<input type="text" class="form-control ng-animate-disabled" placeholder="Enter chat message or command"
+  disable-variable-menu="true" ng-model="$ctrl.message" ng-keydown="$ctrl.handleKeydown($event)" style="flex: 1" />
+<button class="btn btn-primary" ng-click="$ctrl.sendMessage()">Send</button>

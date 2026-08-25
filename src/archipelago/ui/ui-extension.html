@@ -1,0 +1,137 @@
+<style>
+  .red {
+    color: #ff0000;
+  }
+
+  .green,
+  .location,
+  .item-entry.received,
+  .status.found {
+    color: #00ff7f;
+  }
+
+  .blue {
+    color: #6495ed;
+  }
+
+  .yellow,
+  .player {
+    color: #fafad2;
+  }
+
+  .magenta,
+  .player.self {
+    color: #ee00ee;
+  }
+
+  .cyan,
+  .item,
+  .status.no-priority {
+    color: #00eeee;
+  }
+
+  .slateblue,
+  .item.useful,
+  .location-entry.checked,
+  .entrance.randomized,
+  .arg {
+    color: #6d8be8;
+  }
+
+  .plum,
+  .status.priority,
+  .item.progression {
+    color: #af99ef;
+  }
+
+  .salmon,
+  .item.trap,
+  .status.avoid,
+  .deathlink {
+    color: #fa8072;
+  }
+
+  .orange {
+    color: #ff7700;
+  }
+
+  .entrance {
+    color: #9ccaff;
+  }
+
+  .clickable {
+    text-decoration: underline;
+  }
+
+  .location-entry.checked {
+    text-decoration: line-through;
+    font-style: italic;
+  }
+
+  .archipelago-ui-extension {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+
+  .chat-window-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 8px;
+  }
+
+  .archipelago-container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .archipelago-centered-text-container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+<div class="archipelago-ui-extension">
+  <div class="chat-window-column m-6">
+    <archipelago-connection-panel></archipelago-connection-panel>
+    <archipelago-session-tabs selected="sessionId"
+      on-session-changed="onSessionChanged(sessionId, handle)"></archipelago-session-tabs>
+
+    <!-- No Session View -->
+    <div class="archipelago-centered-text-container" ng-show="!sessionId || !sessionStatus">
+      <h3>No Sessions connected</h3>
+      <p><strong>Use the form at the top to connect to an Archipelago Session</strong></p>
+    </div>
+
+    <!-- Disconnected View -->
+    <div class="archipelago-centered-text-container"
+      ng-show="!!sessionStatus && ['connecting', 'disconnected', 'could-not-connect'].includes(sessionStatus)">
+      <h3>Disconnected</h3>
+      <button ng-disabled="sessionStatus === 'connecting'" class="btn btn-primary"
+        ng-click="reconnect(sessionId)">Reconnect</button>
+    </div>
+
+    <!-- Connected View -->
+    <div class="archipelago-container" ng-show="sessionStatus === 'connected'">
+      <archipelago-page-selector selected="selectedPage"
+        on-page-changed="onPageChanged(page)"></archipelago-page-selector>
+      <archipelago-chat-feed ng-show="selectedPage === 'Archipelago'" session-id="sessionId" glued="ui.scrollGlued"
+        force-glued="ui.forceGlued"></archipelago-chat-feed>
+      <archipelago-hint-table ng-show="selectedPage === 'Hints'" session-id="sessionId"></archipelago-hint-table>
+
+      <div class="p-6" style="display: flex; gap: 1.5rem">
+        <archipelago-hint-display session-id="sessionId"></archipelago-hint-display>
+        <archipelago-chat-input session-id="sessionId"></archipelago-chat-input>
+      </div>
+    </div>
+
+  </div>
+</div>

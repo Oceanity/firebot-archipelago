@@ -1,18 +1,17 @@
-import { Effects } from "@crowbartools/firebot-custom-scripts-types/types/effects";
-import { client } from "../main";
+import firebot, { EffectType } from "@crowbartools/firebot-types";
+import { ARCHIPELAGO_PLUGIN_ID } from "../constants";
+import { archipelago } from "../main";
+import { SessionSelectMode, SessionTableEntry } from "../types";
+import optionsTemplate from "./send-chat-message.html";
 
-type SendChatProps = {
-  selectMode?: string;
-  message?: string;
+type EffectModel = {
+  selectMode: SessionSelectMode;
+  message: string;
   session?: string;
   selectedSession?: string;
 };
 
-export const SendChatMessageEffectType: Effects.EffectType<
-  SendChatProps,
-  unknown,
-  void
-> = {
+export const SendChatMessageEffectType: EffectType<EffectModel> = {
   definition: {
     id: "send-chat-message",
     name: "Send Archipelago Message",
@@ -21,56 +20,42 @@ export const SendChatMessageEffectType: Effects.EffectType<
     categories: ["integrations"],
     outputs: [],
   },
-  optionsTemplate: `
-    <eos-container header="Session" pad-bottom="true">
-      <firebot-radios
-        model="effect.selectMode"
-        options="selectModes" />
+  optionsTemplate,
+  optionsController: ($scope, backendCommunicator: any, $q: any) => {
+    $scope.isArchipelagoEvent =
+      $scope.trigger === "event" &&
+      $scope.triggerMeta?.triggerId?.startsWith(ARCHIPELAGO_PLUGIN_ID);
 
-      <div ng-if="effect.selectMode === 'list'" style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 20px;">
-        <firebot-select
-          selected="effect.selectedSession"
-          options="sessions" />
-        <button class="btn btn-link" ng-click="getSessionNames()">Refresh Sessions</button>
-      </div>
-
-      <div ng-if="effect.selectMode === 'custom'" style="margin-bottom: 20px;">
-        <firebot-input
-          model="effect.session"
-          placeholder-text="Enter session name, slot name or hostname (will use first match)"
-          menu-position="under" />
-      </div>
-    </eos-container>
-
-    <eos-container header="Text">
-      <firebot-input
-        model="effect.message"
-        use-text-area="true"
-        placeholder-text="Chat message"
-        rows="3"
-        cols="40" />
-    </eos-container>
-  `,
-  optionsController: ($scope, backendCommunicator: any) => {
-    $scope.getSessionNames = (): void => {
-      backendCommunicator
-        .fireEventAsync("archipelago:getSessionTable")
-        .then((data: Record<string, string>) => {
-          $scope.sessions = data;
+    $scope.getSessionNames = async (): Promise<void> => {
+      $q.when(
+        backendCommunicator.fireEventAsync(
+          "oceanity:archipelago:get-session-table",
+        ),
+      ).then((entries: Array<SessionTableEntry>) => {
+        $scope.sessions = {};
+        entries.forEach((entry) => {
+          $scope.sessions[entry.id] = entry.handle;
         });
+      });
     };
 
-    //@ts-expect-error ts(2349)
     $scope.getSessionNames();
 
     $scope.selectModes = {
       first: "First available session",
       list: "Select from list",
-      custom: "Manually enter a name",
+      custom: "Manually enter Session Id",
     };
 
+    if ($scope.isArchipelagoEvent) {
+      $scope.selectModes = {
+        associated: "Associated Archipelago Session",
+        ...$scope.selectModes,
+      };
+    }
+
     if (!$scope.effect.selectMode) {
-      $scope.effect.selectMode = "first";
+      $scope.effect.selectMode = $scope.selectModes[0];
     }
   },
   optionsValidator: (effect) => {
@@ -81,28 +66,79 @@ export const SendChatMessageEffectType: Effects.EffectType<
     if (effect.selectMode === "custom" && !effect.session) {
       errors.push("Enter the name of a session");
     }
-    if (!effect.message?.length) {
+    if (!effect.message.length) {
       errors.push("Please insert a message to send");
     }
     return errors;
   },
-  onTriggerEvent: async ({ effect }) => {
+  getDefaultLabel: (effect) => {
+    let target = "First Archipelago Session";
     switch (effect.selectMode) {
-      case "first": {
-        return client.findSession()?.messages.sendChat(effect.message);
+      case "associated":
+        target = "Associated Archipelago Session";
+        break;
+      case "list":
+        target = "Selected Archipelago Session";
+        break;
+      case "custom":
+        target = `Archipelago Session ${effect.session ?? "Undefined"}`;
+        break;
+    }
+    return `Sending to ${target}: '${effect.message}'`;
+  },
+  onTriggerEvent: async ({ effect, trigger }) => {
+    try {
+      if (!effect.message) {
+        return { success: true };
       }
 
-      case "list": {
-        return client.sessions
-          .get(effect.selectedSession)
-          ?.messages.sendChat(effect.message);
+      switch (effect.selectMode) {
+        case "associated": {
+          const sessionId = trigger.metadata.eventData?.apSessionId;
+          if (!sessionId) {
+            throw new Error("Trigger metadata has no associated 'apSessionId'");
+          }
+
+          await archipelago
+            .findSession(`${sessionId}`)
+            ?.client.messages.say(effect.message);
+
+          break;
+        }
+
+        case "first": {
+          await archipelago
+            .getFirstSession()
+            ?.client.messages.say(effect.message);
+
+          break;
+        }
+
+        case "list": {
+          if (!effect.selectedSession) {
+            throw new Error(
+              "No selected session provided for Send Chat Message effect",
+            );
+          }
+
+          await archipelago
+            .findSession(effect.selectedSession)
+            ?.client.messages.say(effect.message);
+
+          break;
+        }
+
+        case "custom": {
+          // TODO : Fuzzy search on state sessions
+          throw new Error("not implemented");
+        }
       }
 
-      case "custom": {
-        return client
-          .findSession(effect.session)
-          ?.messages.sendChat(effect.message);
-      }
+      return { success: true };
+    } catch (error) {
+      firebot.logger.error("Could not send Chat Message");
+
+      return { success: false };
     }
   },
 };

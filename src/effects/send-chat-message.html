@@ -1,0 +1,18 @@
+<eos-container header="Session" pad-bottom="true">
+  <firebot-radios model="effect.selectMode" options="selectModes" />
+
+  <div ng-if="effect.selectMode === 'list' && sessions"
+    style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 20px;">
+    <firebot-select selected="effect.selectedSession" options="sessions" placeholder="Select a session..." />
+    <button class="btn btn-link" ng-click="getSessionNames()">Refresh Sessions</button>
+  </div>
+
+  <div ng-if="effect.selectMode === 'custom'" style="margin-bottom: 20px;">
+    <firebot-input model="effect.session"
+      placeholder-text="Enter session name, slot name or hostname (will use first match)" menu-position="under" />
+  </div>
+</eos-container>
+
+<eos-container header="Text">
+  <firebot-input model="effect.message" use-text-area="true" placeholder-text="Chat message" rows="3" cols="40" />
+</eos-container>

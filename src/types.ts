@@ -1,220 +1,151 @@
-import {
-  ItemClassification,
-  MessageColor,
-  MessagePartType,
-  Permission,
-  SlotType,
-} from "./enums";
-import {
-  AdminCommandResultJSONPacket,
-  BouncedPacket,
-  BouncePacket,
-  ChatJSONPacket,
-  CollectJSONPacket,
-  CommandResultJSONPacket,
-  ConnectedPacket,
-  ConnectionRefusedPacket,
-  ConnectPacket,
-  ConnectUpdatePacket,
-  CountdownJSONPacket,
-  DataPackagePacket,
-  GetDataPackagePacket,
-  GoalJSONPacket,
-  HintJSONPacket,
-  InvalidPacketPacket,
-  ItemCheatJSONPacket,
-  ItemSendJSONPacket,
-  JoinJSONPacket,
-  LocationInfoPacket,
-  PartJSONPacket,
-  ReceivedItemsPacket,
-  ReleaseJSONPacket,
-  RetrievedPacket,
-  RoomInfoPacket,
-  RoomUpdatePacket,
-  SayPacket,
-  ServerChatJSONPacket,
-  SetReplyPacket,
-  StatusUpdatePacket,
-  TagsChangedJSONPacket,
-  TutorialJSONPacket,
-} from "./interfaces";
+import { MessageNode } from "archipelago.js";
+import { ArchipelagoSession } from "./archipelago/archipelago-session";
 
-export type DataPackage = {
-  readonly games: Record<string, GamePackage>;
+export type ContextMenuEntry = {
+  html?: string;
+  text?: string;
+  children?: Array<ContextMenuEntry>;
+  click?: () => void;
+  hasTopDivider?: boolean;
+  enabled?: () => boolean;
 };
 
-export type GamePackage = {
-  readonly item_name_to_id: Record<string, number>;
-  readonly location_name_to_id: Record<string, number>;
-  readonly checksum: string;
-};
-
-export type ArchipelagoIntegrationSettings = {
-  connection: APConnectionDetails;
-};
-
-export enum ItemType {
-  Progress = "progress",
-  Useful = "useful",
-  Trap = "trap",
+export enum FirebotEvents {
+  Connected = "connected",
+  Countdown = "countdown",
+  DeathLink = "death-link",
+  Disconnected = "disconnected",
+  HintsUpdated = "hints-updated",
+  InitialItems = "initial-items",
+  Message = "message",
+  ReceivedItems = "received-items",
+  SentItems = "sent-items",
+  SlotData = "slot-data",
 }
 
-export type DeathLinkData = {
-  source: string;
-  cause: string;
-  time: number;
+export type State = {
+  sessions: Record<string, ArchipelagoSession>;
 };
 
-export type JSONSerializable =
-  | string
-  | number
-  | boolean
-  | null
-  | JSONRecord
-  | JSONSerializable[];
-
-export type JSONRecord = { [p: string]: JSONSerializable };
-
-export type NetworkItem = {
-  readonly item: number;
-  readonly location: number;
-  readonly player: number;
-  readonly flags: number;
+export type SessionTableEntry = {
+  id: string;
+  handle: string;
 };
 
-export type NetworkPlayer = {
-  readonly team: number;
-  readonly slot: number;
-  readonly alias: string;
-  readonly name: string;
-};
-
-export type NetworkSlot = {
-  readonly name: string;
-  readonly game: string;
-  readonly type: SlotType;
-  readonly group_members: number[];
-};
-
-export type NetworkVersion = {
-  readonly class: "Version";
-  readonly major: number;
-  readonly minor: number;
-  readonly build: number;
-};
-
-export type PermissionTable = {
-  readonly release: Permission;
-  readonly collect: Permission;
-  readonly remaining:
-    | Permission.Disabled
-    | Permission.Enabled
-    | Permission.Goal;
-};
-
-export type ClientPacket =
-  | BouncePacket
-  | ConnectPacket
-  | ConnectUpdatePacket
-  | GetDataPackagePacket
-  | SayPacket
-  | StatusUpdatePacket;
-
-export type ServerPacket =
-  | BouncedPacket
-  | ConnectedPacket
-  | ConnectionRefusedPacket
-  | DataPackagePacket
-  | InvalidPacketPacket
-  | LocationInfoPacket
-  | PrintJSONPacket
-  | ReceivedItemsPacket
-  | RetrievedPacket
-  | RoomInfoPacket
-  | RoomUpdatePacket
-  | SetReplyPacket;
-
-export type APConnectionDetails = {
-  hostname: string;
-  slot: string;
+export type SessionConnection = {
+  id: string;
+  name: string;
   password?: string;
+  url: string;
+  handle: string;
+  status: SessionStatus;
 };
 
-export type APRoom = {
-  connection: APConnectionDetails;
-  games: Array<string>;
-  tags: Array<string>;
+export type StoredSession = Omit<SessionConnection, "handle" | "status">;
+
+export type StoredHint = {
+  id: string;
+  sender: string;
+  senderIsPlayer: boolean;
+  receiver: string;
+  receiverIsPlayer: boolean;
+  item: string;
+  location: string;
+  classification: string;
+  entrance: string;
+  status: string;
 };
 
-export type APCommandDefinition = Record<`/${string}`, APCommandOptions>;
+export type StoredPlayer = {
+  alias: string;
+  game: string;
+  isSessionPlayer: boolean;
+};
+
+export const hintStatuses = Object.freeze({
+  /** The receiving player has not set a status. */
+  [0]: "Unspecified",
+  /** The receiving player has specified this item is unnecessary. */
+  [10]: "No Priority",
+  /** The receiving player has specified this item is detrimental. */
+  [20]: "Avoid",
+  /** The receiving player has specified this item is required/important. */
+  [30]: "Priority",
+  /** The receiving player has received this item. */
+  [40]: "Found",
+});
+
+export const itemClassifications = Object.freeze({
+  /** If set, indicates the item may unlock logical advancement. */
+  [1]: "Progression",
+  /** If set, indicates the item is classified as useful to have. */
+  [2]: "Useful",
+  /** If set, indicates the item can inconvenience a player. */
+  [4]: "Trap",
+  /** A shorthand with no flags set, also known as 'filler' or 'junk' items. */
+  [0]: "Filler",
+});
+
+export type ReadHint = {
+  receiving_player: number;
+  finding_player: number;
+  location: number;
+  item: number;
+  found: boolean;
+  entrance: string;
+  item_flags: keyof typeof itemClassifications;
+  status: keyof typeof hintStatuses;
+  class: "Hint";
+};
+
+export type StateLogMessage = {
+  id: string;
+  text: string;
+  html: string;
+  nodes?: Array<MessageNode>;
+};
+
+export type WidgetLogMessage = {
+  type: MessageNode["type"];
+  html: string;
+};
+
+export enum SessionStatus {
+  Uninitialized = "uninitialized",
+  Connecting = "connecting",
+  Connected = "connected",
+  CouldNotConnect = "could-not-connect",
+  Disconnected = "disconnected",
+}
+
+export type HintData = {
+  hints: number;
+  hintPoints: number;
+  hintPointProgress: number;
+  hintCost: number;
+};
+
+export type ChatCommandDefinition = Record<`/${string}`, APCommandOptions>;
 
 export type APCommandOptions = {
   args?: Record<string, { optional: boolean }>;
   description: string;
-  callback: (sessionId: string, ...args: Array<string>) => void | Promise<void>;
+  callback: (
+    session: ArchipelagoSession,
+    ...args: Array<string>
+  ) => void | Promise<void>;
 };
 
-export type ServiceResponse<T = never> =
+export type ServiceResponse<T> =
   | {
       success: true;
-      data?: T;
-      errors?: null;
+      data: T;
+      errors?: never;
     }
   | {
-      success?: false | null;
-      errors?: Array<string>;
+      success: false;
+      data?: never;
+      errors: string[];
     };
 
-//#region PrintJSON Message Parts
-
-export type ColorJSONMessagePart = {
-  readonly type: MessagePartType.Color;
-  readonly text: string;
-  readonly color: MessageColor;
-};
-
-export type ItemJSONMessagePart = {
-  readonly type: MessagePartType.ItemId | MessagePartType.ItemName;
-  readonly text: string;
-  readonly flags: ItemClassification;
-  readonly player: number;
-};
-
-export type LocationJSONMessagePart = {
-  readonly type: MessagePartType.LocationId | MessagePartType.LocationName;
-  readonly text: string;
-  readonly player: number;
-};
-
-export type TextJSONMessagePart = {
-  readonly type?:
-    | MessagePartType.Text
-    | MessagePartType.EntranceName
-    | MessagePartType.PlayerId
-    | MessagePartType.PlayerName;
-  readonly text: string;
-};
-
-export type JSONMessagePart =
-  | ColorJSONMessagePart
-  | ItemJSONMessagePart
-  | LocationJSONMessagePart
-  | TextJSONMessagePart;
-
-export type PrintJSONPacket =
-  | AdminCommandResultJSONPacket
-  | ChatJSONPacket
-  | CollectJSONPacket
-  | CommandResultJSONPacket
-  | CountdownJSONPacket
-  | GoalJSONPacket
-  | HintJSONPacket
-  | ItemSendJSONPacket
-  | ItemCheatJSONPacket
-  | JoinJSONPacket
-  | PartJSONPacket
-  | ReleaseJSONPacket
-  | ServerChatJSONPacket
-  | TagsChangedJSONPacket
-  | TutorialJSONPacket;
+export type SessionSelectMode = "associated" | "first" | "list" | "custom";
