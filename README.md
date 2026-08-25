@@ -2,9 +2,9 @@
 
 This script is an extension for [Firebot](https://firebot.app) that allows it to connect to Archipelago MultiWorlds and send and receive data as well as hook into various events.
 
-| Text Client View                    | Hints View                          |
-| ----------------------------------- | ----------------------------------- |
-| ![Preview 1](media/screenshot1.png) | ![Preview 2](media/screenshot2.png) |
+![Preview 1](media/screenshot1.png)
+
+![Preview 2](media/screenshot2.png)
 
 ### Setup
 
